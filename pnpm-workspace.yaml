@@ -9,7 +9,7 @@ allowBuilds:
   unrs-resolver: true
 
 catalog:
-  typescript: ~6.0.3
+  typescript: ~7.0.2
   eslint: ^9.39.0
   vitest: ^5.0.4
   '@vitest/coverage-v8': ^5.0.4
