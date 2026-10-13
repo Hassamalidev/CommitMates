@@ -19,6 +19,8 @@ Phase 1 builds the database layer, the Settings Engine, the job system and the G
 | cron-parser | 5.10 | MIT | Next run time of `job_schedules` |
 | `@octokit/core`, `@octokit/request-error` | 7 | MIT | GitHub REST and GraphQL transport |
 | msw | 2.15 | MIT | HTTP mocking in tests |
+| yaml | 2.9 | ISC | Parsing Linguist and github/explore data |
+| re2js | 2.8 | MIT | RE2 regex engine (pure JavaScript port) for upstream patterns |
 
 ### Octokit without the throttling and retry plugins
 
@@ -49,6 +51,10 @@ A fresh database has no Supabase `auth` schema, so the template gets a minimal s
 ### `JobContext` has no `github` factory
 
 §5.4 puts `github: (identity) => GitHubClient` on `JobContext`. `packages/jobs` may not import `packages/github` (§4.3). Handlers live in `core`, which may import both, and call `githubFor(identity)` directly. The client is budget-aware on its own, so nothing is lost.
+
+### re2js as the RE2 engine
+
+§3.1 offers `re2-wasm` or `re2`. `re2` is a native addon, which is fragile on serverless hosts and on Windows development machines; `re2-wasm` has had no release since 2022. `re2js` is a maintained pure-JavaScript port of RE2 (MIT) with the same linear-time guarantee and the same refusal of look-arounds and backreferences, which is the property the spec asks for.
 
 ### Search results are not ETag-cached
 
