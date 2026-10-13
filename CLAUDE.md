@@ -2843,7 +2843,7 @@ Branch `phase/0-groundwork`. Goal: an empty but production-grade monorepo with C
 - [x] **P0-T03 Package skeletons.** Spec: §4.1–4.3.
   - Every package and `apps/worker` with `src/index.ts`, a README (purpose, public API, allowed imports), and one sample test.
   - Done when: build and tests pass; an illegal cross-package import fails lint (tested).
-- [ ] **P0-T04 Web app shell.** Spec: §4.1.
+- [x] **P0-T04 Web app shell.** Spec: §4.1.
   - Next.js in `apps/web` with Tailwind, base layout, `/health` page and a route returning version and server time.
   - Done when: the app renders and builds.
 - [ ] **P0-T05 Testing infrastructure.** Spec: §11.
@@ -3142,6 +3142,7 @@ Branch `phase/7-launch`. Goal: secure, fast, accessible, documented, deployed.
 
 Newest first, one line per completed task or subtask: `YYYY-MM-DD — <task id> — <what was done>`. A `BLOCKED:` line, when present, is always the first line (§13). Spec fixes made under §0.9 are logged here too.
 
+- 2026-10-14 — P0-T04 — Next.js 16 app shell in apps/web with Tailwind 4, base layout, security headers, /health page and /api/health route (version, commit, server time).
 - 2026-10-14 — P0-T03 — Skeletons for the nine packages and apps/worker (README, src/index.ts, sample test each); first real code: stats mean/clamp and the worker's non-overlapping run loop. Turbo's auto-generated AGENTS.md removed and disabled (agentGuidance: false) because it is outside the §4.1 layout.
 - 2026-10-14 — P0-T02 — pnpm workspace with catalog, Turborepo pipelines, packages/config (strict tsconfig, ESLint flat config with boundary + AI-SDK + fixture rules, Prettier, Vitest preset). TypeScript pinned to 6.0.x and ESLint to 9.x because typescript-eslint and the React/a11y plugins do not yet support TS 7 / ESLint 10; turbo pinned to 2.11.7 (newest release past pnpm's release-age cutoff).
 - 2026-10-14 — P0-T01 — Repo initialised with .gitignore, .editorconfig, .gitattributes, .nvmrc (Node 24), MIT LICENSE, README stub; pushed to origin/main. HUMAN follow-up still open: protect `main` (require CI, block force pushes).
