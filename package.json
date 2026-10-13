@@ -1,0 +1,45 @@
+{
+  "name": "commitmates",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "license": "MIT",
+  "packageManager": "pnpm@12.8.1",
+  "engines": {
+    "node": ">=24"
+  },
+  "scripts": {
+    "dev": "turbo run dev",
+    "lint": "turbo run lint",
+    "lint:root": "eslint \"*.{js,ts}\" scripts e2e --max-warnings 0 --no-error-on-unmatched-pattern",
+    "typecheck": "turbo run typecheck",
+    "typecheck:root": "tsc --noEmit",
+    "test": "turbo run test test:root",
+    "build": "turbo run build",
+    "format": "prettier --write .",
+    "verify": "pnpm lint && pnpm typecheck && pnpm check:hardcoded && pnpm check:licenses && pnpm check:contrast && pnpm test && pnpm build",
+    "test:watch": "vitest",
+    "test:e2e": "pnpm --filter @commitmates/web build && playwright test",
+    "db:start": "supabase start",
+    "db:stop": "supabase stop",
+    "db:status": "supabase status",
+    "test:root": "vitest run --config scripts/vitest.config.ts",
+    "check:hardcoded": "tsx scripts/check-hardcoded.ts",
+    "check:licenses": "tsx scripts/check-licenses.ts",
+    "check:contrast": "tsx scripts/check-contrast.ts"
+  },
+  "devDependencies": {
+    "@axe-core/playwright": "^4.13.0",
+    "@commitmates/config": "workspace:*",
+    "@playwright/test": "^1.64.0",
+    "@types/node": "catalog:",
+    "eslint": "catalog:",
+    "prettier": "^3.9.10",
+    "supabase": "^2.120.0",
+    "tsx": "catalog:",
+    "turbo": "2.11.7",
+    "typescript": "catalog:",
+    "vitest": "catalog:",
+    "zod": "catalog:"
+  }
+}

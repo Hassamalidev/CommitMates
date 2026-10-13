@@ -1,0 +1,4 @@
+{
+  "extends": "./tsconfig/base.json",
+  "include": ["eslint", "prettier", "vitest", "vitest.config.js"]
+}

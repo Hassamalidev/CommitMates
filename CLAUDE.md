@@ -2836,30 +2836,30 @@ Branch `phase/0-groundwork`. Goal: an empty but production-grade monorepo with C
   - Human: create the GitHub repository (public is recommended for free CI minutes), add it as `origin`, choose a license (default MIT), and after the first push protect `main` (require CI, block force pushes).
   - Claude: add `.gitignore`, `.editorconfig`, `.nvmrc` (current Node LTS), `LICENSE`, a `README.md` stub (what it is, how to run, link to this file), and this `CLAUDE.md`.
   - Done when: the first commit is on `origin/main` and the `phase/0-groundwork` branch exists.
-- [ ] **P0-T02 Monorepo tooling.** Spec: §3, §4, §10.1.
+- [x] **P0-T02 Monorepo tooling.** Spec: §3, §4, §10.1.
   - pnpm workspace, `turbo.json` pipelines (`lint`, `typecheck`, `test`, `build`, with caching), root scripts from §14.2.
   - `packages/config`: strict tsconfig base, ESLint flat config (rules from §10.12 including boundary rules), Prettier, Vitest preset.
   - Done when: `pnpm verify` runs green on the empty workspace.
-- [ ] **P0-T03 Package skeletons.** Spec: §4.1–4.3.
+- [x] **P0-T03 Package skeletons.** Spec: §4.1–4.3.
   - Every package and `apps/worker` with `src/index.ts`, a README (purpose, public API, allowed imports), and one sample test.
   - Done when: build and tests pass; an illegal cross-package import fails lint (tested).
-- [ ] **P0-T04 Web app shell.** Spec: §4.1.
+- [x] **P0-T04 Web app shell.** Spec: §4.1.
   - Next.js in `apps/web` with Tailwind, base layout, `/health` page and a route returning version and server time.
   - Done when: the app renders and builds.
-- [ ] **P0-T05 Testing infrastructure.** Spec: §11.
+- [x] **P0-T05 Testing infrastructure.** Spec: §11.
   - Vitest workspace config, Testing Library, MSW helpers, Playwright config with a smoke test on `/health`, an axe helper.
   - Done when: `pnpm test` and `pnpm test:e2e` pass locally.
-- [ ] **P0-T06 Local infrastructure and environment.** Spec: §5.2, §14.1.
+- [x] **P0-T06 Local infrastructure and environment.** Spec: §5.2, §14.1.
   - `supabase/config.toml` (GitHub provider placeholders, mail catcher), `pnpm db:start` / `db:stop`.
   - `packages/env` zod schemas (server, client, worker) and `.env.example`.
   - Done when: starting the app without required variables fails with a clear list of what's missing; with `.env.local` it runs.
-- [ ] **P0-T07 Quality scripts.** Spec: §10.12.
+- [x] **P0-T07 Quality scripts.** Spec: §10.12.
   - `scripts/check-hardcoded.ts`, `scripts/check-licenses.ts`, `scripts/check-contrast.ts` (reads token files when they exist), wired into `pnpm verify`.
   - Done when: each script has tests and a deliberate violation fails it.
-- [ ] **P0-T08 CI and repository hygiene.** Spec: §12.6, §12.7, §15.2.
+- [x] **P0-T08 CI and repository hygiene.** Spec: §12.6, §12.7, §15.2.
   - `.github/workflows/ci.yml`, `.github/dependabot.yml`, `.github/pull_request_template.md`, `.gitleaks.toml`.
   - Done when: CI is green on push.
-- [ ] **P0-T09 Maintained docs scaffold.** Spec: §0.2, §15.1.
+- [x] **P0-T09 Maintained docs scaffold.** Spec: §0.2, §15.1.
   - `docs/ALGORITHMS.md`, `docs/DATA_SOURCES.md`, `docs/PRIVACY.md`, `docs/runbooks/README.md`, `docs/decisions/ADR-001-stack.md` (every tool's license and current free-tier terms, checked with dates and links).
   - Done when: files exist with headings and ADR-001 is complete.
 
@@ -3142,5 +3142,13 @@ Branch `phase/7-launch`. Goal: secure, fast, accessible, documented, deployed.
 
 Newest first, one line per completed task or subtask: `YYYY-MM-DD — <task id> — <what was done>`. A `BLOCKED:` line, when present, is always the first line (§13). Spec fixes made under §0.9 are logged here too.
 
+- 2026-10-14 — P0-T09 — Maintained docs scaffold: ALGORITHMS, DATA_SOURCES, PRIVACY, runbooks index + local-setup, ADR-001 (versions, licenses, pins for TypeScript 6 / ESLint 9 / turbo, sharp removal; Supabase Free and Vercel Hobby terms read 2026-10-14; unverified terms listed explicitly).
+- 2026-10-14 — P0-T08 — CI workflow (verify + e2e on PRs, gitleaks scan), Dependabot, PR template, .gitleaks.toml; CI run 38461163142 green on push. Supabase start and db:migrate join the workflow with the first migration (P1-T01).
+- 2026-10-14 — P0-T07 — check:hardcoded (TypeScript AST: numbers > 1 and 3+ string arrays in core and algorithms unless a documented constant or allowed-literal), check:licenses (SPDX expression evaluation over the production closure, reviewed exceptions file), check:contrast (WCAG AA over token pairs; skips until tokens exist), all tested with deliberate violations and wired into pnpm verify. sharp excluded (LGPL libvips); images served unoptimized.
+- 2026-10-14 — P0-T06 — supabase/config.toml (GitHub provider via env(), mail catcher with SMTP port, Drizzle owns migrations), db:start/stop/status scripts, packages/env (client, server, worker schemas; lazy per-variable reads; assert*Env at startup), .env.example, one root .env.local for web, worker and scripts. Web startup without variables fails with the full list; with .env.local it runs.
+- 2026-10-14 — P0-T05 — Testing infrastructure: jsdom + Testing Library preset, MSW server helper (unhandled requests fail), axe helpers for Vitest and Playwright, Playwright config (desktop + 360px) with a /health smoke test; pnpm test and pnpm test:e2e pass locally.
+- 2026-10-14 — P0-T04 — Next.js 16 app shell in apps/web with Tailwind 4, base layout, security headers, /health page and /api/health route (version, commit, server time).
+- 2026-10-14 — P0-T03 — Skeletons for the nine packages and apps/worker (README, src/index.ts, sample test each); first real code: stats mean/clamp and the worker's non-overlapping run loop. Turbo's auto-generated AGENTS.md removed and disabled (agentGuidance: false) because it is outside the §4.1 layout.
+- 2026-10-14 — P0-T02 — pnpm workspace with catalog, Turborepo pipelines, packages/config (strict tsconfig, ESLint flat config with boundary + AI-SDK + fixture rules, Prettier, Vitest preset). TypeScript pinned to 6.0.x and ESLint to 9.x because typescript-eslint and the React/a11y plugins do not yet support TS 7 / ESLint 10; turbo pinned to 2.11.7 (newest release past pnpm's release-age cutoff).
 - 2026-10-14 — P0-T01 — Repo initialised with .gitignore, .editorconfig, .gitattributes, .nvmrc (Node 24), MIT LICENSE, README stub; pushed to origin/main. HUMAN follow-up still open: protect `main` (require CI, block force pushes).
 - 2026-10-13 — spec — CLAUDE.md v1 created: 22 features, 8 phases, 85 tasks.

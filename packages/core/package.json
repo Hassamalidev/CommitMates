@@ -1,0 +1,31 @@
+{
+  "name": "@commitmates/core",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "license": "MIT",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "lint": "eslint . --max-warnings 0",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "@commitmates/algorithms": "workspace:*",
+    "@commitmates/db": "workspace:*",
+    "@commitmates/env": "workspace:*",
+    "@commitmates/github": "workspace:*",
+    "@commitmates/sources": "workspace:*",
+    "@commitmates/jobs": "workspace:*",
+    "@commitmates/email": "workspace:*"
+  },
+  "devDependencies": {
+    "@commitmates/config": "workspace:*",
+    "@types/node": "catalog:",
+    "eslint": "catalog:",
+    "typescript": "catalog:",
+    "vitest": "catalog:"
+  }
+}
