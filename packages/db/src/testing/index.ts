@@ -2,10 +2,13 @@ import { createHash, randomBytes } from 'node:crypto';
 import { readFileSync, readdirSync } from 'node:fs';
 import path from 'node:path';
 
+import { inArray, sql as drizzleSql } from 'drizzle-orm';
 import postgres from 'postgres';
 
-import { createDb, setDb, type Db } from '../client';
+import { createDb, getDb, setDb, type Db } from '../client';
 import { MIGRATIONS_FOLDER, runMigrations } from '../migrate';
+import { settings } from '../schema';
+import { clearSettingsCache, type SettingKey, type SettingValue } from '../settings';
 
 /**
  * Scratch databases for integration tests (CLAUDE.md §11.3).
@@ -171,4 +174,39 @@ export async function insertTestUser(sql: postgres.Sql): Promise<string> {
   if (!row) throw new Error('auth.users insert returned no row');
   await sql`insert into users (id) values (${row.id})`;
   return row.id;
+}
+
+/**
+ * Overrides settings while `run` executes, then restores the previous overrides
+ * (CLAUDE.md §11.3). Requires `useTestDatabase()`.
+ */
+export async function withSettings<T>(
+  overrides: { [K in SettingKey]?: SettingValue<K> },
+  run: () => Promise<T>,
+): Promise<T> {
+  const db = getDb();
+  const keys = Object.keys(overrides);
+  const previous = await db
+    .select({ key: settings.key, overrideValue: settings.overrideValue })
+    .from(settings)
+    .where(inArray(settings.key, keys));
+
+  for (const [key, value] of Object.entries(overrides)) {
+    await db.execute(
+      drizzleSql`update settings set override_value = ${JSON.stringify(value)}::jsonb where key = ${key}`,
+    );
+  }
+  clearSettingsCache();
+  try {
+    return await run();
+  } finally {
+    for (const row of previous) {
+      await db.execute(
+        drizzleSql`update settings set override_value = ${
+          row.overrideValue === null ? null : JSON.stringify(row.overrideValue)
+        }::jsonb where key = ${row.key}`,
+      );
+    }
+    clearSettingsCache();
+  }
 }

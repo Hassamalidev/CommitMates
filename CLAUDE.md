@@ -915,6 +915,35 @@ These are the seed defaults. "Computed" names the data the nightly job uses once
 | `squads.kMax` | integer | 6 | — | Max clusters tried |
 | `squads.defaultTeamSize` | integer | 4 | — | Default team size |
 
+**Added during implementation**
+
+Keys that §8 names as "new key" (or that a formula needs), seeded in `0003_settings_seed.sql` with the rest.
+
+| Key | Type | Default | Computed | Meaning |
+| --- | --- | --- | --- | --- |
+| `persona.manifestRepos` | integer | 10 | — | Most recently pushed repos whose manifests are read (F1) |
+| `companion.activityRef` | integer | 1000 | — | Yearly contributions that map to activity score 1 before samples exist (F1) |
+| `recruiter.profileReadme.minChars` | integer | 200 | — | Profile README length that earns credit (F3) |
+| `ir.bm25.k1` | number | 1.2 | — | BM25 term-frequency saturation (F9) |
+| `ir.bm25.b` | number | 0.75 | — | BM25 length normalization (F9) |
+| `fyp.bands` | number\[\] | \[40,70\] | — | Similarity cut-offs: related and very similar (F9) |
+| `fyp.detectTerms` | string\[\] | \["final year project","fyp"\] | — | Seed vocabulary that marks a README as a final-year project (F22) |
+| `verify.voucherMinDays` | integer | 7 | — | Days a member must be verified before vouching (F10) |
+| `matching.tuneMinSuccesses` | integer | 30 | — | Successful matches needed before weights are tuned (F11) |
+| `chat.requestTtlDays` | integer | 14 | — | Days before an unanswered message request expires (F12) |
+| `chat.editWindowMinutes` | integer | 10 | — | Minutes a message stays editable (F12) |
+| `streaks.maxActivePairs` | integer | 3 | — | Active pairs one member may have (F13) |
+| `adoptions.dropAfterDays` | integer | 90 | — | Days without commits before an adoption is dropped (F14) |
+| `reviews.autoSettleDays` | integer | 7 | — | Days without a rating before a review settles as helpful (F15) |
+| `crawler.minCitySeedMembers` | integer | 2 | — | Members in a city before it seeds the crawler (F18) |
+| `crawler.refreshDays` | integer | 30 | — | Days between re-crawls of a cursor (F18) |
+| `leaderboard.minDeptMembers` | integer | 5 | — | Verified members a department needs to be ranked (F19) |
+| `leaderboard.weights` | json | {"activeRatio":0.5,"medianActiveDays":0.3,"revivals":0.1,"helpfulReviews":0.1} | — | University score weights (F19) |
+| `alumni.transitionMonth` | integer | 7 | — | Month after which last year's graduates become alumni (F20) |
+| `squads.minOverlapHours` | integer | 4 | — | Weekly availability overlap a team needs (F21) |
+
+`min_sample` for computed keys is seeded as 200 for sample percentiles, 30 for `matching.weights` and `streaks.companionStageDays`. `graveyard.idleMonths.<category>` rows are created by the recompute job per category and are not part of the static key registry.
+
 ### 5.6 GitHub client (`packages/github`)
 
 **Token identities.** Exactly two kinds:
@@ -2871,7 +2900,7 @@ Branch `phase/1-core`. Goal: database, settings, jobs, GitHub client, auth, desi
   - Tables: identity group, `settings`, `settings_history`, `jobs`, `job_schedules`, `api_cache`, `github_budgets`, `rate_limit_buckets`, `metric_samples`, `salts`, `geocode_cache`, `geocoder_lock`, `source_snapshots`, `audit_log`, `notifications`, `notification_prefs`, `feedback`, `tool_sessions`, `roles`.
   - `take_token` function, `updated_at` triggers, RLS enabled everywhere, policies only where §5.9 says.
   - Done when: migrations apply on a fresh database; a test proves `anon` and `authenticated` can't read platform tables.
-- [ ] **P1-T02 Settings engine.** Spec: §5.5.
+- [x] **P1-T02 Settings engine.** Spec: §5.5.
   - Key registry, `getSetting`, `setComputed`, `setOverride`, zod schemas for JSON keys, in-memory cache.
   - Seed migration containing every key in §5.5.1.
   - Recompute framework: a registry mapping computed keys to functions, run by `recompute_settings`.
@@ -3142,6 +3171,7 @@ Branch `phase/7-launch`. Goal: secure, fast, accessible, documented, deployed.
 
 Newest first, one line per completed task or subtask: `YYYY-MM-DD — <task id> — <what was done>`. A `BLOCKED:` line, when present, is always the first line (§13). Spec fixes made under §0.9 are logged here too.
 
+- 2026-10-14 — P1-T02 — Settings Engine: typed key registry (160 keys), getSetting with a table snapshot bounded by settings.cacheMs, setComputed (history above settings.historyMinDelta), setOverride (history + audit log), zod schemas for JSON keys, seed migration, recompute registry with metricPercentile, withSettings test helper, AppError hierarchy. 20 keys named in §8 as new were added to §5.5.1.
 - 2026-10-14 — P1-T01 — Schema v1 with Drizzle (identity, settings, jobs, caches, platform tables), take_token, updated_at triggers, RLS on every table with the single notifications policy; migrations apply to a fresh database and to local Supabase. Test isolation uses one scratch database per test file cloned from a migrated template (not a schema per file as §11.3 says) because migrations create enum types in public. CI now starts Supabase and applies migrations.
 - 2026-10-14 — P0-T09 — Maintained docs scaffold: ALGORITHMS, DATA_SOURCES, PRIVACY, runbooks index + local-setup, ADR-001 (versions, licenses, pins for TypeScript 6 / ESLint 9 / turbo, sharp removal; Supabase Free and Vercel Hobby terms read 2026-10-14; unverified terms listed explicitly).
 - 2026-10-14 — P0-T08 — CI workflow (verify + e2e on PRs, gitleaks scan), Dependabot, PR template, .gitleaks.toml; CI run 38461163142 green on push. Supabase start and db:migrate join the workflow with the first migration (P1-T01).
