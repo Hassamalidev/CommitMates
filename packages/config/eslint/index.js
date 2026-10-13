@@ -123,7 +123,7 @@ export default tseslint.config(
   },
   {
     name: 'commitmates/scripts',
-    files: ['scripts/**', 'apps/worker/src/index.ts'],
+    files: ['scripts/**', 'apps/worker/src/main.ts'],
     rules: { 'no-console': 'off' },
   },
   ...restrictedImportBlocks(),

@@ -1,9 +1,20 @@
 import { defineConfig, devices } from '@playwright/test';
 
+import { localTestEnv } from './packages/env/src/test-values';
+
 /** Port of the production build that Playwright starts; separate from `pnpm dev`. */
 const E2E_PORT = Number(process.env.E2E_PORT ?? '3100');
 const baseURL = `http://127.0.0.1:${E2E_PORT}`;
 const isCi = Boolean(process.env.CI);
+
+/** Real variables from the shell or CI win over the local defaults. */
+function definedEnv(source: Record<string, string | undefined>): Record<string, string> {
+  const result: Record<string, string> = {};
+  for (const [key, value] of Object.entries(source)) {
+    if (value !== undefined && value !== '') result[key] = value;
+  }
+  return result;
+}
 
 export default defineConfig({
   testDir: './e2e',
@@ -25,6 +36,7 @@ export default defineConfig({
     command: `pnpm --filter @commitmates/web exec next start --port ${E2E_PORT}`,
     url: `${baseURL}/api/health`,
     reuseExistingServer: !isCi,
+    env: definedEnv({ ...localTestEnv({ NEXT_PUBLIC_SITE_URL: baseURL }), ...definedEnv(process.env) }),
     timeout: 120_000,
   },
 });

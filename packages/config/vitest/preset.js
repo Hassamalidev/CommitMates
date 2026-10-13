@@ -19,6 +19,8 @@ export function definePackageConfig(options = {}) {
   const { dom = false, setupFiles = [], thresholds, coverageExclude = [], overrides = {} } = options;
 
   return defineConfig({
+    // Packages run in parallel under Turborepo; a shared cache directory makes them race.
+    cacheDir: 'node_modules/.vitest',
     ...overrides,
     test: {
       environment: dom ? 'jsdom' : 'node',

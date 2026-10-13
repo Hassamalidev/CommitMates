@@ -15,6 +15,7 @@
   "dependencies": {
     "@commitmates/env": "workspace:*",
     "@commitmates/ui": "workspace:*",
+    "@next/env": "^16.4.0",
     "next": "^16.4.0",
     "react": "catalog:",
     "react-dom": "catalog:"

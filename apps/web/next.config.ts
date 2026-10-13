@@ -1,4 +1,11 @@
+import path from 'node:path';
+
+import { loadEnvConfig } from '@next/env';
 import type { NextConfig } from 'next';
+
+// One .env.local at the repository root serves the web app, the worker and the scripts.
+// Next has already loaded apps/web/.env* by now, so the reload has to be forced.
+loadEnvConfig(path.resolve(import.meta.dirname, '../..'), process.env.NODE_ENV !== 'production', console, true);
 
 /** Headers sent with every response (CLAUDE.md §5.10). The CSP with nonces is added with auth in Phase 1. */
 const securityHeaders = [
