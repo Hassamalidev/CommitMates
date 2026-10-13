@@ -45,7 +45,8 @@ jobs:
           ./gitleaks detect --source . --no-banner --redact
 
   e2e:
-    if: github.event_name == 'pull_request'
+    # Pull requests to main, and phase branches (phases are merged without a PR until the GitHub CLI is set up).
+    if: github.event_name == 'pull_request' || startsWith(github.ref, 'refs/heads/phase/')
     runs-on: ubuntu-latest
     timeout-minutes: 30
     needs: verify
@@ -57,6 +58,19 @@ jobs:
           node-version-file: .nvmrc
           cache: pnpm
       - run: pnpm install --frozen-lockfile
+      - name: Start local Supabase
+        run: pnpm exec supabase start
+      - name: Apply migrations
+        run: pnpm db:migrate
+        env:
+          DIRECT_DATABASE_URL: postgresql://postgres:postgres@127.0.0.1:54322/postgres
+      - name: Export the local stack's development keys
+        run: |
+          pnpm exec supabase status -o env | tr -d '"' > supabase.env
+          echo "NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY=$(grep '^PUBLISHABLE_KEY=' supabase.env | cut -d= -f2-)" >> "$GITHUB_ENV"
+          echo "SUPABASE_SECRET_KEY=$(grep '^SECRET_KEY=' supabase.env | cut -d= -f2-)" >> "$GITHUB_ENV"
+          echo "NEXT_PUBLIC_SUPABASE_URL=http://127.0.0.1:54321" >> "$GITHUB_ENV"
+          rm supabase.env
       - run: pnpm exec playwright install --with-deps chromium
       - run: pnpm test:e2e
       - uses: actions/upload-artifact@v4

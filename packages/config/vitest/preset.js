@@ -27,6 +27,8 @@ export function definePackageConfig(options = {}) {
       setupFiles: dom ? [DOM_SETUP, ...setupFiles] : setupFiles,
       include: ['src/**/*.test.{ts,tsx}', '{eslint,testing}/**/*.test.js'],
       passWithNoTests: false,
+      // Per-package module cache: the default is shared at the workspace root and races under Turborepo.
+      fsModuleCachePath: 'node_modules/.vitest-cache',
       // Integration tests create a scratch database per file.
       hookTimeout: 60000,
       restoreMocks: true,

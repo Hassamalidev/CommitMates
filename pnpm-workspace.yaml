@@ -5,6 +5,7 @@ packages:
 # One version per shared tool across the workspace. Major versions are recorded in ADR-001.
 allowBuilds:
   esbuild: true
+  msw: false
   supabase: true
   unrs-resolver: true
 

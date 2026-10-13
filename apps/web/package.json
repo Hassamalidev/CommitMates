@@ -17,6 +17,8 @@
     "@commitmates/env": "workspace:*",
     "@commitmates/ui": "workspace:*",
     "@next/env": "^16.4.0",
+    "@supabase/ssr": "^0.12.7",
+    "@supabase/supabase-js": "^2.117.3",
     "next": "^16.4.0",
     "react": "catalog:",
     "react-dom": "catalog:",

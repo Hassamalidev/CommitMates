@@ -37,6 +37,8 @@
     "@axe-core/playwright": "^4.13.0",
     "@commitmates/config": "workspace:*",
     "@playwright/test": "^1.64.0",
+    "@supabase/ssr": "^0.12.7",
+    "@supabase/supabase-js": "^2.117.3",
     "@types/node": "catalog:",
     "eslint": "catalog:",
     "prettier": "^3.9.10",

@@ -20,7 +20,8 @@
     "@commitmates/sources": "workspace:*",
     "@commitmates/jobs": "workspace:*",
     "@commitmates/email": "workspace:*",
-    "zod": "catalog:"
+    "zod": "catalog:",
+    "drizzle-orm": "^0.45.4"
   },
   "devDependencies": {
     "@commitmates/config": "workspace:*",
