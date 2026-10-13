@@ -27,6 +27,8 @@ export function definePackageConfig(options = {}) {
       setupFiles: dom ? [DOM_SETUP, ...setupFiles] : setupFiles,
       include: ['src/**/*.test.{ts,tsx}', '{eslint,testing}/**/*.test.js'],
       passWithNoTests: false,
+      // Integration tests create a scratch database per file.
+      hookTimeout: 60000,
       restoreMocks: true,
       unstubEnvs: true,
       coverage: {

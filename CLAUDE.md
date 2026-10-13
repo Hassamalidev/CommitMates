@@ -2867,7 +2867,7 @@ Branch `phase/0-groundwork`. Goal: an empty but production-grade monorepo with C
 
 Branch `phase/1-core`. Goal: database, settings, jobs, GitHub client, auth, design system and admin basics.
 
-- [ ] **P1-T01 Schema v1 and RLS baseline.** Spec: §5.4, §5.5, §5.6, §5.10, §7.1, §7.4, §7.5.
+- [x] **P1-T01 Schema v1 and RLS baseline.** Spec: §5.4, §5.5, §5.6, §5.10, §7.1, §7.4, §7.5.
   - Tables: identity group, `settings`, `settings_history`, `jobs`, `job_schedules`, `api_cache`, `github_budgets`, `rate_limit_buckets`, `metric_samples`, `salts`, `geocode_cache`, `geocoder_lock`, `source_snapshots`, `audit_log`, `notifications`, `notification_prefs`, `feedback`, `tool_sessions`, `roles`.
   - `take_token` function, `updated_at` triggers, RLS enabled everywhere, policies only where §5.9 says.
   - Done when: migrations apply on a fresh database; a test proves `anon` and `authenticated` can't read platform tables.
@@ -3142,6 +3142,7 @@ Branch `phase/7-launch`. Goal: secure, fast, accessible, documented, deployed.
 
 Newest first, one line per completed task or subtask: `YYYY-MM-DD — <task id> — <what was done>`. A `BLOCKED:` line, when present, is always the first line (§13). Spec fixes made under §0.9 are logged here too.
 
+- 2026-10-14 — P1-T01 — Schema v1 with Drizzle (identity, settings, jobs, caches, platform tables), take_token, updated_at triggers, RLS on every table with the single notifications policy; migrations apply to a fresh database and to local Supabase. Test isolation uses one scratch database per test file cloned from a migrated template (not a schema per file as §11.3 says) because migrations create enum types in public. CI now starts Supabase and applies migrations.
 - 2026-10-14 — P0-T09 — Maintained docs scaffold: ALGORITHMS, DATA_SOURCES, PRIVACY, runbooks index + local-setup, ADR-001 (versions, licenses, pins for TypeScript 6 / ESLint 9 / turbo, sharp removal; Supabase Free and Vercel Hobby terms read 2026-10-14; unverified terms listed explicitly).
 - 2026-10-14 — P0-T08 — CI workflow (verify + e2e on PRs, gitleaks scan), Dependabot, PR template, .gitleaks.toml; CI run 38461163142 green on push. Supabase start and db:migrate join the workflow with the first migration (P1-T01).
 - 2026-10-14 — P0-T07 — check:hardcoded (TypeScript AST: numbers > 1 and 3+ string arrays in core and algorithms unless a documented constant or allowed-literal), check:licenses (SPDX expression evaluation over the production closure, reviewed exceptions file), check:contrast (WCAG AA over token pairs; skips until tokens exist), all tested with deliberate violations and wired into pnpm verify. sharp excluded (LGPL libvips); images served unoptimized.

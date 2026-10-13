@@ -26,7 +26,10 @@
     "test:root": "vitest run --config scripts/vitest.config.ts",
     "check:hardcoded": "tsx scripts/check-hardcoded.ts",
     "check:licenses": "tsx scripts/check-licenses.ts",
-    "check:contrast": "tsx scripts/check-contrast.ts"
+    "check:contrast": "tsx scripts/check-contrast.ts",
+    "db:generate": "pnpm --filter @commitmates/db db:generate",
+    "db:migrate": "pnpm --filter @commitmates/db db:migrate",
+    "db:studio": "pnpm --filter @commitmates/db db:studio"
   },
   "devDependencies": {
     "@axe-core/playwright": "^4.13.0",

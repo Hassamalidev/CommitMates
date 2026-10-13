@@ -29,6 +29,12 @@ jobs:
       - run: pnpm install --frozen-lockfile
       - run: pnpm lint && pnpm typecheck
       - run: pnpm check:hardcoded && pnpm check:licenses && pnpm check:contrast
+      - name: Start local Supabase for integration tests
+        run: pnpm exec supabase start
+      - name: Apply migrations to the Supabase database
+        run: pnpm db:migrate
+        env:
+          DIRECT_DATABASE_URL: postgresql://postgres:postgres@127.0.0.1:54322/postgres
       - run: pnpm test
       - run: pnpm build
       - name: Secret scan (gitleaks CLI)
