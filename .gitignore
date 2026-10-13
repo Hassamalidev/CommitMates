@@ -1,0 +1,37 @@
+# dependencies
+node_modules/
+.pnpm-store/
+
+# builds and caches
+.next/
+dist/
+out/
+.turbo/
+coverage/
+*.tsbuildinfo
+next-env.d.ts
+
+# environment (only .env.example is committed)
+.env
+.env.*
+!.env.example
+
+# tests
+playwright-report/
+test-results/
+blob-report/
+
+# local infrastructure
+supabase/.branches/
+supabase/.temp/
+backups/
+
+# tooling
+.vercel/
+.claude/
+*.log
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/*
+!.vscode/extensions.json
