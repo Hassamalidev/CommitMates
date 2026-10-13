@@ -2915,7 +2915,7 @@ Branch `phase/1-core`. Goal: database, settings, jobs, GitHub client, auth, desi
 - [x] **P1-T05 Crypto and rate limiting.** Spec: §5.10.
   - `encrypt`/`decrypt` with key versions, OTP helpers, `guardRate`, IP hashing with a daily salt, `cleanup_rate_buckets` and `rotate_salts` jobs.
   - Done when: tests cover round trips, rotation, bucket refill and exhaustion.
-- [ ] **P1-T06 \[HUMAN\] GitHub OAuth app for local development.** Spec: §5.2.
+- [x] **P1-T06 \[HUMAN\] GitHub OAuth app for local development.** Spec: §5.2.
   - Human: create a GitHub OAuth app with callback `http://localhost:54321/auth/v1/callback` (or the local Supabase URL), put the client id and secret in local Supabase config, and create the fine-grained `GITHUB_SERVER_TOKEN` (public read-only).
   - Claude: write `docs/runbooks/github-oauth.md` with exact steps for dev, staging and prod.
 - [ ] **P1-T07 Authentication.** Spec: §5.11, §8 F10 step 1.
@@ -3171,6 +3171,7 @@ Branch `phase/7-launch`. Goal: secure, fast, accessible, documented, deployed.
 
 Newest first, one line per completed task or subtask: `YYYY-MM-DD — <task id> — <what was done>`. A `BLOCKED:` line, when present, is always the first line (§13). Spec fixes made under §0.9 are logged here too.
 
+- 2026-10-14 — P1-T06 — Claude part done: docs/runbooks/github-oauth.md (OAuth apps for local, staging and prod, the fine-grained server token, bootstrap admin). HUMAN part still open and listed in docs/HUMAN_TODO.md: create the local OAuth app and GITHUB_SERVER_TOKEN.
 - 2026-10-14 — P1-T05 — OTP helpers (hashed with pepper, constant-time compare), guardRate over take_token with retry hints, hashIp with a daily salt, hashSubject with an aggregate salt, rotate_salts and cleanup_rate_buckets jobs with daily schedules, web guardToolRate/guardWriteRate. Spec fix (§7.4): salts gains a kind column and pk (kind, period), because the daily IP salt and the 30-day aggregate salt have different lifetimes and would collide on period alone.
 - 2026-10-14 — P1-T04 — GitHub client: two token identities, @octokit/core transport, ETag cache, budgets from headers and /rate_limit with reserves, row-locked search pacer, secondary-limit handling, 202 stats retries, typed errors, zod parsing, GraphQL helper requiring rateLimit, parseGitHubUrl; AES-256-GCM token encryption with key versions. MSW tests cover 200, 304, 202, 401, 403/429 with and without retry-after, 404, 422, 5xx. Spec deviations recorded in ADR-002: Octokit throttling/retry plugins not used (limits are coordinated in Postgres), MSW pinned to 2.x, search responses not ETag-cached.
 - 2026-10-14 — P1-T03 — Job system: enqueue with idempotency, SKIP LOCKED claim, runner (reaper, schedules, done/continue/wait, backoff with jitter, rate-limit waits, failed/dead), cron schedules (cron-parser, MIT), watchJob event stream following continuations, /api/jobs/tick (constant-time secret), SSE route, after() helper, worker loop and jobs:tick. First handler and schedule: recompute_settings. JobContext carries no github factory: packages/jobs may not import packages/github, so handlers call githubFor() directly. pino logger with redaction lives in packages/db so every server package can use it.
