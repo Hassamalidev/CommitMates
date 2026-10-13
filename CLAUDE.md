@@ -2846,7 +2846,7 @@ Branch `phase/0-groundwork`. Goal: an empty but production-grade monorepo with C
 - [x] **P0-T04 Web app shell.** Spec: §4.1.
   - Next.js in `apps/web` with Tailwind, base layout, `/health` page and a route returning version and server time.
   - Done when: the app renders and builds.
-- [ ] **P0-T05 Testing infrastructure.** Spec: §11.
+- [x] **P0-T05 Testing infrastructure.** Spec: §11.
   - Vitest workspace config, Testing Library, MSW helpers, Playwright config with a smoke test on `/health`, an axe helper.
   - Done when: `pnpm test` and `pnpm test:e2e` pass locally.
 - [ ] **P0-T06 Local infrastructure and environment.** Spec: §5.2, §14.1.
@@ -3142,6 +3142,7 @@ Branch `phase/7-launch`. Goal: secure, fast, accessible, documented, deployed.
 
 Newest first, one line per completed task or subtask: `YYYY-MM-DD — <task id> — <what was done>`. A `BLOCKED:` line, when present, is always the first line (§13). Spec fixes made under §0.9 are logged here too.
 
+- 2026-10-14 — P0-T05 — Testing infrastructure: jsdom + Testing Library preset, MSW server helper (unhandled requests fail), axe helpers for Vitest and Playwright, Playwright config (desktop + 360px) with a /health smoke test; pnpm test and pnpm test:e2e pass locally.
 - 2026-10-14 — P0-T04 — Next.js 16 app shell in apps/web with Tailwind 4, base layout, security headers, /health page and /api/health route (version, commit, server time).
 - 2026-10-14 — P0-T03 — Skeletons for the nine packages and apps/worker (README, src/index.ts, sample test each); first real code: stats mean/clamp and the worker's non-overlapping run loop. Turbo's auto-generated AGENTS.md removed and disabled (agentGuidance: false) because it is outside the §4.1 layout.
 - 2026-10-14 — P0-T02 — pnpm workspace with catalog, Turborepo pipelines, packages/config (strict tsconfig, ESLint flat config with boundary + AI-SDK + fixture rules, Prettier, Vitest preset). TypeScript pinned to 6.0.x and ESLint to 9.x because typescript-eslint and the React/a11y plugins do not yet support TS 7 / ESLint 10; turbo pinned to 2.11.7 (newest release past pnpm's release-age cutoff).

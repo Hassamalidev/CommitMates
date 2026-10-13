@@ -17,10 +17,14 @@
     "test": "turbo run test",
     "build": "turbo run build",
     "format": "prettier --write .",
-    "verify": "pnpm lint && pnpm typecheck && pnpm test && pnpm build"
+    "verify": "pnpm lint && pnpm typecheck && pnpm test && pnpm build",
+    "test:watch": "vitest",
+    "test:e2e": "pnpm --filter @commitmates/web build && playwright test"
   },
   "devDependencies": {
+    "@axe-core/playwright": "^4.13.0",
     "@commitmates/config": "workspace:*",
+    "@playwright/test": "^1.64.0",
     "@types/node": "catalog:",
     "eslint": "catalog:",
     "prettier": "^3.9.10",
