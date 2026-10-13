@@ -2,9 +2,8 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 import { ESLint } from 'eslint';
-import { describe, expect, it } from 'vitest';
-
 import tseslint from 'typescript-eslint';
+import { describe, expect, it } from 'vitest';
 
 import { PACKAGE_BOUNDARIES, forbiddenFor, restrictedImportBlocks } from './boundaries.js';
 
@@ -31,7 +30,7 @@ describe('package boundaries', () => {
     expect(forbiddenFor('db', PACKAGE_BOUNDARIES.db)).toContain('core');
     expect(forbiddenFor('db', PACKAGE_BOUNDARIES.db)).not.toContain('env');
     expect(forbiddenFor('algorithms', PACKAGE_BOUNDARIES.algorithms)).toHaveLength(
-      Object.keys(PACKAGE_BOUNDARIES).length - 1,
+      Object.keys(PACKAGE_BOUNDARIES).length - 2,
     );
   });
 

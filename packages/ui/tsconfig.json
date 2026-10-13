@@ -1,0 +1,7 @@
+{
+  "extends": "@commitmates/config/tsconfig/react.json",
+  "include": [
+    "src",
+    "*.ts"
+  ]
+}

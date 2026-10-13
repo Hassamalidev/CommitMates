@@ -1,0 +1,26 @@
+{
+  "name": "@commitmates/worker",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "license": "MIT",
+  "scripts": {
+    "start": "tsx src/index.ts",
+    "lint": "eslint . --max-warnings 0",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "@commitmates/core": "workspace:*",
+    "@commitmates/env": "workspace:*",
+    "@commitmates/jobs": "workspace:*",
+    "tsx": "catalog:"
+  },
+  "devDependencies": {
+    "@commitmates/config": "workspace:*",
+    "@types/node": "catalog:",
+    "eslint": "catalog:",
+    "typescript": "catalog:",
+    "vitest": "catalog:"
+  }
+}

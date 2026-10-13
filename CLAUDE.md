@@ -2840,7 +2840,7 @@ Branch `phase/0-groundwork`. Goal: an empty but production-grade monorepo with C
   - pnpm workspace, `turbo.json` pipelines (`lint`, `typecheck`, `test`, `build`, with caching), root scripts from §14.2.
   - `packages/config`: strict tsconfig base, ESLint flat config (rules from §10.12 including boundary rules), Prettier, Vitest preset.
   - Done when: `pnpm verify` runs green on the empty workspace.
-- [ ] **P0-T03 Package skeletons.** Spec: §4.1–4.3.
+- [x] **P0-T03 Package skeletons.** Spec: §4.1–4.3.
   - Every package and `apps/worker` with `src/index.ts`, a README (purpose, public API, allowed imports), and one sample test.
   - Done when: build and tests pass; an illegal cross-package import fails lint (tested).
 - [ ] **P0-T04 Web app shell.** Spec: §4.1.
@@ -3142,6 +3142,7 @@ Branch `phase/7-launch`. Goal: secure, fast, accessible, documented, deployed.
 
 Newest first, one line per completed task or subtask: `YYYY-MM-DD — <task id> — <what was done>`. A `BLOCKED:` line, when present, is always the first line (§13). Spec fixes made under §0.9 are logged here too.
 
+- 2026-10-14 — P0-T03 — Skeletons for the nine packages and apps/worker (README, src/index.ts, sample test each); first real code: stats mean/clamp and the worker's non-overlapping run loop. Turbo's auto-generated AGENTS.md removed and disabled (agentGuidance: false) because it is outside the §4.1 layout.
 - 2026-10-14 — P0-T02 — pnpm workspace with catalog, Turborepo pipelines, packages/config (strict tsconfig, ESLint flat config with boundary + AI-SDK + fixture rules, Prettier, Vitest preset). TypeScript pinned to 6.0.x and ESLint to 9.x because typescript-eslint and the React/a11y plugins do not yet support TS 7 / ESLint 10; turbo pinned to 2.11.7 (newest release past pnpm's release-age cutoff).
 - 2026-10-14 — P0-T01 — Repo initialised with .gitignore, .editorconfig, .gitattributes, .nvmrc (Node 24), MIT LICENSE, README stub; pushed to origin/main. HUMAN follow-up still open: protect `main` (require CI, block force pushes).
 - 2026-10-13 — spec — CLAUDE.md v1 created: 22 features, 8 phases, 85 tasks.

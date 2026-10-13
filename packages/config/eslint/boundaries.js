@@ -56,7 +56,10 @@ export const TEST_FILE_GLOBS = [
   'e2e/**',
 ];
 
-const ALL_PACKAGES = Object.keys(PACKAGE_BOUNDARIES);
+/** Tooling presets (tsconfig, ESLint, Vitest) that every workspace member may use. */
+const TOOLING_PACKAGE = 'config';
+
+const ALL_PACKAGES = Object.keys(PACKAGE_BOUNDARIES).filter((pkg) => pkg !== TOOLING_PACKAGE);
 
 /** Internal packages a workspace member must not import. */
 export function forbiddenFor(name, allowed) {
