@@ -1,0 +1,132 @@
+/*
+ * Maps the design tokens onto Tailwind utilities (CLAUDE.md §9.2). Import after
+ * `tailwindcss` and `tokens.css`. Font variables are set by next/font in the app layout.
+ */
+
+@theme inline {
+  --color-canvas: var(--bg);
+  --color-surface: var(--surface);
+  --color-surface-2: var(--surface-2);
+  --color-line: var(--border);
+  --color-line-strong: var(--border-strong);
+  --color-fg: var(--text);
+  --color-fg-muted: var(--text-muted);
+  --color-accent: var(--accent);
+  --color-accent-ink: var(--accent-ink);
+  --color-state-idle: var(--state-idle);
+  --color-state-working: var(--state-working);
+  --color-state-waiting: var(--state-waiting);
+  --color-state-done: var(--state-done);
+  --color-state-error: var(--state-error);
+  --color-focus: var(--focus);
+
+  --font-display: var(--font-pixelify), ui-monospace, monospace;
+  --font-sans: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
+  --font-mono: var(--font-jetbrains), ui-monospace, monospace;
+
+  --radius-control: 10px;
+  --radius-card: 16px;
+  --shadow-pixel: 4px 4px 0 var(--border-strong);
+
+  --container-content: 1120px;
+  --container-reading: 680px;
+
+  --animate-pixel-dots: pixel-dots 0.9s steps(3, end) infinite;
+
+  @keyframes pixel-dots {
+    0% {
+      clip-path: inset(0 66% 0 0);
+    }
+    33% {
+      clip-path: inset(0 33% 0 0);
+    }
+    66%,
+    100% {
+      clip-path: inset(0 0 0 0);
+    }
+  }
+}
+
+/* Typography roles (CLAUDE.md §9.2). Pixelify Sans is never used below 13px or for paragraphs. */
+@utility type-display {
+  font-family: var(--font-display);
+  font-size: 36px;
+  line-height: 44px;
+  font-weight: 500;
+  @media (width >= 48rem) {
+    font-size: 48px;
+    line-height: 56px;
+  }
+}
+@utility type-h1 {
+  font-family: var(--font-display);
+  font-size: 32px;
+  line-height: 40px;
+  font-weight: 500;
+}
+@utility type-h2 {
+  font-family: var(--font-sans);
+  font-size: 24px;
+  line-height: 32px;
+  font-weight: 600;
+}
+@utility type-h3 {
+  font-family: var(--font-sans);
+  font-size: 18px;
+  line-height: 28px;
+  font-weight: 600;
+}
+@utility type-body {
+  font-family: var(--font-sans);
+  font-size: 16px;
+  line-height: 26px;
+  font-weight: 400;
+}
+@utility type-small {
+  font-family: var(--font-sans);
+  font-size: 14px;
+  line-height: 22px;
+  font-weight: 400;
+}
+@utility type-eyebrow {
+  font-family: var(--font-display);
+  font-size: 13px;
+  line-height: 20px;
+  font-weight: 500;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+@utility type-code {
+  font-family: var(--font-mono);
+  font-size: 14px;
+  line-height: 22px;
+  font-weight: 400;
+}
+
+@layer base {
+  html {
+    background-color: var(--bg);
+    color: var(--text);
+  }
+  body {
+    font-family: var(--font-sans);
+    font-size: 16px;
+    line-height: 26px;
+  }
+  /* Visible 2px focus ring on every interactive element (CLAUDE.md §9.10). */
+  :focus-visible {
+    outline: 2px solid var(--focus);
+    outline-offset: 2px;
+  }
+  /* Reduced motion: nothing beyond opacity, and no looping animation (CLAUDE.md §9.9). */
+  @media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-property: opacity !important;
+      scroll-behavior: auto !important;
+    }
+  }
+}

@@ -1,0 +1,43 @@
+/*
+ * Design tokens (CLAUDE.md §9.2). Components never use raw hex values: they use the
+ * Tailwind utilities that theme.css maps onto these variables.
+ * Every text/background pair is verified for WCAG AA by `pnpm check:contrast`.
+ */
+
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --bg: #0D0F14;
+  --surface: #151923;
+  --surface-2: #1C2230;
+  --border: #2A3245;
+  --border-strong: #3A4560;
+  --text: #E8ECF4;
+  --text-muted: #8C96AB;
+  --accent: #7CFF6B;
+  --accent-ink: #0D0F14;
+  --state-idle: #8C96AB;
+  --state-working: #FFC24B;
+  --state-waiting: #9B8CFF;
+  --state-done: #4ADE80;
+  --state-error: #FF6B6B;
+  --focus: var(--accent);
+}
+
+:root[data-theme="light"] {
+  color-scheme: light;
+  --bg: #F7F6F2;
+  --surface: #FFFFFF;
+  --surface-2: #F0EEE8;
+  --border: #DDD9CF;
+  --border-strong: #C5C0B3;
+  --text: #151923;
+  --text-muted: #5B6475;
+  --accent: #177A30;
+  --accent-ink: #FFFFFF;
+  --state-idle: #5B6475;
+  --state-working: #8F5A00;
+  --state-waiting: #5B45D6;
+  --state-done: #136F35;
+  --state-error: #C42B2B;
+  --focus: var(--accent);
+}

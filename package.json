@@ -31,7 +31,8 @@
     "db:migrate": "pnpm --filter @commitmates/db db:migrate",
     "db:studio": "pnpm --filter @commitmates/db db:studio",
     "jobs:dev": "pnpm --filter @commitmates/worker dev",
-    "jobs:tick": "pnpm --filter @commitmates/worker tick"
+    "jobs:tick": "pnpm --filter @commitmates/worker tick",
+    "icons:build": "tsx scripts/build-icons.ts"
   },
   "devDependencies": {
     "@axe-core/playwright": "^4.13.0",

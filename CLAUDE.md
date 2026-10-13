@@ -2228,12 +2228,12 @@ Defined as CSS variables in `packages/ui/src/tokens.css` under `:root[data-theme
 | `--border-strong` | #3A4560 | #C5C0B3 | Hover, focus outlines base |
 | `--text` | #E8ECF4 | #151923 | Primary text |
 | `--text-muted` | #8C96AB | #5B6475 | Secondary text |
-| `--accent` | #7CFF6B | #1F8F3A | Brand accent, primary buttons, focus ring |
+| `--accent` | #7CFF6B | #177A30 | Brand accent, primary buttons, focus ring |
 | `--accent-ink` | #0D0F14 | #FFFFFF | Text on accent |
 | `--state-idle` | #8C96AB | #5B6475 | Idle chips |
-| `--state-working` | #FFC24B | #A86B00 | Working chips |
+| `--state-working` | #FFC24B | #8F5A00 | Working chips |
 | `--state-waiting` | #9B8CFF | #5B45D6 | Waiting chips |
-| `--state-done` | #4ADE80 | #15803D | Done chips |
+| `--state-done` | #4ADE80 | #136F35 | Done chips |
 | `--state-error` | #FF6B6B | #C42B2B | Error chips |
 | `--focus` | var(--accent) | var(--accent) | 2px focus ring |
 
@@ -2921,7 +2921,7 @@ Branch `phase/1-core`. Goal: database, settings, jobs, GitHub client, auth, desi
 - [x] **P1-T07 Authentication.** Spec: §5.11, §8 F10 step 1.
   - Sign in with GitHub (scopes `read:user user:email`), callback capturing the provider token (encrypted into `github_identities`), upsert `users` and `profiles`, bootstrap admin, middleware session refresh, guards, sign-out.
   - Done when: e2e sign-in works against local Supabase and the stored token is encrypted.
-- [ ] **P1-T08 Design tokens and base components.** Spec: §9.2–9.4.
+- [x] **P1-T08 Design tokens and base components.** Spec: §9.2–9.4.
   - `tokens.css`, Tailwind mapping, fonts, Material Symbols subset, theme toggle (system default, persisted).
   - Components from §9.4 except `CompanionView` and charts.
   - Done when: `check:contrast` passes and every interactive component passes axe in tests.
@@ -3171,6 +3171,7 @@ Branch `phase/7-launch`. Goal: secure, fast, accessible, documented, deployed.
 
 Newest first, one line per completed task or subtask: `YYYY-MM-DD — <task id> — <what was done>`. A `BLOCKED:` line, when present, is always the first line (§13). Spec fixes made under §0.9 are logged here too.
 
+- 2026-10-14 — P1-T08 — Design tokens (dark and light), Tailwind 4 mapping and typography roles, self-hosted Inter / Pixelify Sans / JetBrains Mono via next/font, generated Material Symbols subset (25 icons), theme toggle (system default, persisted, no flash), and base components: Button, Field, Input, Textarea, Select, Combobox, Card, Chip, StateChip, TerminalWindow, UnlockCard, ChecklistRule, Tabs, Dialog, Accordion, Toast, Tooltip, Popover, DropdownMenu, Skeleton, EmptyState, Avatar, Icon. 34 component tests with axe; e2e checks both themes in a real browser. Spec fix (§9.2): light --accent, --state-working and --state-done darkened to #177A30, #8F5A00 and #136F35 because the original values failed the WCAG AA rule the same section requires (ADR-003). Dependabot now ignores TypeScript, ESLint and MSW majors.
 - 2026-10-14 — P1-T07 — Authentication: GitHub sign-in through Supabase Auth (scopes read:user user:email), callback that stores the provider token AES-256-GCM encrypted and upserts users/profiles, bootstrap admin with audit entry, session-refreshing proxy that gates the members area, requireUser/requireVerified/requireRole guards, origin-checked POST sign-out. Verified by integration tests (token stored encrypted) and e2e against local Supabase. The e2e session is created with the Supabase admin API because GitHub's consent screen cannot run in CI; the real browser round-trip through GitHub is unverified until the OAuth app exists (docs/HUMAN_TODO.md). CI now runs e2e on phase branches too.
 - 2026-10-14 — P1-T06 — Claude part done: docs/runbooks/github-oauth.md (OAuth apps for local, staging and prod, the fine-grained server token, bootstrap admin). HUMAN part still open and listed in docs/HUMAN_TODO.md: create the local OAuth app and GITHUB_SERVER_TOKEN.
 - 2026-10-14 — P1-T05 — OTP helpers (hashed with pepper, constant-time compare), guardRate over take_token with retry hints, hashIp with a daily salt, hashSubject with an aggregate salt, rotate_salts and cleanup_rate_buckets jobs with daily schedules, web guardToolRate/guardWriteRate. Spec fix (§7.4): salts gains a kind column and pk (kind, period), because the daily IP salt and the 30-day aggregate salt have different lifetimes and would collide on period alone.

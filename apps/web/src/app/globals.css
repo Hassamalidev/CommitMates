@@ -1,5 +1,6 @@
 @import 'tailwindcss';
+@import '@commitmates/ui/tokens.css';
+@import '@commitmates/ui/theme.css';
 
-:root {
-  color-scheme: light dark;
-}
+/* The design system's components live outside this app; Tailwind must scan them too. */
+@source '../../../../packages/ui/src';

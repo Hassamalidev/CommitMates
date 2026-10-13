@@ -15,9 +15,9 @@ export default function HealthPage() {
   const now = new Date().toISOString();
 
   return (
-    <main className="mx-auto max-w-2xl px-4 py-16">
-      <h1 className="text-3xl font-medium">{healthCopy.title}</h1>
-      <p className="mt-2">{healthCopy.intro}</p>
+    <main className="mx-auto max-w-reading px-4 py-16">
+      <h1 className="type-h1">{healthCopy.title}</h1>
+      <p className="type-body mt-2 text-fg-muted">{healthCopy.intro}</p>
       <dl className="mt-8 grid grid-cols-[auto_1fr] gap-x-6 gap-y-3">
         <dt className="font-semibold">{healthCopy.status.label}</dt>
         <dd data-testid="health-status">{healthCopy.status.ok}</dd>
