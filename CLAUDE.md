@@ -2905,7 +2905,7 @@ Branch `phase/1-core`. Goal: database, settings, jobs, GitHub client, auth, desi
   - Seed migration containing every key in §5.5.1.
   - Recompute framework: a registry mapping computed keys to functions, run by `recompute_settings`.
   - Done when: resolution tests pass; a test asserts the registry and seed contain exactly the same keys.
-- [ ] **P1-T03 Job system.** Spec: §5.3, §5.4.
+- [x] **P1-T03 Job system.** Spec: §5.3, §5.4.
   - Queue, claim, runner rules, reaper, schedules (a permissive-licensed cron parser), priorities, `enqueue` with idempotency.
   - `/api/jobs/tick` (constant-time secret check), `apps/worker` loop, `after()` helper, SSE endpoint following continuations.
   - Done when: a concurrency test with two workers shows no double processing; retry, wait, continue and dead paths are tested.
@@ -3171,6 +3171,7 @@ Branch `phase/7-launch`. Goal: secure, fast, accessible, documented, deployed.
 
 Newest first, one line per completed task or subtask: `YYYY-MM-DD — <task id> — <what was done>`. A `BLOCKED:` line, when present, is always the first line (§13). Spec fixes made under §0.9 are logged here too.
 
+- 2026-10-14 — P1-T03 — Job system: enqueue with idempotency, SKIP LOCKED claim, runner (reaper, schedules, done/continue/wait, backoff with jitter, rate-limit waits, failed/dead), cron schedules (cron-parser, MIT), watchJob event stream following continuations, /api/jobs/tick (constant-time secret), SSE route, after() helper, worker loop and jobs:tick. First handler and schedule: recompute_settings. JobContext carries no github factory: packages/jobs may not import packages/github, so handlers call githubFor() directly. pino logger with redaction lives in packages/db so every server package can use it.
 - 2026-10-14 — P1-T02 — Settings Engine: typed key registry (160 keys), getSetting with a table snapshot bounded by settings.cacheMs, setComputed (history above settings.historyMinDelta), setOverride (history + audit log), zod schemas for JSON keys, seed migration, recompute registry with metricPercentile, withSettings test helper, AppError hierarchy. 20 keys named in §8 as new were added to §5.5.1.
 - 2026-10-14 — P1-T01 — Schema v1 with Drizzle (identity, settings, jobs, caches, platform tables), take_token, updated_at triggers, RLS on every table with the single notifications policy; migrations apply to a fresh database and to local Supabase. Test isolation uses one scratch database per test file cloned from a migrated template (not a schema per file as §11.3 says) because migrations create enum types in public. CI now starts Supabase and applies migrations.
 - 2026-10-14 — P0-T09 — Maintained docs scaffold: ALGORITHMS, DATA_SOURCES, PRIVACY, runbooks index + local-setup, ADR-001 (versions, licenses, pins for TypeScript 6 / ESLint 9 / turbo, sharp removal; Supabase Free and Vercel Hobby terms read 2026-10-14; unverified terms listed explicitly).

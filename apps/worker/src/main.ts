@@ -1,9 +1,10 @@
+import { closeDb, getLogger, getSetting, registerAllHandlers, runTick } from '@commitmates/core';
 import { EnvError } from '@commitmates/env';
 import { assertWorkerEnv } from '@commitmates/env/worker';
 
 import { runLoop } from './loop';
 
-/** Process entry point. The job runner is attached to this loop in P1-T03. */
+/** Process entry point: runs the job runner in a loop for local development and self-hosting. */
 async function main(): Promise<void> {
   try {
     assertWorkerEnv();
@@ -16,25 +17,30 @@ async function main(): Promise<void> {
     throw error;
   }
 
+  const log = getLogger().child({ service: 'worker' });
   const controller = new AbortController();
   for (const signal of ['SIGINT', 'SIGTERM'] as const) {
     process.once(signal, () => {
+      log.info({ signal }, 'stopping after the current tick');
       controller.abort();
     });
   }
 
-  console.info('Worker environment is valid. No job handlers are registered yet.');
+  registerAllHandlers();
+  log.info('worker started');
   await runLoop({
-    run: () => Promise.resolve(),
-    intervalMs: () => WORKER_IDLE_INTERVAL_MS,
+    run: async () => {
+      const report = await runTick({ budgetMs: await getSetting('jobs.tickBudgetMs') });
+      if (report.claimed > 0 || report.reaped > 0 || report.scheduled > 0) log.info(report, 'tick');
+    },
+    intervalMs: () => getSetting('jobs.workerIntervalMs'),
     signal: controller.signal,
     onError: (error) => {
-      console.error(error);
+      log.error({ err: error }, 'tick failed');
     },
   });
+  await closeDb();
+  log.info('worker stopped');
 }
-
-/** Idle pause until the runner reads `jobs.workerIntervalMs` from settings (P1-T03). */
-const WORKER_IDLE_INTERVAL_MS = 5000;
 
 await main();

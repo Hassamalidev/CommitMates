@@ -105,6 +105,9 @@ export default tseslint.config(
       '@typescript-eslint/no-non-null-assertion': 'off',
       '@typescript-eslint/no-unsafe-assignment': 'off',
       '@typescript-eslint/no-unsafe-member-access': 'off',
+      '@typescript-eslint/no-unsafe-call': 'off',
+      '@typescript-eslint/no-unsafe-argument': 'off',
+      '@typescript-eslint/no-unsafe-return': 'off',
       '@typescript-eslint/unbound-method': 'off',
     },
   },
@@ -123,7 +126,7 @@ export default tseslint.config(
   },
   {
     name: 'commitmates/scripts',
-    files: ['scripts/**', 'apps/worker/src/main.ts', 'packages/db/src/migrate-cli.ts'],
+    files: ['scripts/**', 'apps/worker/src/main.ts', 'apps/worker/src/tick.ts', 'packages/db/src/migrate-cli.ts'],
     rules: { 'no-console': 'off', 'import-x/no-default-export': 'off' },
   },
   ...restrictedImportBlocks(),

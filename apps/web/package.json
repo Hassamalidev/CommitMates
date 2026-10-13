@@ -13,12 +13,15 @@
     "test": "vitest run"
   },
   "dependencies": {
+    "@commitmates/core": "workspace:*",
     "@commitmates/env": "workspace:*",
     "@commitmates/ui": "workspace:*",
     "@next/env": "^16.4.0",
     "next": "^16.4.0",
     "react": "catalog:",
-    "react-dom": "catalog:"
+    "react-dom": "catalog:",
+    "server-only": "^0.0.1",
+    "zod": "catalog:"
   },
   "devDependencies": {
     "@commitmates/config": "workspace:*",

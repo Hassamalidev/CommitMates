@@ -65,6 +65,24 @@ export class RateLimitedError extends AppError {
   }
 }
 
+/**
+ * An upstream rate limit (GitHub's, not ours) is exhausted until `resetAt`.
+ * The job runner waits for it without consuming an attempt.
+ */
+export class RateLimitError extends AppError {
+  readonly resetAt: Date;
+
+  constructor(resetAt: Date, options?: { cause?: unknown; resource?: string }) {
+    super(
+      'rate_limit.upstream',
+      'GitHub asked us to slow down. We will keep going as soon as it lets us.',
+      STATUS.TOO_MANY_REQUESTS,
+      options,
+    );
+    this.resetAt = resetAt;
+  }
+}
+
 /** A misconfiguration on our side: unknown settings key, malformed stored value, missing handler. */
 export class ConfigError extends AppError {
   constructor(code: string, detail: string, options?: { cause?: unknown }) {

@@ -19,13 +19,15 @@
     "@commitmates/github": "workspace:*",
     "@commitmates/sources": "workspace:*",
     "@commitmates/jobs": "workspace:*",
-    "@commitmates/email": "workspace:*"
+    "@commitmates/email": "workspace:*",
+    "zod": "catalog:"
   },
   "devDependencies": {
     "@commitmates/config": "workspace:*",
     "@types/node": "catalog:",
     "eslint": "catalog:",
     "typescript": "catalog:",
-    "vitest": "catalog:"
+    "vitest": "catalog:",
+    "pino": "^10.4.0"
   }
 }
