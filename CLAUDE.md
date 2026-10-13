@@ -2909,7 +2909,7 @@ Branch `phase/1-core`. Goal: database, settings, jobs, GitHub client, auth, desi
   - Queue, claim, runner rules, reaper, schedules (a permissive-licensed cron parser), priorities, `enqueue` with idempotency.
   - `/api/jobs/tick` (constant-time secret check), `apps/worker` loop, `after()` helper, SSE endpoint following continuations.
   - Done when: a concurrency test with two workers shows no double processing; retry, wait, continue and dead paths are tested.
-- [ ] **P1-T04 GitHub client.** Spec: §5.6.
+- [x] **P1-T04 GitHub client.** Spec: §5.6.
   - Identities, Octokit with throttling and retry, ETag cache, budgets, search pacer, 202 handling, error classes, zod parsing, `parseGitHubUrl`, GraphQL helper selecting `rateLimit`.
   - Done when: MSW tests cover 200, 304, 202, 401, 403/429 with and without `retry-after`, 404, 422, 5xx.
 - [ ] **P1-T05 Crypto and rate limiting.** Spec: §5.10.
@@ -3171,6 +3171,7 @@ Branch `phase/7-launch`. Goal: secure, fast, accessible, documented, deployed.
 
 Newest first, one line per completed task or subtask: `YYYY-MM-DD — <task id> — <what was done>`. A `BLOCKED:` line, when present, is always the first line (§13). Spec fixes made under §0.9 are logged here too.
 
+- 2026-10-14 — P1-T04 — GitHub client: two token identities, @octokit/core transport, ETag cache, budgets from headers and /rate_limit with reserves, row-locked search pacer, secondary-limit handling, 202 stats retries, typed errors, zod parsing, GraphQL helper requiring rateLimit, parseGitHubUrl; AES-256-GCM token encryption with key versions. MSW tests cover 200, 304, 202, 401, 403/429 with and without retry-after, 404, 422, 5xx. Spec deviations recorded in ADR-002: Octokit throttling/retry plugins not used (limits are coordinated in Postgres), MSW pinned to 2.x, search responses not ETag-cached.
 - 2026-10-14 — P1-T03 — Job system: enqueue with idempotency, SKIP LOCKED claim, runner (reaper, schedules, done/continue/wait, backoff with jitter, rate-limit waits, failed/dead), cron schedules (cron-parser, MIT), watchJob event stream following continuations, /api/jobs/tick (constant-time secret), SSE route, after() helper, worker loop and jobs:tick. First handler and schedule: recompute_settings. JobContext carries no github factory: packages/jobs may not import packages/github, so handlers call githubFor() directly. pino logger with redaction lives in packages/db so every server package can use it.
 - 2026-10-14 — P1-T02 — Settings Engine: typed key registry (160 keys), getSetting with a table snapshot bounded by settings.cacheMs, setComputed (history above settings.historyMinDelta), setOverride (history + audit log), zod schemas for JSON keys, seed migration, recompute registry with metricPercentile, withSettings test helper, AppError hierarchy. 20 keys named in §8 as new were added to §5.5.1.
 - 2026-10-14 — P1-T01 — Schema v1 with Drizzle (identity, settings, jobs, caches, platform tables), take_token, updated_at triggers, RLS on every table with the single notifications policy; migrations apply to a fresh database and to local Supabase. Test isolation uses one scratch database per test file cloned from a migrated template (not a schema per file as §11.3 says) because migrations create enum types in public. CI now starts Supabase and applies migrations.

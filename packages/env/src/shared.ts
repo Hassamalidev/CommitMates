@@ -88,7 +88,7 @@ export function lazyEnv<S extends z.ZodObject>(
         result.error.issues.map((issue) => ({
           variable: key,
           problem: input[key] === undefined ? 'missing' : 'invalid',
-          detail: issue.message,
+          detail: input[key] === undefined ? 'not set' : issue.message,
         })),
       );
     }

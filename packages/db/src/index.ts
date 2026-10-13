@@ -3,3 +3,4 @@ export * as schema from './schema';
 export * from './errors';
 export * from './settings';
 export { getLogger, setLogger, type Logger } from './logger';
+export { decrypt, encrypt, keyVersionOf, type EncryptionKeys } from './crypto';
