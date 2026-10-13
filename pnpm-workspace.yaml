@@ -20,3 +20,8 @@ catalog:
   react-dom: ^19.3.0
   '@types/react': ^19.3.0
   '@types/react-dom': ^19.3.0
+
+# sharp bundles libvips (LGPL-3.0-or-later), which is outside the license allow-list (CLAUDE.md §2.2).
+# Images are served unoptimized instead; GitHub avatars are requested at their display size.
+ignoredOptionalDependencies:
+  - sharp

@@ -2853,7 +2853,7 @@ Branch `phase/0-groundwork`. Goal: an empty but production-grade monorepo with C
   - `supabase/config.toml` (GitHub provider placeholders, mail catcher), `pnpm db:start` / `db:stop`.
   - `packages/env` zod schemas (server, client, worker) and `.env.example`.
   - Done when: starting the app without required variables fails with a clear list of what's missing; with `.env.local` it runs.
-- [ ] **P0-T07 Quality scripts.** Spec: §10.12.
+- [x] **P0-T07 Quality scripts.** Spec: §10.12.
   - `scripts/check-hardcoded.ts`, `scripts/check-licenses.ts`, `scripts/check-contrast.ts` (reads token files when they exist), wired into `pnpm verify`.
   - Done when: each script has tests and a deliberate violation fails it.
 - [ ] **P0-T08 CI and repository hygiene.** Spec: §12.6, §12.7, §15.2.
@@ -3142,6 +3142,7 @@ Branch `phase/7-launch`. Goal: secure, fast, accessible, documented, deployed.
 
 Newest first, one line per completed task or subtask: `YYYY-MM-DD — <task id> — <what was done>`. A `BLOCKED:` line, when present, is always the first line (§13). Spec fixes made under §0.9 are logged here too.
 
+- 2026-10-14 — P0-T07 — check:hardcoded (TypeScript AST: numbers > 1 and 3+ string arrays in core and algorithms unless a documented constant or allowed-literal), check:licenses (SPDX expression evaluation over the production closure, reviewed exceptions file), check:contrast (WCAG AA over token pairs; skips until tokens exist), all tested with deliberate violations and wired into pnpm verify. sharp excluded (LGPL libvips); images served unoptimized.
 - 2026-10-14 — P0-T06 — supabase/config.toml (GitHub provider via env(), mail catcher with SMTP port, Drizzle owns migrations), db:start/stop/status scripts, packages/env (client, server, worker schemas; lazy per-variable reads; assert*Env at startup), .env.example, one root .env.local for web, worker and scripts. Web startup without variables fails with the full list; with .env.local it runs.
 - 2026-10-14 — P0-T05 — Testing infrastructure: jsdom + Testing Library preset, MSW server helper (unhandled requests fail), axe helpers for Vitest and Playwright, Playwright config (desktop + 360px) with a /health smoke test; pnpm test and pnpm test:e2e pass locally.
 - 2026-10-14 — P0-T04 — Next.js 16 app shell in apps/web with Tailwind 4, base layout, security headers, /health page and /api/health route (version, commit, server time).

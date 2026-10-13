@@ -67,6 +67,12 @@
     "dev": {
       "cache": false,
       "persistent": true
+    },
+    "//#test:root": {
+      "inputs": [
+        "scripts/**"
+      ],
+      "outputs": []
     }
   }
 }

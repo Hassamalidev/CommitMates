@@ -32,6 +32,8 @@ const nextConfig: NextConfig = {
     '@commitmates/ui',
   ],
   images: {
+    // No sharp (LGPL libvips, CLAUDE.md §2.2): avatars are requested from GitHub at display size.
+    unoptimized: true,
     remotePatterns: [{ protocol: 'https', hostname: 'avatars.githubusercontent.com' }],
   },
   headers() {

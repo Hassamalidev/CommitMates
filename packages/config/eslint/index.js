@@ -124,7 +124,7 @@ export default tseslint.config(
   {
     name: 'commitmates/scripts',
     files: ['scripts/**', 'apps/worker/src/main.ts'],
-    rules: { 'no-console': 'off' },
+    rules: { 'no-console': 'off', 'import-x/no-default-export': 'off' },
   },
   ...restrictedImportBlocks(),
   prettier,
