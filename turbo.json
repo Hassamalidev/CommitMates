@@ -1,0 +1,36 @@
+{
+  "$schema": "https://turborepo.dev/schema.json",
+  "globalDependencies": ["eslint.config.js", "packages/config/**", "pnpm-workspace.yaml"],
+  "globalEnv": ["NODE_ENV", "CI"],
+  "tasks": {
+    "lint": {
+      "dependsOn": ["//#lint:root"],
+      "outputs": []
+    },
+    "//#lint:root": {
+      "inputs": ["*.js", "*.ts", "scripts/**", "e2e/**"],
+      "outputs": []
+    },
+    "typecheck": {
+      "dependsOn": ["^typecheck", "//#typecheck:root"],
+      "outputs": []
+    },
+    "//#typecheck:root": {
+      "inputs": ["tsconfig.json", "scripts/**", "e2e/**", "*.ts"],
+      "outputs": []
+    },
+    "test": {
+      "outputs": ["coverage/**"],
+      "env": ["DATABASE_URL", "DIRECT_DATABASE_URL"]
+    },
+    "build": {
+      "dependsOn": ["^build"],
+      "outputs": [".next/**", "!.next/cache/**", "dist/**"],
+      "env": ["NEXT_PUBLIC_*"]
+    },
+    "dev": {
+      "cache": false,
+      "persistent": true
+    }
+  }
+}

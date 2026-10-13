@@ -2836,7 +2836,7 @@ Branch `phase/0-groundwork`. Goal: an empty but production-grade monorepo with C
   - Human: create the GitHub repository (public is recommended for free CI minutes), add it as `origin`, choose a license (default MIT), and after the first push protect `main` (require CI, block force pushes).
   - Claude: add `.gitignore`, `.editorconfig`, `.nvmrc` (current Node LTS), `LICENSE`, a `README.md` stub (what it is, how to run, link to this file), and this `CLAUDE.md`.
   - Done when: the first commit is on `origin/main` and the `phase/0-groundwork` branch exists.
-- [ ] **P0-T02 Monorepo tooling.** Spec: §3, §4, §10.1.
+- [x] **P0-T02 Monorepo tooling.** Spec: §3, §4, §10.1.
   - pnpm workspace, `turbo.json` pipelines (`lint`, `typecheck`, `test`, `build`, with caching), root scripts from §14.2.
   - `packages/config`: strict tsconfig base, ESLint flat config (rules from §10.12 including boundary rules), Prettier, Vitest preset.
   - Done when: `pnpm verify` runs green on the empty workspace.
@@ -3142,5 +3142,6 @@ Branch `phase/7-launch`. Goal: secure, fast, accessible, documented, deployed.
 
 Newest first, one line per completed task or subtask: `YYYY-MM-DD — <task id> — <what was done>`. A `BLOCKED:` line, when present, is always the first line (§13). Spec fixes made under §0.9 are logged here too.
 
+- 2026-10-14 — P0-T02 — pnpm workspace with catalog, Turborepo pipelines, packages/config (strict tsconfig, ESLint flat config with boundary + AI-SDK + fixture rules, Prettier, Vitest preset). TypeScript pinned to 6.0.x and ESLint to 9.x because typescript-eslint and the React/a11y plugins do not yet support TS 7 / ESLint 10; turbo pinned to 2.11.7 (newest release past pnpm's release-age cutoff).
 - 2026-10-14 — P0-T01 — Repo initialised with .gitignore, .editorconfig, .gitattributes, .nvmrc (Node 24), MIT LICENSE, README stub; pushed to origin/main. HUMAN follow-up still open: protect `main` (require CI, block force pushes).
 - 2026-10-13 — spec — CLAUDE.md v1 created: 22 features, 8 phases, 85 tasks.
