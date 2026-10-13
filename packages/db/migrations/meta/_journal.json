@@ -36,6 +36,20 @@
       "when": 1791923827734,
       "tag": "0004_schedule_recompute_settings",
       "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1791925290225,
+      "tag": "0005_salts_kind",
+      "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1791925294859,
+      "tag": "0006_schedule_security_jobs",
+      "breakpoints": true
     }
   ]
 }

@@ -10,6 +10,7 @@ import {
   jsonb,
   pgEnum,
   pgTable,
+  primaryKey,
   real,
   smallint,
   text,
@@ -40,11 +41,22 @@ export const metricSamples = pgTable(
   ],
 ).enableRLS();
 
-export const salts = pgTable('salts', {
-  period: integer('period').primaryKey(),
-  salt: bytea('salt').notNull(),
-  createdAt: createdAt(),
-}).enableRLS();
+export const saltKind = pgEnum('salt_kind', ['ip', 'aggregate']);
+
+/**
+ * Random salts that make hashes unlinkable once deleted. `ip` salts last one day
+ * (rate-limit keys); `aggregate` salts last `privacy.aggregateSaltRotationDays`.
+ */
+export const salts = pgTable(
+  'salts',
+  {
+    kind: saltKind('kind').notNull(),
+    period: integer('period').notNull(),
+    salt: bytea('salt').notNull(),
+    createdAt: createdAt(),
+  },
+  (table) => [primaryKey({ columns: [table.kind, table.period] })],
+).enableRLS();
 
 export const geocodeCache = pgTable(
   'geocode_cache',
