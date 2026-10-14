@@ -119,6 +119,11 @@ describe('ingestProfile', () => {
     const [user] = await database.sql`select * from gh_users where github_id = 4242`;
     expect(user).toMatchObject({ login: 'fixture-user-1', type: 'User', is_member: false, followers: 12, public_repos: 3 });
     expect(user!.expires_at.getTime()).toBe(NOW.getTime() + 24 * HOUR);
+    // The location is queued for the paced geocoder, never looked up inline.
+    expect(user!.geocode_key).toBe('lahore, pakistan');
+    expect(await database.sql`select query_norm, status from geocode_cache`).toEqual([
+      { query_norm: 'lahore, pakistan', status: 'pending' },
+    ]);
 
     const repos = await database.sql`select full_name, stars, topics, languages, license_spdx, expires_at, homepage
                                      from gh_repos order by github_id`;

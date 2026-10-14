@@ -13,13 +13,13 @@ No list of universities, skills, topics, languages or secret patterns is written
 | `github/explore` | Topic aliases and related topics | `packages/sources/explore` | Weekly | CC BY 4.0 | P2-T01 |
 | Package registries (npm, PyPI, crates.io, pub.dev, Packagist) | Package keywords and classifiers | `packages/sources/registries` | On demand, TTL `cache.packageMetaTtlDays` | Recorded per registry when implemented | P2-T03 |
 | Nominatim (OpenStreetMap) | Free-text location → coordinates | `packages/sources/geocoder` | On demand, cached forever | ODbL data; Nominatim usage policy | P2-T05 |
-| Coordinates → timezone (offline library) | IANA timezone lookup | `packages/sources/timezone` | Bundled | Recorded in the ADR that picks the library | P2-T05 |
+| Coordinates → timezone (offline library) | IANA timezone lookup | `packages/sources/geocoder` | Bundled | CC0-1.0 (ADR-004) | P2-T05 |
 | gitleaks default rules | Secret detection patterns | `packages/sources/gitleaks` | Weekly | MIT | P2-T10 |
 | Stopword dataset | YAKE keyword extraction | `packages/sources` | Snapshot | Recorded in the ADR that picks the dataset | P2-T17 |
 | Hipo university-domains-list | Universities and email domains | `packages/sources/hipo` | Weekly | MIT | P3-T01 |
 | Disposable email domains | Rejecting throwaway addresses | `packages/sources/disposable-emails` | Weekly | Recorded in the ADR that picks the list | P3-T01 |
 
-Implemented so far: GitHub REST and GraphQL, GitHub Linguist, github/explore, package registries (below). A row moves to its own section below when its module lands, with the exact endpoint, request pacing, User-Agent and attribution text.
+Implemented so far: GitHub REST and GraphQL, GitHub Linguist, github/explore, package registries, Nominatim, coordinates → timezone (below). A row moves to its own section below when its module lands, with the exact endpoint, request pacing, User-Agent and attribution text.
 
 ## Policies that apply to every source
 
@@ -100,6 +100,26 @@ PyPI names are normalized per PEP 503. Fixtures are real manifests from well-kno
 - Stored in: `package_meta`. A package the registry does not know is stored empty so it is not requested on every run.
 - Refresh: on demand (job `enrich_packages`, one per package and month), TTL `cache.packageMetaTtlDays`.
 - License and attribution: metadata is published by each registry for programmatic use under its terms; registries are credited on `/attribution`.
+
+## Nominatim (OpenStreetMap)
+
+- Endpoint: `GEOCODER_BASE_URL` + `/search?format=jsonv2&addressdetails=1&limit=1&q=<query>`. The endpoint comes from the environment, so it can be switched without a code change.
+- Auth: none. `User-Agent: GEOCODER_USER_AGENT` (site URL and contact address).
+- Pacing and limits: one request per `geocoder.minIntervalMs` for the whole app. Every call is made while holding the single `geocoder_lock` row `for update`, waits until `last_call_at + geocoder.minIntervalMs`, and writes `last_call_at` afterwards, also when the call failed. Overlapping ticks queue on the row lock. A run makes at most `floor(remaining budget / geocoder.minIntervalMs)` calls and stops after the first failure. `sources.requestTimeoutMs` per request. No autocomplete and no bulk lookups beyond this queue.
+- Normalization before lookup: URLs and emoji removed, whitespace collapsed, trimmed, lowercased, cut at 120 characters. The result is the cache key.
+- Never sent: empty strings, strings without a letter, and exact matches of `geocoder.nonPlaceTerms`. They are stored as `unresolvable` without a call.
+- Fields used: `lat`, `lon`, `importance` (stored as `confidence`), `address.country_code`, and the first of `address.city`, `town`, `village`, `municipality`, `county`, `state` as the city.
+- Stored in: `geocode_cache` (`pending` → `resolved` or `unresolvable`), kept forever. `gh_users.geocode_key` points at the row.
+- Refresh: never; a string is looked up once. Job `geocode_pending`, scheduled every minute. A failed lookup stays `pending` and moves to the back of the queue.
+- License and attribution: data © OpenStreetMap contributors, ODbL 1.0. "© OpenStreetMap contributors" is shown wherever a geocoded result is displayed and on `/attribution`.
+- Known behaviors: a location with no match returns an empty array and is stored as `unresolvable`.
+
+## Coordinates → timezone
+
+- Library: `@photostructure/tz-lookup` (CC0-1.0), an offline lookup table. No network call.
+- Used for: the IANA timezone of a resolved location, stored on its `geocode_cache` row.
+- Known behaviors: the table is approximate near borders and at sea; coordinates outside the valid range give no timezone. The timezone database inside the package is as new as the installed version (decision in ADR-004).
+- License and attribution: the library is CC0-1.0; its table is derived from timezone-boundary-builder, which is built from OpenStreetMap data (ODbL 1.0). Both are credited on `/attribution`.
 
 ## How to add a section
 

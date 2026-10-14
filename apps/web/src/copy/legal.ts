@@ -124,6 +124,18 @@ export const legalCopy = {
         license: 'Terms of use of each registry',
         href: 'https://docs.npmjs.com/policies/open-source-terms',
       },
+      {
+        name: 'OpenStreetMap Nominatim',
+        use: 'Turning the location text of a public profile into a city, country and timezone.',
+        license: 'Data © OpenStreetMap contributors, ODbL 1.0',
+        href: 'https://www.openstreetmap.org/copyright',
+      },
+      {
+        name: 'tz-lookup and timezone-boundary-builder',
+        use: 'Finding the timezone of a coordinate without a network call.',
+        license: 'CC0 1.0; boundaries derived from OpenStreetMap data, ODbL 1.0',
+        href: 'https://github.com/photostructure/tz-lookup',
+      },
     ],
     assets: [
       { name: 'Inter', use: 'Body text.', license: 'SIL Open Font License 1.1', href: 'https://rsms.me/inter/' },

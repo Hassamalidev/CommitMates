@@ -22,7 +22,7 @@ import {
   type ProfileRepo,
   type TokenIdentity,
 } from '@commitmates/github';
-import { isManifestFile, parseManifest, type Ecosystem } from '@commitmates/sources';
+import { isManifestFile, parseManifest, queueLocation, type Ecosystem } from '@commitmates/sources';
 
 import { requestEnrichment } from '../sources/jobs';
 
@@ -70,6 +70,8 @@ async function storeProfile(profile: Profile, isMember: boolean, now: Date): Pro
     type: 'User',
     name: profile.name,
     locationRaw: profile.location,
+    // Queued for the paced geocoder; the timezone is read from `geocode_cache` once resolved.
+    geocodeKey: await queueLocation(profile.location),
     company: profile.company,
     blog: profile.blog,
     bio: profile.bio,

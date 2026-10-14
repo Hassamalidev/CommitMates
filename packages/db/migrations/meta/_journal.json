@@ -127,6 +127,13 @@
       "when": 1791941331739,
       "tag": "0017_gh_repos_trgm_index",
       "breakpoints": true
+    },
+    {
+      "idx": 18,
+      "version": "7",
+      "when": 1791942501849,
+      "tag": "0018_schedule_geocode",
+      "breakpoints": true
     }
   ]
 }

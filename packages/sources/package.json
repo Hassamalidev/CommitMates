@@ -16,11 +16,12 @@
     "@commitmates/db": "workspace:*",
     "@commitmates/env": "workspace:*",
     "@commitmates/github": "workspace:*",
+    "@photostructure/tz-lookup": "^11.7.0",
     "drizzle-orm": "^0.45.4",
     "re2js": "^2.8.6",
+    "smol-toml": "^1.9.1",
     "yaml": "^2.9.1",
-    "zod": "catalog:",
-    "smol-toml": "^1.9.1"
+    "zod": "catalog:"
   },
   "devDependencies": {
     "@commitmates/config": "workspace:*",

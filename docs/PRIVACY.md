@@ -96,7 +96,7 @@ Cached GitHub API responses keyed by token identity, method and URL. Responses e
 
 ### `geocode_cache`
 
-Normalized free-text location strings and their coordinates. Not linked to a person.
+Normalized free-text location strings (lowercased, emoji and URLs removed) with their coordinates, city, country code and timezone. The string is sent to the geocoder on its own, without a login or any other profile field. Rows are kept forever and hold no reference to a person; `gh_users.geocode_key` points at a row and is deleted with the `gh_users` row (class C retention for non-members).
 
 ### Tables without personal data
 

@@ -19,3 +19,14 @@ export { enrichPackage, findStalePackages, type EnrichOptions, type EnrichResult
 export { deriveTags, loadAliasMap, normalizeTag, type AliasMap } from './registries/tags';
 export { githubRepoFromUrl, registryClientFor, type RegistryMeta } from './registries/clients';
 export { withRegistryPace } from './registries/pacer';
+export {
+  isNonPlace,
+  lookupLocation,
+  normalizeLocation,
+  queueLocation,
+  resolvePendingLocations,
+  timezoneAt,
+  type GeocodeRow,
+  type ResolveOptions,
+  type ResolveReport,
+} from './geocoder/geocoder';
