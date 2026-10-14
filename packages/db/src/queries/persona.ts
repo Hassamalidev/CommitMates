@@ -80,3 +80,9 @@ export async function metricRank(
   if (!row || minSample <= 0 || row.total < minSample) return null;
   return (row.below + row.equal * 0.5) / row.total;
 }
+
+/** Every language name Linguist knows, alphabetically. */
+export async function listLanguages(db: DbOrTx = getDb()): Promise<string[]> {
+  const rows = await db.select({ name: languages.name }).from(languages).orderBy(languages.name);
+  return rows.map((row) => row.name);
+}

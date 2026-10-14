@@ -51,3 +51,4 @@ export {
   fetchStarsSince,
   type IssueSample,
 } from './queries/activity';
+export { fetchIssueResponses, fetchLabels, searchIssues, type FoundIssue, type IssueWithReply } from './queries/issues';

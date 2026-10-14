@@ -76,3 +76,6 @@ export { GRAVEYARD_STEPS, graveyardTool } from './graveyard/jobs';
 export { GRAVEYARD_SCOPES, graveyardInputSchema, graveyardResultSchema, type GraveyardItem, type GraveyardResult } from './graveyard/schemas';
 export { GAP_STEPS, gapTool } from './gap/jobs';
 export { gapInputSchema, gapResultSchema, type GapFacet, type GapInput, type GapResult } from './gap/schemas';
+export { OSS_STEPS, ossTool } from './oss/jobs';
+export { ossInputSchema, ossResultSchema, type OssInput, type OssIssue, type OssResult } from './oss/schemas';
+export { listLanguages as listLanguageNames } from '@commitmates/db';

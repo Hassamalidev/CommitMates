@@ -201,6 +201,22 @@ All algorithms live in `packages/algorithms` and are pure: no I/O, no clock, no 
 - Tests: `packages/algorithms/src/gap/gap.test.ts`, `packages/core/src/gap/gap.test.ts`
 - Spec: CLAUDE.md §8 F5
 
+## Open-Source Starter
+
+### Responsiveness, gates and rank
+
+- Code: `packages/algorithms/src/oss/oss.ts`; job `oss_search` in `packages/core/src/oss/jobs.ts`
+- Formula:
+  - languages: picked (up to 3), or the top 3 of the person's Dev Card; topics: picked ones widened with the taxonomy, plus the person's skill tags
+  - search per language: `is:issue is:open no:assignee archived:false -linked:pr language:"<L>" label:"<term>",…` with every `oss.beginnerLabelTerms`, two pages at most
+  - per project (cached `cache.searchTtlHours`): pushed within `oss.maxRepoIdleDays`; beginner labels from its label list; responsiveness = median hours from creation to the first comment by an owner, member or collaborator over the latest `oss.responsivenessSample` issues opened by others (an unanswered issue counts as the hours it has waited); read from the repository's issue list and its latest 100 issue comments, two requests per project
+  - gates: comments ≤ `oss.maxComments`, responsiveness ≤ `oss.maxResponseHours`; with nothing left, comments are relaxed first, then responsiveness, and the page says which
+  - rank = 0.5·skillMatch + 0.3·exp(−ageDays/30) + 0.2·(1 − medianHours / `oss.maxResponseHours`), skillMatch = share of the person's languages and topics the project covers
+  - each project's median is an anonymous `oss.responseHours` sample, counted once per project, for the computed `oss.maxResponseHours`
+- Settings: `oss.beginnerLabelTerms`, `oss.maxRepoIdleDays` (60), `oss.maxResponseHours` (168), `oss.maxComments` (3), `oss.responsivenessSample` (20), `cache.searchTtlHours`
+- Tests: `packages/algorithms/src/oss/oss.test.ts`, `packages/core/src/oss/oss.test.ts`
+- Spec: CLAUDE.md §8 F8
+
 ## Information retrieval
 
 No entries yet. YAKE and BM25 arrive in P2-T17; TF-IDF in P4-T02.

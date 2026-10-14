@@ -122,3 +122,13 @@ export {
   type RevivalScore,
 } from './graveyard/graveyard';
 export { facetPrevalence, findGaps, sharedFacets, type FacetPrevalence } from './gap/gap';
+export {
+  MAINTAINER_ROLES,
+  RELAX_ORDER,
+  applyGates,
+  issueRank,
+  medianResponseHours,
+  skillMatch,
+  type IssueGate,
+  type SampledIssue,
+} from './oss/oss';
