@@ -30,3 +30,4 @@ export {
 } from './queries/profile';
 export { fetchPublicEvents, type ActivityEvent, type ActivityKind } from './queries/events';
 export { fetchFileText, listRootEntries, type RootEntry } from './queries/contents';
+export { fetchStarredRepos, type StarredRepo } from './queries/starred';

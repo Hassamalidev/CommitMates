@@ -25,6 +25,8 @@ export const sampleDevCard: DevCard = {
     { tag: 'discord-bot', weight: 0.5 },
   ],
   hourHist,
+  hourHistUtc: hourHist,
+  topics: ['discord-bot', 'maps', 'react'],
   metrics: {
     nightShare: 0.75,
     morningShare: 0,

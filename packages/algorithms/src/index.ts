@@ -49,3 +49,20 @@ export {
   type RepoSkills,
   type SkillTag,
 } from './persona/skills';
+export { cosine, histogramIntersection, jaccard, type SparseVector } from './similarity/similarity';
+export {
+  COMPLEMENT_TOP_TAGS,
+  MAX_EXPLANATION_ITEMS,
+  compatBand,
+  compatComponents,
+  compatExplanations,
+  compatScore,
+  sharedActiveWindow,
+  skillVector,
+  type CompatBand,
+  type CompatComponent,
+  type CompatExplanations,
+  type CompatSide,
+  type CompatWeights,
+  type HourWindow,
+} from './compat/compat';

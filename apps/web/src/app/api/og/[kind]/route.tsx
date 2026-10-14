@@ -1,10 +1,10 @@
-import { getCachedToolResult, getProfileOwner, isPublicProfile, loginSchema } from '@commitmates/core';
+import { getCachedDevCard, getProfileOwner, isPublicProfile, loginSchema } from '@commitmates/core';
 import { renderStill, speciesFor, type CompanionInput } from '@commitmates/ui';
 import { ImageResponse } from 'next/og';
 
 import { shareCopy } from '@/copy/share';
 import { brandCompanion } from '@/lib/brand';
-import { companionFor, parseDevCard } from '@/lib/dev-card';
+import { companionFor } from '@/lib/dev-card';
 import { OG_COLORS, OG_SIZE } from '@/lib/og-theme';
 import { siteName } from '@/lib/site';
 import { ogFonts } from '@/server/og-fonts';
@@ -35,7 +35,7 @@ export async function GET(request: Request, context: { params: Promise<{ kind: s
   const owner = await getProfileOwner(login.data);
   if (!owner || !isPublicProfile(owner)) return notFound();
 
-  const card = parseDevCard(await getCachedToolResult('dev-card', { login: owner.login }));
+  const card = await getCachedDevCard(owner.login);
   // Before the first card exists the image still shows the member, with a companion seeded the same way.
   const companion: CompanionInput = card
     ? companionFor(card)

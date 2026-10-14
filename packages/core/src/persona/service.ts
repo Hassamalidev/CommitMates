@@ -83,6 +83,7 @@ export async function buildDevCard(snapshot: ProfileSnapshot): Promise<DevCard> 
   const { timezone, source } = await resolveTimezone(snapshot);
 
   const hourHist = hourHistogram(events, timezone);
+  const hourHistUtc = timezone === UTC ? hourHist : hourHistogram(events, UTC);
   const calendar90 = lastDays(profile.contributions.days, RHYTHM_WINDOW_DAYS);
   const rhythm = rhythmMetrics(hourHist, calendar90);
 
@@ -131,6 +132,8 @@ export async function buildDevCard(snapshot: ProfileSnapshot): Promise<DevCard> 
     languages,
     tags,
     hourHist,
+    hourHistUtc,
+    topics: [...new Set(profile.repos.flatMap((repo) => repo.topics))].sort(),
     metrics: {
       ...rhythm,
       longestStreak: longestStreak(profile.contributions.days),

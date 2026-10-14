@@ -1,9 +1,10 @@
 import { NotFoundError, ValidationError } from '@commitmates/db';
 import { GitHubNotFoundError, GitHubOrganizationError, SERVER_IDENTITY, type TokenIdentity } from '@commitmates/github';
-import { PRIORITY, type JobHandler } from '@commitmates/jobs';
+import { PRIORITY, type JobContext, type JobHandler } from '@commitmates/jobs';
 
-import { ingestProfile } from '../profiles/ingest';
+import { ingestProfile, type IngestStep, type ProfileSnapshot } from '../profiles/ingest';
 import { getMember } from '../profiles/service';
+import { getCachedResult } from '../tools/cached';
 import { hourBucket, storeToolResult, type ToolDefinition } from '../tools/service';
 
 import {
@@ -11,6 +12,7 @@ import {
   devCardInputSchema,
   devCardSchema,
   type AnalyzeProfilePayload,
+  type DevCard,
   type DevCardInput,
 } from './schemas';
 import { buildDevCard, recordPersonaSamples } from './service';
@@ -37,16 +39,67 @@ export const devCardTool: ToolDefinition<DevCardInput> = {
   ttlSetting: 'cache.devCardTtlHours',
 };
 
+/** A person's cached Dev Card, if a fresh one in the current shape exists. */
+export async function getCachedDevCard(login: string, now: Date = new Date()): Promise<DevCard | null> {
+  const parsed = devCardSchema.safeParse(await getCachedResult(devCardTool, { login }, now));
+  return parsed.success ? parsed.data : null;
+}
+
 /**
  * A member analyzing their own account spends their own GitHub budget and sees their
  * private contribution counts if they enabled them; everyone else is read with the
  * server token (CLAUDE.md §5.6).
  */
-async function identityFor(payload: AnalyzeProfilePayload): Promise<TokenIdentity> {
-  if (payload.requestedBy === undefined) return SERVER_IDENTITY;
-  const member = await getMember(payload.requestedBy);
-  const own = member?.login?.toLowerCase() === payload.login.toLowerCase();
+export async function identityFor(login: string, requestedBy: string | undefined): Promise<TokenIdentity> {
+  if (requestedBy === undefined) return SERVER_IDENTITY;
+  const member = await getMember(requestedBy);
+  const own = member?.login?.toLowerCase() === login.toLowerCase();
   return own && member.hasValidToken ? { kind: 'user', userId: member.id } : SERVER_IDENTITY;
+}
+
+/**
+ * Reads one person's profile, turning GitHub's answers about organizations and unknown
+ * accounts into kind, specific messages (CLAUDE.md §5.14).
+ */
+export async function readProfile(
+  login: string,
+  options: { identity: TokenIdentity; ctx: JobContext; field?: string; onStep?: (step: IngestStep) => Promise<void> },
+): Promise<ProfileSnapshot> {
+  try {
+    return await ingestProfile(login, {
+      identity: options.identity,
+      now: options.ctx.now(),
+      deadline: options.ctx.deadline,
+      ...(options.onStep ? { onStep: options.onStep } : {}),
+    });
+  } catch (error) {
+    const field = options.field ?? 'login';
+    if (error instanceof GitHubOrganizationError) {
+      throw new ValidationError('profile.organization', `@${login} is an organization. These tools are for people.`, {
+        cause: error,
+        field,
+      });
+    }
+    if (error instanceof GitHubNotFoundError) {
+      throw new ValidationError('profile.not_found', `We couldn't find @${login} on GitHub. Check the spelling?`, {
+        cause: error,
+        field,
+      });
+    }
+    throw error;
+  }
+}
+
+/**
+ * Builds, validates and stores a card from a snapshot, and adds its anonymous samples.
+ * The stored card is the contract with every page that draws it, so a malformed one is
+ * never cached.
+ */
+export async function storeDevCard(snapshot: ProfileSnapshot, now: Date): Promise<{ card: DevCard; resultRef: unknown }> {
+  const card = devCardSchema.parse(await buildDevCard(snapshot));
+  await recordPersonaSamples(card, now);
+  const resultRef = await storeToolResult(devCardTool, { login: card.login }, card, { isMemberSubject: snapshot.isMember, now });
+  return { card, resultRef };
 }
 
 /** Builds a Dev Card for one GitHub account (CLAUDE.md §8 F1). */
@@ -57,28 +110,25 @@ export const analyzeProfileJob: JobHandler<AnalyzeProfilePayload> = {
   async run(payload, ctx) {
     await ctx.progress({ step: DEV_CARD_STEPS.finding, message: `Finding @${payload.login}` });
 
-    let snapshot;
+    let snapshot: ProfileSnapshot;
     try {
-      snapshot = await ingestProfile(payload.login, {
-        identity: await identityFor(payload),
-        now: ctx.now(),
-        deadline: ctx.deadline,
+      snapshot = await readProfile(payload.login, {
+        identity: await identityFor(payload.login, payload.requestedBy),
+        ctx,
         onStep: async (step) => {
-          if (step === 'events') await ctx.progress({ step: DEV_CARD_STEPS.activity });
-          else await ctx.progress({ step: DEV_CARD_STEPS.repos });
+          await ctx.progress({ step: step === 'events' ? DEV_CARD_STEPS.activity : DEV_CARD_STEPS.repos });
         },
       });
     } catch (error) {
-      if (error instanceof GitHubOrganizationError) {
+      // The tool's own words for the two cases a visitor most often meets.
+      if (error instanceof ValidationError && error.code === 'profile.organization') {
         throw new ValidationError('dev_card.organization', "That's an organization. Dev Cards are for people.", {
           cause: error,
           field: 'login',
         });
       }
-      if (error instanceof GitHubNotFoundError) {
-        throw new NotFoundError('dev_card.not_found', `We couldn't find @${payload.login} on GitHub. Check the spelling?`, {
-          cause: error,
-        });
+      if (error instanceof ValidationError && error.code === 'profile.not_found') {
+        throw new NotFoundError('dev_card.not_found', error.userMessage, { cause: error });
       }
       throw error;
     }
@@ -90,13 +140,7 @@ export const analyzeProfileJob: JobHandler<AnalyzeProfilePayload> = {
     }
 
     await ctx.progress({ step: DEV_CARD_STEPS.building });
-    // The stored card is the contract with every page that draws it; a malformed one must not be cached.
-    const card = devCardSchema.parse(await buildDevCard(snapshot));
-    await recordPersonaSamples(card, ctx.now());
-    const resultRef = await storeToolResult(devCardTool, { login: card.login }, card, {
-      isMemberSubject: snapshot.isMember,
-      now: ctx.now(),
-    });
+    const { resultRef } = await storeDevCard(snapshot, ctx.now());
     return { kind: 'done', resultRef };
   },
 };

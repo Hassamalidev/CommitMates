@@ -8,12 +8,12 @@ import { OG_COLORS } from '@/lib/og-theme';
 type Owner = { userId: string; login: string; githubId: number; visibility: string; universityId: null; active: boolean };
 
 const getProfileOwner = vi.fn<(login: string) => Promise<Owner | null>>();
-const getCachedToolResult = vi.fn<(slug: string, input: unknown) => Promise<unknown>>();
+const getCachedDevCard = vi.fn<(login: string) => Promise<unknown>>();
 vi.mock('@commitmates/core', async () => {
   const { z } = await import('zod');
   return {
     getProfileOwner,
-    getCachedToolResult,
+    getCachedDevCard,
     isPublicProfile: (owner: Owner) => owner.active && owner.visibility === 'public',
     loginSchema: z.string().regex(/^[A-Za-z0-9](?:[A-Za-z0-9-]{0,37}[A-Za-z0-9])?$/),
   };
@@ -41,7 +41,7 @@ const PNG_SIGNATURE = [0x89, 0x50, 0x4e, 0x47];
 
 beforeEach(() => {
   getProfileOwner.mockReset();
-  getCachedToolResult.mockReset();
+  getCachedDevCard.mockReset();
 });
 
 describe('GET /api/og/[kind]', () => {
@@ -53,7 +53,7 @@ describe('GET /api/og/[kind]', () => {
     const response = await call('dev-card', '?login=visitor');
     expect(response.status).toBe(404);
     expect(response.headers.get('cache-control')).toBe('no-store');
-    expect(getCachedToolResult).not.toHaveBeenCalled();
+    expect(getCachedDevCard).not.toHaveBeenCalled();
   });
 
   it('has no image for a member whose profile is not public', async () => {
@@ -67,7 +67,7 @@ describe('GET /api/og/[kind]', () => {
 
   it('renders a 1200×630 PNG for a public member, briefly cacheable', async () => {
     getProfileOwner.mockResolvedValue(owner());
-    getCachedToolResult.mockResolvedValue(sampleDevCard);
+    getCachedDevCard.mockResolvedValue(sampleDevCard);
     const response = await call('dev-card', '?login=Fixture-User-1');
     expect(response.status).toBe(200);
     expect(response.headers.get('content-type')).toBe('image/png');
@@ -78,12 +78,12 @@ describe('GET /api/og/[kind]', () => {
     const view = new DataView(bytes.buffer);
     expect(view.getUint32(16)).toBe(1200);
     expect(view.getUint32(20)).toBe(630);
-    expect(getCachedToolResult).toHaveBeenCalledWith('dev-card', { login: 'fixture-user-1' });
+    expect(getCachedDevCard).toHaveBeenCalledWith('fixture-user-1');
   });
 
   it('still renders before the first card exists', async () => {
     getProfileOwner.mockResolvedValue(owner());
-    getCachedToolResult.mockResolvedValue(null);
+    getCachedDevCard.mockResolvedValue(null);
     const response = await call('dev-card', '?login=fixture-user-1');
     expect(response.status).toBe(200);
     expect(response.headers.get('content-type')).toBe('image/png');

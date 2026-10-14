@@ -199,6 +199,8 @@ describe('buildDevCard', () => {
     ]);
 
     expect(card.hourHist[18]).toBe(1);
+    expect(card.hourHistUtc).toEqual(card.hourHist);
+    expect(card.topics).toEqual(['discord-bot', 'maps', 'react']);
     expect(card.metrics).toMatchObject({
       nightShare: 0,
       activeDayShare: 0.5,
@@ -221,6 +223,8 @@ describe('buildDevCard', () => {
     const card = await buildDevCard(snapshotOf());
     expect(card.timezoneSource).toBe('location');
     expect(card.hourHist[23]).toBe(1);
+    // The UTC histogram is kept alongside, for comparing two people.
+    expect(card.hourHistUtc[18]).toBe(1);
     expect(card.metrics.nightShare).toBe(1);
     expect(card.labels[0]).toEqual({ key: 'nightOwl', strength: 1 / 0.35 });
 

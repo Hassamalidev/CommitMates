@@ -39,6 +39,10 @@ export const devCardSchema = z.object({
   tags: z.array(z.object({ tag: z.string(), weight: share })),
   /** 24 shares, one per local hour. */
   hourHist: z.array(share).length(24), // allowed-literal: hours in a day
+  /** The same histogram in UTC, so two people's hours can be compared (CLAUDE.md §8 F2 step 3). */
+  hourHistUtc: z.array(share).length(24), // allowed-literal: hours in a day
+  /** Distinct topics of the account's own repositories. */
+  topics: z.array(z.string()),
   metrics: z.object({
     nightShare: share,
     morningShare: share,

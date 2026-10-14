@@ -49,7 +49,7 @@ export {
   type ToolRun,
 } from './tools/service';
 export { registerAllTools, toolDefinitions } from './tools/definitions';
-export { DEV_CARD_STEPS, devCardTool } from './persona/jobs';
+export { DEV_CARD_STEPS, devCardTool, getCachedDevCard } from './persona/jobs';
 export { devCardInputSchema, devCardSchema, loginSchema, type DevCard, type DevCardInput } from './persona/schemas';
 export { EVENTS_WINDOW_DAYS, RHYTHM_WINDOW_DAYS } from './persona/service';
 export {
@@ -60,4 +60,5 @@ export {
   type ProfileViewer,
   type ProfileVisibility,
 } from './profiles/visibility';
-export { getCachedToolResult } from './tools/cached';
+export { COMPAT_STEPS, compatTool } from './compat/jobs';
+export { compatInputSchema, compatResultSchema, type CompatInput, type CompatResult, type CompatSideSummary } from './compat/schemas';

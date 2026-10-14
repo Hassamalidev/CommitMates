@@ -92,7 +92,28 @@ All algorithms live in `packages/algorithms` and are pure: no I/O, no clock, no 
 
 ## Similarity
 
-No entries yet. Cosine, Jaccard and histogram intersection arrive with the Dev Card and Compatibility Check (P2-T07, P2-T09).
+### Cosine, Jaccard and histogram intersection
+
+- Code: `packages/algorithms/src/similarity/similarity.ts`
+- Formula: `cosine(a, b) = Σ a_k·b_k / (|a|·|b|)` over sparse vectors (0 when either is empty); `jaccard(A, B) = |A ∩ B| / |A ∪ B|` (0 when both are empty); `intersection(h, g) = Σ min(h_i, g_i)` for normalized histograms
+- Settings: none
+- Tests: `packages/algorithms/src/compat/compat.test.ts`
+- Spec: CLAUDE.md §2.1, §8 F2
+
+### Compatibility Check
+
+- Code: `packages/algorithms/src/compat/compat.ts`; orchestration in `packages/core/src/compat/` (job `compat_check`)
+- Formula:
+  - skill = cosine of the two vectors `lang:<name> → share` ∪ `tag:<tag> → weight`
+  - interest = Jaccard of (own repository topics ∪ topics of up to `matching.starCap` most recently starred repositories)
+  - rhythm = histogram intersection of the two UTC hour histograms
+  - complement = mean of `|a[t] − b[t]|` over the union of each person's top ten tags
+  - a component is `null` when one side has nothing to compare (no languages or tags, no topics, no activity, no tags)
+  - score = `round(100 × Σ w_k·c_k / Σ w_k)` over the non-null components (weights re-normalized); band = the highest `compat.bands` entry whose `min` ≤ score
+  - explanations: up to three shared tags (by the smaller of the two weights), up to three repositories both starred, the longest run of hours (wrapping midnight) where both are above their own median hour, and the tag where each is strongest relative to the other
+- Settings: `compat.weights` ({skill 0.3, interest 0.25, rhythm 0.2, complement 0.25}), `compat.bands`, `matching.starCap` (200), `cache.compatTtlHours` (12)
+- Tests: `packages/algorithms/src/compat/compat.test.ts`, `packages/core/src/compat/compat.test.ts`
+- Spec: CLAUDE.md §8 F2
 
 ## Information retrieval
 
