@@ -15,7 +15,9 @@ const MAILPIT = process.env.MAILPIT_URL ?? 'http://127.0.0.1:54324';
 /** Waits for the newest email to an address and returns its text body. */
 async function latestEmailTo(address: string): Promise<string> {
   for (let attempt = 0; attempt < 60; attempt += 1) {
-    const search = (await (await fetch(`${MAILPIT}/api/v1/search?query=${encodeURIComponent(`to:"${address}"`)}`)).json()) as {
+    const search = (await (
+      await fetch(`${MAILPIT}/api/v1/search?query=${encodeURIComponent(`to:"${address}"`)}`)
+    ).json()) as {
       messages: { ID: string }[];
     };
     const id = search.messages[0]?.ID;
@@ -32,7 +34,11 @@ test.describe('university verification (e2e flow 4)', () => {
   // Several Server Actions and an email round trip: more than the default 30 s under load.
   test.describe.configure({ timeout: 90_000 });
 
-  test('a new member verifies with a university email code and reaches home', async ({ page, context, baseURL }) => {
+  test('a new member verifies with a university email code and reaches home', async ({
+    page,
+    context,
+    baseURL,
+  }) => {
     const suffix = randomBytes(4).toString('hex');
     const domain = `e2e-${suffix}.edu`;
     const name = `E2E University ${suffix}`;
@@ -65,15 +71,35 @@ test.describe('university verification (e2e flow 4)', () => {
       await page.getByLabel('Verification code').fill(code ?? '');
       await page.getByRole('button', { name: 'Verify' }).click();
 
+      // Verified: the onboarding details come next (F10 step 7).
+      await expect(page.getByRole('heading', { level: 1, name: 'Tell us about you' })).toBeVisible(
+        ACTION_TIMEOUT,
+      );
+      await expectNoSeriousA11yViolations(page);
+      await page.getByLabel('Graduation year').fill('2027');
+      await page.getByLabel('Department').fill(`Computer Science ${suffix}`);
+      await page.getByRole('button', { name: 'Finish' }).click();
+
       await expect(page).toHaveURL(/\/home$/, ACTION_TIMEOUT);
       await expect(page.getByRole('heading', { level: 1, name: /^Welcome/ })).toBeVisible();
       await expect(page.getByText(`Verified at ${name}.`)).toBeVisible();
       await expectNoSeriousA11yViolations(page);
 
-      const [profile] = await withAppDatabase((sql) => sql`select university_id, verified_via from profiles where user_id = ${member.userId}`);
-      expect(profile).toMatchObject({ university_id: university!.id, verified_via: 'email' });
+      const [profile] = await withAppDatabase(
+        (sql) => sql`select p.university_id, p.verified_via, p.grad_year, p.onboarded_at, d.name as department
+                     from profiles p left join departments d on d.id = p.department_id where p.user_id = ${member.userId}`,
+      );
+      expect(profile).toMatchObject({
+        university_id: university!.id,
+        verified_via: 'email',
+        grad_year: 2027,
+        department: `Computer Science ${suffix}`,
+      });
+      expect(profile?.onboarded_at).not.toBeNull();
       // The address is forgotten once verified; only the domain stays.
-      const rows = await withAppDatabase((sql) => sql`select email, domain from email_verifications where user_id = ${member.userId}`);
+      const rows = await withAppDatabase(
+        (sql) => sql`select email, domain from email_verifications where user_id = ${member.userId}`,
+      );
       expect(rows).toEqual([{ email: null, domain: `cs.${domain}` }]);
     } finally {
       await member.cleanup();
@@ -101,7 +127,11 @@ test.describe('university verification (e2e flow 4)', () => {
       const code = /\b(\d{6})\b/.exec(await latestEmailTo(`ada@${domain}`))?.[1] ?? '';
       await page.getByLabel('Verification code').fill(code === '000000' ? '111111' : '000000');
       await page.getByRole('button', { name: 'Verify' }).click();
-      await expect(page.getByLabel('Verification code')).toHaveAttribute('aria-invalid', 'true', ACTION_TIMEOUT);
+      await expect(page.getByLabel('Verification code')).toHaveAttribute(
+        'aria-invalid',
+        'true',
+        ACTION_TIMEOUT,
+      );
       await expect(page.getByText(/That code is not right\. \d tries left\./)).toBeVisible();
     } finally {
       await member.cleanup();

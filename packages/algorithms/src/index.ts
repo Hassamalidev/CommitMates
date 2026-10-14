@@ -67,6 +67,7 @@ export {
   type HourWindow,
 } from './compat/compat';
 export { domainSuffixes, emailDomain, normalizeDomain } from './text/domain';
+export { normalizeName } from './text/names';
 export { shannonEntropy } from './text/entropy';
 export {
   commitUnfinishedSignal,

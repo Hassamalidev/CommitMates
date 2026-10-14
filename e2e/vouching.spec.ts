@@ -11,7 +11,11 @@ const ACTION_TIMEOUT = { timeout: 15_000 };
 const DAY_MS = 24 * 60 * 60 * 1000;
 
 /** Member rows with a GitHub login, as a real sign-in would create; optionally verified long ago. */
-async function prepareMember(member: TestMember, universityId: string | null, verifiedDaysAgo: number | null): Promise<void> {
+async function prepareMember(
+  member: TestMember,
+  universityId: string | null,
+  verifiedDaysAgo: number | null,
+): Promise<void> {
   const verifiedAt = verifiedDaysAgo === null ? null : new Date(Date.now() - verifiedDaysAgo * DAY_MS);
   await withAppDatabase(async (sql) => {
     await sql`insert into users (id) values (${member.userId}) on conflict (id) do nothing`;
@@ -25,7 +29,13 @@ async function prepareMember(member: TestMember, universityId: string | null, ve
 }
 
 /** Signs in a member verified 30 days ago and vouches; `created` gets the member for cleanup first. */
-async function vouchAs(browser: Browser, baseURL: string, universityId: string, login: string, created: TestMember[]): Promise<void> {
+async function vouchAs(
+  browser: Browser,
+  baseURL: string,
+  universityId: string,
+  login: string,
+  created: TestMember[],
+): Promise<void> {
   const context = await browser.newContext();
   const voucher = await signInTestMember(context, baseURL);
   created.push(voucher);
@@ -42,7 +52,12 @@ async function vouchAs(browser: Browser, baseURL: string, universityId: string, 
 test.describe('vouching (F10 step 5)', () => {
   test.describe.configure({ timeout: 120_000 });
 
-  test('two established members vouch and the newcomer is verified', async ({ browser, page, context, baseURL }) => {
+  test('two established members vouch and the newcomer is verified', async ({
+    browser,
+    page,
+    context,
+    baseURL,
+  }) => {
     const suffix = randomBytes(4).toString('hex');
     const name = `Vouch University ${suffix}`;
     const [university] = await withAppDatabase(
@@ -58,7 +73,11 @@ test.describe('vouching (F10 step 5)', () => {
     try {
       await page.goto(`/onboarding?q=${encodeURIComponent(name)}`);
       await expect(page.getByRole('heading', { name: 'No university email?' })).toBeVisible();
-      await page.getByRole('listitem').filter({ hasText: name }).getByRole('button', { name: 'This is my university' }).click();
+      await page
+        .getByRole('listitem')
+        .filter({ hasText: name })
+        .getByRole('button', { name: 'This is my university' })
+        .click();
       await expect(page.getByText(`${name}: 0 of 2 vouches so far.`)).toBeVisible(ACTION_TIMEOUT);
       await expect(page.getByRole('link', { name: new RegExp(`/u/${newcomer.login}$`) })).toBeVisible();
       await expectNoSeriousA11yViolations(page);
@@ -68,10 +87,16 @@ test.describe('vouching (F10 step 5)', () => {
       await expect(page.getByText(`${name}: 1 of 2 vouches so far.`)).toBeVisible();
 
       await vouchAs(browser, baseURL ?? '', universityId, newcomer.login, vouchers);
+      // Verified: home sends the newcomer through the onboarding details first.
       await page.goto('/home');
-      await expect(page).toHaveURL(/\/home$/);
+      await expect(page).toHaveURL(/\/onboarding$/);
+      await expect(page.getByRole('heading', { level: 1, name: 'Tell us about you' })).toBeVisible();
+      await page.getByRole('button', { name: 'Finish' }).click();
+      await expect(page).toHaveURL(/\/home$/, ACTION_TIMEOUT);
       await expect(page.getByText(`Verified at ${name}.`)).toBeVisible();
-      const [profile] = await withAppDatabase((sql) => sql`select verified_via from profiles where user_id = ${newcomer.userId}`);
+      const [profile] = await withAppDatabase(
+        (sql) => sql`select verified_via from profiles where user_id = ${newcomer.userId}`,
+      );
       expect(profile?.verified_via).toBe('vouch');
     } finally {
       for (const member of [newcomer, ...vouchers]) await member.cleanup();

@@ -36,7 +36,6 @@ export const githubIdentities = pgTable('github_identities', {
   updatedAt: updatedAt(),
 }).enableRLS();
 
-/** `university_id` and `department_id` get their foreign keys with those tables in Phase 3. */
 export const profiles = pgTable(
   'profiles',
   {
@@ -47,11 +46,14 @@ export const profiles = pgTable(
     universityId: uuid('university_id').references(() => universities.id),
     role: profileRole('role').notNull().default('student'),
     gradYear: smallint('grad_year'),
+    // References `departments` (set null on delete); the constraint is added in SQL, as the tables import each other.
     departmentId: uuid('department_id'),
     timezone: text('timezone').notNull(),
     visibility: profileVisibility('visibility').notNull().default('university'),
     ghostMode: boolean('ghost_mode').notNull().default(false),
     learningGoals: text('learning_goals').array().notNull().default(sql`'{}'::text[]`),
+    /** Whether streak partners see if this member has coded today (CLAUDE.md §8 F13 "UI"). */
+    shareTodayStatus: boolean('share_today_status').notNull().default(true),
     bio: text('bio'),
     onboardedAt: timestamptz('onboarded_at'),
     verifiedAt: timestamptz('verified_at'),

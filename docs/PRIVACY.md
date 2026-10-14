@@ -48,6 +48,7 @@ Row Level Security is enabled on every table. Only `notifications` has a policy 
 | `timezone` | Member-facing day boundaries (streaks, digests) | Until account deletion | Cascade |
 | `visibility`, `ghost_mode` | The member's privacy choices | Until account deletion | Cascade |
 | `learning_goals`, `bio` | Shown on the profile; goals drive matching | Until account deletion | Cascade |
+| `share_today_status` | Whether streak partners see if the member coded today (on by default, changeable) | Until account deletion | Cascade |
 | `onboarded_at`, `verified_at`, `verified_via` | Verification state | Until account deletion | Cascade |
 
 ### `roles` (class A)
@@ -138,7 +139,7 @@ Normalized free-text location strings (lowercased, emoji and URLs removed) with 
 
 ### Tables without personal data
 
-`languages`, `path_patterns`, `topics`, `package_meta`, `registry_pacing`, `secret_rules`, `secret_global_allowlist`, `topic_global_counts`, `taxonomy_expansions`, `stopwords`, `universities`, `university_domains`, `disposable_domains` (public reference data from open sources and from GitHub search totals), `settings`, `settings_history` (an `actor_user_id` for admin overrides), `jobs` (payloads may name a GitHub login or repository; rows are operational and short-lived), `job_schedules`, `github_budgets`, `rate_limit_buckets` (keys contain hashes, never raw IPs), `geocoder_lock`, `source_snapshots`.
+`languages`, `path_patterns`, `topics`, `package_meta`, `registry_pacing`, `secret_rules`, `secret_global_allowlist`, `topic_global_counts`, `taxonomy_expansions`, `stopwords`, `universities`, `university_domains`, `disposable_domains`, `departments` (department names typed by members; `created_by` is set to null when that member deletes their account) (public reference data from open sources and from GitHub search totals), `settings`, `settings_history` (an `actor_user_id` for admin overrides), `jobs` (payloads may name a GitHub login or repository; rows are operational and short-lived), `job_schedules`, `github_budgets`, `rate_limit_buckets` (keys contain hashes, never raw IPs), `geocoder_lock`, `source_snapshots`.
 
 ## Environment and logs
 

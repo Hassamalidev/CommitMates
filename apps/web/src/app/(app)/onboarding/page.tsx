@@ -1,5 +1,6 @@
 import {
   findUniversities,
+  getOnboardingOptions,
   getPendingVerification,
   getSetting,
   getUniversity,
@@ -12,6 +13,7 @@ import type { Metadata } from 'next';
 import Link from 'next/link';
 import { redirect } from 'next/navigation';
 
+import { OnboardingDetails } from '@/components/onboarding/OnboardingDetails';
 import { VerifyEmail } from '@/components/onboarding/VerifyEmail';
 import { VouchPath } from '@/components/onboarding/VouchPath';
 import { onboardingCopy } from '@/copy/onboarding';
@@ -39,6 +41,34 @@ export default async function OnboardingPage({ searchParams }: Props) {
     getSetting('verify.vouchesRequired'),
     member.verified ? [] : findUniversities(query),
   ]);
+
+  // Verified but not onboarded yet: the details step comes next (§8 F10 step 7).
+  if (university && !member.onboarded) {
+    const options = await getOnboardingOptions(member);
+    const details = options.details;
+    return (
+      <div className="mx-auto flex max-w-reading flex-col gap-6 px-4 py-10">
+        <h1 className="type-h1">{copy.details.title}</h1>
+        <OnboardingDetails
+          universityName={university.name}
+          departments={options.departments}
+          suggestions={options.suggestions}
+          years={options.years}
+          maxGoals={options.maxGoals}
+          initial={{
+            role: details?.role === 'alumni' || details?.role === 'supervisor_pending' ? details.role : 'student',
+            gradYear: details?.gradYear ?? null,
+            department: options.departments.find((department) => department.id === details?.departmentId)?.name ?? '',
+            learningGoals: details?.learningGoals ?? [],
+            visibility: details?.visibility ?? 'university',
+            shareTodayStatus: details?.shareTodayStatus ?? true,
+            emailDigest: details?.emailDigest ?? true,
+            timezone: details?.timezone ?? 'UTC',
+          }}
+        />
+      </div>
+    );
+  }
 
   return (
     <div className="mx-auto flex max-w-reading flex-col gap-6 px-4 py-10">

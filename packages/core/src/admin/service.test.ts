@@ -46,7 +46,8 @@ describe('getHealth', () => {
     await enqueue('analyze_profile', {}, { priority: PRIORITY.INTERACTIVE });
     await enqueue('analyze_profile', {}, { priority: PRIORITY.INTERACTIVE });
     await enqueue('sync_linguist', {}, { priority: PRIORITY.MAINTENANCE });
-    const health = await getHealth(new Date());
+    // Jobs are queued at the database's clock; read a moment later so a clock a few ms apart cannot hide them.
+    const health = await getHealth(new Date(Date.now() + 60_000));
     expect(health.queue.depth).toEqual([
       { type: 'analyze_profile', status: 'queued', count: 2 },
       { type: 'sync_linguist', status: 'queued', count: 1 },
