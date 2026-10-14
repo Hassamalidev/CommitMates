@@ -1,5 +1,6 @@
 export * from './universities';
 export * from './identity';
+export * from './verification';
 export * from './jobs';
 export * from './settings';
 export * from './github';

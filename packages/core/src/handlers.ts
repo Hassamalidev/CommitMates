@@ -11,6 +11,7 @@ import { analyzeProfileJob } from './persona/jobs';
 import { recruiterReportJob } from './recruiter/jobs';
 import { taxonomyExpandJob } from './taxonomy/jobs';
 import { sendEmailJob } from './notifications/email';
+import { sendOtpJob } from './verification/jobs';
 import { purgeNonUserRawJob } from './privacy/jobs';
 import { cleanupRateBucketsJob, rotateSaltsJob } from './security/jobs';
 import { recomputeSettingsJob } from './settings/jobs';
@@ -58,6 +59,7 @@ export const jobHandlers: readonly Registration[] = [
   define(ossSearchJob),
   define(fypCheckJob),
   define(sendEmailJob),
+  define(sendOtpJob),
 ];
 
 /** Registers every handler. Safe to call on each request: re-registering is a no-op. */

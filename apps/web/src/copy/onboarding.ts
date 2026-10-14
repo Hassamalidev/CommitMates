@@ -1,0 +1,41 @@
+export const onboardingCopy = {
+  meta: { title: 'Verify your university' },
+  title: 'Verify your university',
+  intro: 'Campus features are for verified students and alumni. Confirm your university email once and you are in.',
+  email: {
+    title: 'Your university email',
+    label: 'University email',
+    description: 'We only use it to send one code. After you verify, we keep the domain, not the address.',
+    submit: 'Send code',
+  },
+  choose: {
+    legend: 'Several universities use this email domain. Which one is yours?',
+    submit: 'Send code',
+  },
+  unknown: (domain: string) =>
+    `We don't recognize ${domain} as a university domain yet. Check the spelling, or try your university's main email address.`,
+  code: {
+    title: 'Enter your code',
+    sent: (university: string) => `We sent a 6-digit code for ${university}. It can take a minute to arrive.`,
+    pendingSent: (university: string) => `Your code for ${university} is on its way or already in your inbox.`,
+    label: 'Verification code',
+    submit: 'Verify',
+    resend: 'Send a new code',
+    other: 'Use a different email',
+  },
+  verified: {
+    title: "You're verified",
+    line: (university: string) => `You are a verified member of ${university}.`,
+    next: 'Go to your home',
+  },
+} as const;
+
+export const homeCopy = {
+  meta: { title: 'Home' },
+  title: (login: string | null) => (login ? `Welcome, @${login}` : 'Welcome'),
+  verifiedAt: (university: string) => `Verified at ${university}.`,
+  members: (count: number) => (count === 1 ? 'You are the first verified member here.' : `${count} verified members so far.`),
+  toolsTitle: 'Try the tools',
+  toolsLine: 'Every day-one tool works right now, on live GitHub data.',
+  toolsLink: 'Open the tools',
+} as const;

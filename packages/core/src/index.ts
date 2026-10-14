@@ -84,3 +84,6 @@ export { FYP_DESCRIPTION_MAX, FYP_DESCRIPTION_MIN, FYP_TITLE_MAX, fypInputSchema
 export { METRIC_WINDOWS, getToolMetrics, recordSignUpConversion, type ToolMetrics } from './metrics/service';
 export { matchEmailToUniversity, type EmailUniversityCheck } from './universities/service';
 export { EmailQuotaError, deliverEmail, nextUtcMidnight, sendEmailPayloadSchema, utcDay, type SendEmailPayload } from './notifications/email';
+export { confirmEmailCode, startEmailVerification } from './verification/service';
+export { CODE_DIGITS, confirmCodeSchema, startVerificationSchema, type StartVerificationResult } from './verification/schemas';
+export { getPendingVerification, getUniversity, type PendingVerification, type UniversitySummary } from '@commitmates/db';

@@ -218,6 +218,13 @@
       "when": 1791967526752,
       "tag": "0030_email_daily_counts",
       "breakpoints": true
+    },
+    {
+      "idx": 31,
+      "version": "7",
+      "when": 1791968295465,
+      "tag": "0031_email_verifications",
+      "breakpoints": true
     }
   ]
 }

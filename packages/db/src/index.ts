@@ -12,6 +12,7 @@ export * from './queries/persona';
 export * from './queries/recruiter';
 export * from './queries/taxonomy';
 export * from './queries/universities';
+export * from './queries/verification';
 export * from './queries/security';
 export * from './settings';
 export { getLogger, hashUserId, setLogger, type Logger } from './logger';

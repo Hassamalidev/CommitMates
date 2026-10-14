@@ -39,3 +39,21 @@ export async function isDisposableDomain(suffixes: readonly string[], db: DbOrTx
     .limit(1);
   return row !== undefined;
 }
+
+export type UniversitySummary = { id: string; name: string; slug: string; country: string; countryCode: string; memberCount: number };
+
+/** One university by id, for pages that show where a member is verified. */
+export async function getUniversity(id: string, db: DbOrTx = getDb()): Promise<UniversitySummary | null> {
+  const [row] = await db
+    .select({
+      id: universities.id,
+      name: universities.name,
+      slug: universities.slug,
+      country: universities.country,
+      countryCode: universities.countryCode,
+      memberCount: universities.memberCount,
+    })
+    .from(universities)
+    .where(eq(universities.id, id));
+  return row ?? null;
+}
