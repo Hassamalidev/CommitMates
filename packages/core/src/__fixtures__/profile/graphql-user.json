@@ -1,0 +1,313 @@
+{
+  "data": {
+    "repositoryOwner": {
+      "__typename": "User",
+      "databaseId": 4242,
+      "login": "fixture-user-1",
+      "name": "Fixture User",
+      "location": "Lahore, Pakistan",
+      "bio": "Student developer.",
+      "company": null,
+      "websiteUrl": "",
+      "avatarUrl": "https://avatars.githubusercontent.com/u/4242?v=4",
+      "createdAt": "2022-03-01T12:00:00Z",
+      "followers": {
+        "totalCount": 12
+      },
+      "following": {
+        "totalCount": 8
+      },
+      "pinnedItems": {
+        "nodes": [
+          {
+            "databaseId": 9000
+          },
+          {
+            "databaseId": 9001
+          }
+        ]
+      },
+      "repositories": {
+        "totalCount": 3,
+        "pageInfo": {
+          "hasNextPage": false,
+          "endCursor": "Y3Vyc29yOjM="
+        },
+        "nodes": [
+          {
+            "databaseId": 9000,
+            "name": "campus-map",
+            "nameWithOwner": "fixture-user-1/campus-map",
+            "description": "A sample repository.",
+            "homepageUrl": "https://campus-map.example.org",
+            "stargazerCount": 14,
+            "forkCount": 0,
+            "isFork": false,
+            "isArchived": false,
+            "pushedAt": "2026-10-10T18:30:00Z",
+            "createdAt": "2025-01-10T09:00:00Z",
+            "diskUsage": 120,
+            "defaultBranchRef": {
+              "name": "main"
+            },
+            "licenseInfo": {
+              "spdxId": "MIT"
+            },
+            "primaryLanguage": {
+              "name": "TypeScript"
+            },
+            "languages": {
+              "edges": [
+                {
+                  "size": 52000,
+                  "node": {
+                    "name": "TypeScript"
+                  }
+                },
+                {
+                  "size": 6000,
+                  "node": {
+                    "name": "CSS"
+                  }
+                }
+              ]
+            },
+            "repositoryTopics": {
+              "nodes": [
+                {
+                  "topic": {
+                    "name": "react"
+                  }
+                },
+                {
+                  "topic": {
+                    "name": "maps"
+                  }
+                }
+              ]
+            },
+            "issues": {
+              "totalCount": 0
+            }
+          },
+          {
+            "databaseId": 9001,
+            "name": "grade-bot",
+            "nameWithOwner": "fixture-user-1/grade-bot",
+            "description": "A sample repository.",
+            "homepageUrl": null,
+            "stargazerCount": 3,
+            "forkCount": 1,
+            "isFork": false,
+            "isArchived": false,
+            "pushedAt": "2026-09-28T07:15:00Z",
+            "createdAt": "2025-01-10T09:00:00Z",
+            "diskUsage": 240,
+            "defaultBranchRef": {
+              "name": "main"
+            },
+            "licenseInfo": null,
+            "primaryLanguage": {
+              "name": "Python"
+            },
+            "languages": {
+              "edges": [
+                {
+                  "size": 30000,
+                  "node": {
+                    "name": "Python"
+                  }
+                }
+              ]
+            },
+            "repositoryTopics": {
+              "nodes": [
+                {
+                  "topic": {
+                    "name": "discord-bot"
+                  }
+                }
+              ]
+            },
+            "issues": {
+              "totalCount": 2
+            }
+          },
+          {
+            "databaseId": 9002,
+            "name": "notes",
+            "nameWithOwner": "fixture-user-1/notes",
+            "description": null,
+            "homepageUrl": null,
+            "stargazerCount": 0,
+            "forkCount": 2,
+            "isFork": false,
+            "isArchived": false,
+            "pushedAt": "2026-05-02T11:00:00Z",
+            "createdAt": "2025-01-10T09:00:00Z",
+            "diskUsage": 360,
+            "defaultBranchRef": {
+              "name": "main"
+            },
+            "licenseInfo": {
+              "spdxId": "NOASSERTION"
+            },
+            "primaryLanguage": null,
+            "languages": {
+              "edges": []
+            },
+            "repositoryTopics": {
+              "nodes": []
+            },
+            "issues": {
+              "totalCount": 4
+            }
+          }
+        ]
+      },
+      "contributionsCollection": {
+        "restrictedContributionsCount": 0,
+        "totalCommitContributions": 38,
+        "contributionCalendar": {
+          "totalContributions": 43,
+          "weeks": [
+            {
+              "contributionDays": [
+                {
+                  "date": "2026-09-14",
+                  "contributionCount": 0
+                },
+                {
+                  "date": "2026-09-15",
+                  "contributionCount": 3
+                },
+                {
+                  "date": "2026-09-16",
+                  "contributionCount": 1
+                },
+                {
+                  "date": "2026-09-17",
+                  "contributionCount": 0
+                },
+                {
+                  "date": "2026-09-18",
+                  "contributionCount": 0
+                },
+                {
+                  "date": "2026-09-19",
+                  "contributionCount": 5
+                },
+                {
+                  "date": "2026-09-20",
+                  "contributionCount": 2
+                }
+              ]
+            },
+            {
+              "contributionDays": [
+                {
+                  "date": "2026-09-21",
+                  "contributionCount": 0
+                },
+                {
+                  "date": "2026-09-22",
+                  "contributionCount": 0
+                },
+                {
+                  "date": "2026-09-23",
+                  "contributionCount": 4
+                },
+                {
+                  "date": "2026-09-24",
+                  "contributionCount": 1
+                },
+                {
+                  "date": "2026-09-25",
+                  "contributionCount": 1
+                },
+                {
+                  "date": "2026-09-26",
+                  "contributionCount": 0
+                },
+                {
+                  "date": "2026-09-27",
+                  "contributionCount": 6
+                }
+              ]
+            },
+            {
+              "contributionDays": [
+                {
+                  "date": "2026-09-28",
+                  "contributionCount": 0
+                },
+                {
+                  "date": "2026-09-29",
+                  "contributionCount": 2
+                },
+                {
+                  "date": "2026-09-30",
+                  "contributionCount": 3
+                },
+                {
+                  "date": "2026-10-01",
+                  "contributionCount": 0
+                },
+                {
+                  "date": "2026-10-02",
+                  "contributionCount": 0
+                },
+                {
+                  "date": "2026-10-03",
+                  "contributionCount": 1
+                },
+                {
+                  "date": "2026-10-04",
+                  "contributionCount": 7
+                }
+              ]
+            },
+            {
+              "contributionDays": [
+                {
+                  "date": "2026-10-05",
+                  "contributionCount": 0
+                },
+                {
+                  "date": "2026-10-06",
+                  "contributionCount": 0
+                },
+                {
+                  "date": "2026-10-07",
+                  "contributionCount": 2
+                },
+                {
+                  "date": "2026-10-08",
+                  "contributionCount": 0
+                },
+                {
+                  "date": "2026-10-09",
+                  "contributionCount": 1
+                },
+                {
+                  "date": "2026-10-10",
+                  "contributionCount": 0
+                },
+                {
+                  "date": "2026-10-11",
+                  "contributionCount": 4
+                }
+              ]
+            }
+          ]
+        }
+      }
+    },
+    "rateLimit": {
+      "limit": 5000,
+      "cost": 1,
+      "remaining": 4980,
+      "resetAt": "2026-10-14T13:00:00Z"
+    }
+  }
+}

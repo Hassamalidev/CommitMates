@@ -28,3 +28,5 @@ export {
 } from './admin/service';
 export { jobIdSchema, scheduleToggleSchema, settingOverrideSchema, type Alert, type AlertKey } from './admin/schemas';
 export { ConflictError, hashUserId } from '@commitmates/db';
+export { ingestProfile, type IngestOptions, type ProfileSnapshot, type RepoDependency } from './profiles/ingest';
+export { requestEnrichment } from './sources/jobs';

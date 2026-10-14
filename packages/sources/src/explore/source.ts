@@ -33,12 +33,12 @@ const treeSchema = z.object({
 async function fetchRaw(ctx: SourceContext): Promise<{ raw: ExploreRaw; version: string }> {
   const github = githubFor(SERVER_IDENTITY, { db: ctx.db, now: ctx.now });
   const what = `${EXPLORE_REPO.owner}/${EXPLORE_REPO.repo}`;
-  const repo = await github.get('GET /repos/{owner}/{repo}', EXPLORE_REPO, repoSchema, { what });
+  const repo = await github.get('GET /repos/{owner}/{repo}', EXPLORE_REPO, repoSchema, { what, cache: 'reference' });
   const tree = await github.get(
     'GET /repos/{owner}/{repo}/git/trees/{tree_sha}',
     { ...EXPLORE_REPO, tree_sha: repo.default_branch, recursive: 1 },
     treeSchema,
-    { what },
+    { what, cache: 'reference' },
   );
 
   const upstream = new Map<string, string>();
@@ -62,7 +62,7 @@ async function fetchRaw(ctx: SourceContext): Promise<{ raw: ExploreRaw; version:
       'GET /repos/{owner}/{repo}/git/blobs/{file_sha}',
       { ...EXPLORE_REPO, file_sha: sha },
       z.string(),
-      { accept: RAW_MEDIA_TYPE, what: `topic ${slug}` },
+      { accept: RAW_MEDIA_TYPE, cache: 'reference', what: `topic ${slug}` },
     );
     files.push({ slug, sha, content });
   }

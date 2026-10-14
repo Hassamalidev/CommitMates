@@ -66,10 +66,11 @@ export async function listJobsByStatus(
 }
 
 /** Puts a dead or failed job back in the queue with a fresh set of attempts. Returns false if it was not requeueable. */
-export async function requeueJob(jobId: string, now: Date, db: DbOrTx = getDb()): Promise<boolean> {
+export async function requeueJob(jobId: string, db: DbOrTx = getDb()): Promise<boolean> {
   const rows = await db
     .update(jobs)
-    .set({ status: 'queued', attempts: 0, runAt: now, lockedAt: null, lockedBy: null, userMessage: null })
+    // The database's clock, the same one the claim query compares against.
+    .set({ status: 'queued', attempts: 0, runAt: sql`now()`, lockedAt: null, lockedBy: null, userMessage: null })
     .where(and(eq(jobs.id, jobId), sql`${jobs.status} in ('dead', 'failed')`))
     .returning({ id: jobs.id });
   return rows.length > 0;

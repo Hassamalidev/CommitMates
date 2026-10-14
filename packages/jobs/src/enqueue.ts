@@ -1,14 +1,22 @@
 import { getDb, getSetting, schema, type DbOrTx } from '@commitmates/db';
-import { eq } from 'drizzle-orm';
+import { eq, sql } from 'drizzle-orm';
 
 import { getHandler } from './registry';
 import type { Job, JobProgress } from './types';
+
+const MS_PER_SECOND = 1000;
 
 export type EnqueueOptions = {
   /** A second enqueue with the same key returns the first job instead of creating one. */
   idempotencyKey?: string;
   priority?: number;
   runAt?: Date;
+  /**
+   * Run this long after now, by the database's clock. Jobs are claimed with the database's
+   * `now()`, so a time taken from the application's clock can land slightly in the future
+   * and be skipped by the tick that created it.
+   */
+  delayMs?: number;
   maxAttempts?: number;
   parentId?: string;
   progress?: JobProgress | null;
@@ -33,6 +41,9 @@ export async function enqueue(type: string, payload: unknown, options: EnqueueOp
       parentId: options.parentId ?? null,
       progress: options.progress ?? null,
       ...(options.runAt ? { runAt: options.runAt } : {}),
+      ...(options.delayMs !== undefined && options.delayMs > 0
+        ? { runAt: sql`now() + make_interval(secs => ${options.delayMs / MS_PER_SECOND})` }
+        : {}),
     })
     .onConflictDoNothing({ target: schema.jobs.idempotencyKey })
     .returning();

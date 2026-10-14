@@ -74,9 +74,25 @@ Anonymous numeric samples that feed computed settings. `subject_hash = sha256(gi
 
 Administrative actions. `actor_user_id` has no foreign key so the log survives account deletion; the deletion itself is logged with a hashed id only.
 
+### `gh_users`, `gh_repos`, `repo_manifests`, `repo_dependencies` (class C for non-members, class B for members)
+
+Public GitHub profile fields (login, name, free-text location, company, website, bio, follower counts), public repository metadata, and the dependency names read from manifest files.
+
+| Whose data | Retention | Deletion |
+| --- | --- | --- |
+| Someone who has not signed up | `expires_at = fetched + privacy.nonUserRawTtlHours` (24 hours by default) | `purge_non_user_raw`, hourly; manifests and dependencies cascade from the repository |
+| A member | No expiry; refreshed when they use the tools | With the account |
+| The country index (Phase 6) | Refreshed by the crawler | Opt-out form; removed when GitHub returns 404 |
+
+Recent public events (including commit messages GitHub publishes in them) are read to compute results and are not stored in any table.
+
+### `analysis_cache` (class C for non-members, class B for members)
+
+Results of the day-one tools. Every row has an `expires_at`; `is_member_subject` records whether the subject had signed up. Expired rows are deleted hourly.
+
 ### `api_cache` (class C)
 
-Cached GitHub API responses keyed by token identity, method and URL. Rows about non-members expire with `privacy.nonUserRawTtlHours` (purge job in P2-T04).
+Cached GitHub API responses keyed by token identity, method and URL. Responses expire after `privacy.nonUserRawTtlHours` and are deleted hourly. Only public reference data fetched by the source syncs (Linguist, github/explore) is kept without expiry, to make conditional requests possible.
 
 ### `geocode_cache`
 

@@ -27,7 +27,7 @@ async function fetchFile(ctx: SourceContext, path: string): Promise<string> {
     'GET /repos/{owner}/{repo}/contents/{+path}',
     { ...LINGUIST_REPO, path },
     z.string().min(1),
-    { accept: RAW_MEDIA_TYPE, what: `${LINGUIST_REPO.owner}/${LINGUIST_REPO.repo}/${path}` },
+    { accept: RAW_MEDIA_TYPE, cache: 'reference', what: `${LINGUIST_REPO.owner}/${LINGUIST_REPO.repo}/${path}` },
   );
 }
 

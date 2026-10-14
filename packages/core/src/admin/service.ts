@@ -120,8 +120,8 @@ export async function toggleSchedule(actorUserId: string, name: string, enabled:
 }
 
 /** Requeues a dead or failed job with fresh attempts. Audited. */
-export async function retryJob(actorUserId: string, jobId: string, now: Date = new Date()): Promise<void> {
-  const requeued = await requeueJob(jobId, now);
+export async function retryJob(actorUserId: string, jobId: string): Promise<void> {
+  const requeued = await requeueJob(jobId);
   if (!requeued) throw new ConflictError('admin.job_not_retryable', 'Only dead or failed jobs can be retried.');
   await writeAudit({ actorUserId, action: 'job.requeued', targetType: 'job', targetId: jobId });
 }

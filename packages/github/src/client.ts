@@ -35,6 +35,7 @@ const HTTP = {
   SERVER_ERROR: 500,
 } as const;
 const MS_PER_SECOND = 1000;
+const MS_PER_HOUR = 60 * 60 * MS_PER_SECOND;
 /** First pause after a secondary rate limit without `retry-after`; doubles each time (CLAUDE.md §5.6). */
 const SECONDARY_LIMIT_BASE_MS = 60_000;
 /** Longest search-pacer pause taken inline when the caller gives no deadline. */
@@ -50,9 +51,15 @@ export type RequestOptions = {
   /** What to call the thing in a "couldn't find …" message, e.g. `@login` or `owner/repo`. */
   what?: string;
   /** Epoch ms the caller must finish by; bounds inline waits. */
-  deadline?: number;
+  deadline?: number | undefined;
   /** Extra `Accept` media type, e.g. the stargazer timestamps format. */
   accept?: string;
+  /**
+   * How long the cached response may live. `transient` (default) expires after
+   * `privacy.nonUserRawTtlHours`, because most responses describe people who may not be
+   * members. `reference` is for public reference data (source syncs) and never expires.
+   */
+  cache?: 'transient' | 'reference';
 };
 
 export type Page<T> = { items: T[]; truncated: boolean };
@@ -239,7 +246,7 @@ export class GitHubClient {
   ): Promise<{ status: number; headers: Record<string, unknown>; data: unknown; url: string }> {
     const kit = await this.prepare(resource, 1);
     const url = kit.request.endpoint(route, params).url;
-    const cached = await readCache(this.identity, url, this.db);
+    const cached = await readCache(this.identity, url, this.now(), this.db);
     const headers: Record<string, string> = {};
     if (cached?.etag) headers['if-none-match'] = cached.etag;
     if (cached?.lastModified) headers['if-modified-since'] = cached.lastModified;
@@ -251,6 +258,8 @@ export class GitHubClient {
       return { status: HTTP.NOT_MODIFIED, headers: response.headers, data: cached.body, url };
     }
     if (response.status !== HTTP.ACCEPTED) {
+      const ttlHours = await getSetting('privacy.nonUserRawTtlHours', this.db);
+      const expiresAt = options.cache === 'reference' ? null : new Date(this.now().getTime() + ttlHours * MS_PER_HOUR);
       await writeCache(
         this.identity,
         url,
@@ -259,6 +268,7 @@ export class GitHubClient {
           etag: headerValue(response.headers, 'etag'),
           lastModified: headerValue(response.headers, 'last-modified'),
           body: response.data,
+          expiresAt,
         },
         this.now(),
         this.db,
