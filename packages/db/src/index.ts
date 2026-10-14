@@ -10,3 +10,4 @@ export * from './queries/security';
 export * from './settings';
 export { getLogger, hashUserId, setLogger, type Logger } from './logger';
 export { decrypt, encrypt, keyVersionOf, type EncryptionKeys } from './crypto';
+export type { SecretAllowlist } from './schema/reference';

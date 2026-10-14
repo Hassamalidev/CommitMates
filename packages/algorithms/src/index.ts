@@ -66,3 +66,4 @@ export {
   type CompatWeights,
   type HourWindow,
 } from './compat/compat';
+export { shannonEntropy } from './text/entropy';

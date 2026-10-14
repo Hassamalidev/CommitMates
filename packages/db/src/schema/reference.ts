@@ -1,4 +1,4 @@
-import { boolean, index, pgEnum, pgTable, primaryKey, text, uniqueIndex, uuid } from 'drizzle-orm/pg-core';
+import { boolean, index, jsonb, pgEnum, pgTable, primaryKey, real, smallint, text, uniqueIndex, uuid } from 'drizzle-orm/pg-core';
 
 import { createdAt, timestamptz } from './columns';
 
@@ -73,5 +73,48 @@ export const packageMeta = pgTable(
 export const registryPacing = pgTable('registry_pacing', {
   registry: text('registry').primaryKey(),
   lastCallAt: timestamptz('last_call_at'),
+  createdAt: createdAt(),
+}).enableRLS();
+
+/** One allowlist of a gitleaks rule: matches it describes are not secrets (CLAUDE.md §6.7). */
+export type SecretAllowlist = {
+  /** `OR` (default): any criterion allows a match; `AND`: all defined criteria must. */
+  condition: 'OR' | 'AND';
+  /** What the regexes are tested against. */
+  regexTarget: 'secret' | 'match' | 'line';
+  regexes: string[];
+  paths: string[];
+  stopwords: string[];
+};
+
+/**
+ * Secret-detection rules from gitleaks' default configuration (CLAUDE.md §6.7). Patterns are
+ * Go regular expressions compiled with RE2; `compiled_ok` is false for any RE2 cannot express.
+ */
+export const secretRules = pgTable('secret_rules', {
+  /** The gitleaks rule id, e.g. `aws-access-token`. */
+  id: text('id').primaryKey(),
+  description: text('description').notNull(),
+  regex: text('regex'),
+  /** Lowercased; a file without any of them is not tested against the rule. */
+  keywords: text('keywords').array().notNull(),
+  entropy: real('entropy'),
+  /** Capture group holding the secret; 0 means the first non-empty group, or the whole match. */
+  secretGroup: smallint('secret_group').notNull().default(0),
+  /** Rules that apply only to matching paths, or that match a path alone. */
+  pathRegex: text('path_regex'),
+  allowlists: jsonb('allowlists').$type<SecretAllowlist[]>().notNull(),
+  compiledOk: boolean('compiled_ok').notNull(),
+  checksum: text('checksum').notNull(),
+  syncedAt: timestamptz('synced_at').notNull(),
+  createdAt: createdAt(),
+}).enableRLS();
+
+/** gitleaks' global allowlist: paths, regexes and stopwords that are never secrets, for every rule. */
+export const secretGlobalAllowlist = pgTable('secret_global_allowlist', {
+  /** Always `global`: a single row, replaced on each sync. */
+  id: text('id').primaryKey(),
+  allowlist: jsonb('allowlist').$type<SecretAllowlist>().notNull(),
+  syncedAt: timestamptz('synced_at').notNull(),
   createdAt: createdAt(),
 }).enableRLS();

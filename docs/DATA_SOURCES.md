@@ -14,12 +14,12 @@ No list of universities, skills, topics, languages or secret patterns is written
 | Package registries (npm, PyPI, crates.io, pub.dev, Packagist) | Package keywords and classifiers | `packages/sources/registries` | On demand, TTL `cache.packageMetaTtlDays` | Recorded per registry when implemented | P2-T03 |
 | Nominatim (OpenStreetMap) | Free-text location → coordinates | `packages/sources/geocoder` | On demand, cached forever | ODbL data; Nominatim usage policy | P2-T05 |
 | Coordinates → timezone (offline library) | IANA timezone lookup | `packages/sources/geocoder` | Bundled | CC0-1.0 (ADR-004) | P2-T05 |
-| gitleaks default rules | Secret detection patterns | `packages/sources/gitleaks` | Weekly | MIT | P2-T10 |
+| gitleaks default rules | Secret detection patterns | `packages/sources/gitleaks` | Weekly | MIT (code and configuration) | P2-T10 |
 | Stopword dataset | YAKE keyword extraction | `packages/sources` | Snapshot | Recorded in the ADR that picks the dataset | P2-T17 |
 | Hipo university-domains-list | Universities and email domains | `packages/sources/hipo` | Weekly | MIT | P3-T01 |
 | Disposable email domains | Rejecting throwaway addresses | `packages/sources/disposable-emails` | Weekly | Recorded in the ADR that picks the list | P3-T01 |
 
-Implemented so far: GitHub REST and GraphQL, GitHub Linguist, github/explore, package registries, Nominatim, coordinates → timezone (below). A row moves to its own section below when its module lands, with the exact endpoint, request pacing, User-Agent and attribution text.
+Implemented so far: GitHub REST and GraphQL, GitHub Linguist, github/explore, package registries, Nominatim, coordinates → timezone, gitleaks (below). A row moves to its own section below when its module lands, with the exact endpoint, request pacing, User-Agent and attribution text.
 
 ## Policies that apply to every source
 
@@ -120,6 +120,17 @@ PyPI names are normalized per PEP 503. Fixtures are real manifests from well-kno
 - Used for: the IANA timezone of a resolved location, stored on its `geocode_cache` row.
 - Known behaviors: the table is approximate near borders and at sea; coordinates outside the valid range give no timezone. The timezone database inside the package is as new as the installed version (decision in ADR-004).
 - License and attribution: the library is CC0-1.0; its table is derived from timezone-boundary-builder, which is built from OpenStreetMap data (ODbL 1.0). Both are credited on `/attribution`.
+
+## gitleaks default rules
+
+- Endpoint: `GET /repos/gitleaks/gitleaks/contents/config/gitleaks.toml` (raw media type, conditional request through the GitHub client, default branch).
+- Auth and pacing: the server identity; GitHub's budgets apply (CLAUDE.md §5.6).
+- Parsed with `smol-toml`: every `[[rules]]` entry (`id`, `description`, `regex`, `path`, `keywords`, `entropy`, `secretGroup`, `[[rules.allowlists]]` with `condition`, `regexTarget`, `regexes`, `paths`, `stopwords`) and the global `[allowlist]` / `[[allowlists]]`.
+- Compiled with RE2 (`re2js`): a rule whose own pattern RE2 cannot express is stored with `compiled_ok = false` and skipped by the scanner; allowlist patterns RE2 cannot express are dropped one by one. The count of unusable rules is recorded in `source_snapshots.skipped_count`.
+- Stored in: `secret_rules` (diff by per-rule checksum), `secret_global_allowlist` (one row).
+- Refresh: weekly (job `sync_gitleaks`, Sunday 04:45 UTC).
+- Scan order as implemented in `packages/core/src/secrets/scan.ts`: global path allowlist → the rule's path condition → case-insensitive keyword prefilter → regex over the whole file → entropy of the secret (the rule's `secretGroup`, else the first non-empty group, else the whole match) → the rule's allowlists → the global regexes and stopwords. A rule with only a path reports the file at line 1.
+- License and attribution: MIT; credited on `/attribution`.
 
 ## How to add a section
 

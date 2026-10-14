@@ -134,6 +134,20 @@
       "when": 1791942501849,
       "tag": "0018_schedule_geocode",
       "breakpoints": true
+    },
+    {
+      "idx": 19,
+      "version": "7",
+      "when": 1791949080578,
+      "tag": "0019_secret_rules",
+      "breakpoints": true
+    },
+    {
+      "idx": 20,
+      "version": "7",
+      "when": 1791949083115,
+      "tag": "0020_schedule_gitleaks",
+      "breakpoints": true
     }
   ]
 }

@@ -3,7 +3,7 @@ export { runSourceSync, type RunSourceOptions, type SourceSyncResult } from './r
 export { linguistSource } from './linguist/source';
 export { normalizeLinguist, type LanguageItem, type LinguistItem, type LinguistRaw, type PatternItem } from './linguist/normalize';
 export { createPathMatcher, type PathMatcher, type PathPattern } from './linguist/match';
-export { compileRe2, re2Matches } from './linguist/regex';
+export { compileRe2, re2Matches, type RE2JS } from './linguist/regex';
 export { exploreSource } from './explore/source';
 export { TOPIC_SLUG, normalizeExplore, parseTopicFile, type ExploreItem, type ExploreRaw, type TopicItem } from './explore/normalize';
 export {
@@ -30,3 +30,5 @@ export {
   type ResolveOptions,
   type ResolveReport,
 } from './geocoder/geocoder';
+export { normalizeGitleaks, type GitleaksItem, type GlobalAllowlistItem, type SecretRuleItem } from './gitleaks/normalize';
+export { gitleaksSource } from './gitleaks/source';

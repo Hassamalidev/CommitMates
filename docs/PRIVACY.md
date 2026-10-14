@@ -102,7 +102,7 @@ Normalized free-text location strings (lowercased, emoji and URLs removed) with 
 
 ### Tables without personal data
 
-`languages`, `path_patterns`, `topics`, `package_meta`, `registry_pacing` (public reference data from open sources), `settings`, `settings_history` (an `actor_user_id` for admin overrides), `jobs` (payloads may name a GitHub login or repository; rows are operational and short-lived), `job_schedules`, `github_budgets`, `rate_limit_buckets` (keys contain hashes, never raw IPs), `geocoder_lock`, `source_snapshots`.
+`languages`, `path_patterns`, `topics`, `package_meta`, `registry_pacing`, `secret_rules`, `secret_global_allowlist` (public reference data from open sources), `settings`, `settings_history` (an `actor_user_id` for admin overrides), `jobs` (payloads may name a GitHub login or repository; rows are operational and short-lived), `job_schedules`, `github_budgets`, `rate_limit_buckets` (keys contain hashes, never raw IPs), `geocoder_lock`, `source_snapshots`.
 
 ## Environment and logs
 

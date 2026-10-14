@@ -125,6 +125,12 @@ export const legalCopy = {
         href: 'https://docs.npmjs.com/policies/open-source-terms',
       },
       {
+        name: 'gitleaks',
+        use: 'Secret-detection rules used to warn members about keys left in their own repositories.',
+        license: 'MIT',
+        href: 'https://github.com/gitleaks/gitleaks',
+      },
+      {
         name: 'OpenStreetMap Nominatim',
         use: 'Turning the location text of a public profile into a city, country and timezone.',
         license: 'Data © OpenStreetMap contributors, ODbL 1.0',

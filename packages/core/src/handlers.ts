@@ -6,7 +6,7 @@ import { analyzeProfileJob } from './persona/jobs';
 import { purgeNonUserRawJob } from './privacy/jobs';
 import { cleanupRateBucketsJob, rotateSaltsJob } from './security/jobs';
 import { recomputeSettingsJob } from './settings/jobs';
-import { enrichPackagesJob, syncExploreJob, syncLinguistJob } from './sources/jobs';
+import { enrichPackagesJob, syncExploreJob, syncGitleaksJob, syncLinguistJob } from './sources/jobs';
 
 type Registration = { type: string; register: () => void };
 
@@ -25,6 +25,7 @@ export const jobHandlers: readonly Registration[] = [
   define(rotateSaltsJob),
   define(syncLinguistJob),
   define(syncExploreJob),
+  define(syncGitleaksJob),
   define(enrichPackagesJob),
   define(purgeNonUserRawJob),
   define(geocodePendingJob),
