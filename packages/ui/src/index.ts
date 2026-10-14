@@ -59,3 +59,7 @@ export {
   type ResolvedTheme,
   type ThemePreference,
 } from './theme/theme';
+
+export { Heatmap, heatLevel, type HeatmapDay, type HeatmapProps } from './charts/Heatmap';
+export { LanguageBar, formatSharePercent, type LanguageBarItem, type LanguageBarProps } from './charts/LanguageBar';
+export { RhythmStrip, topHours, type RhythmStripProps } from './charts/RhythmStrip';
