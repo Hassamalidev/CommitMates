@@ -4,3 +4,5 @@ export { linguistSource } from './linguist/source';
 export { normalizeLinguist, type LanguageItem, type LinguistItem, type LinguistRaw, type PatternItem } from './linguist/normalize';
 export { createPathMatcher, type PathMatcher, type PathPattern } from './linguist/match';
 export { compileRe2, re2Matches } from './linguist/regex';
+export { exploreSource } from './explore/source';
+export { TOPIC_SLUG, normalizeExplore, parseTopicFile, type ExploreItem, type ExploreRaw, type TopicItem } from './explore/normalize';

@@ -112,6 +112,12 @@ export const legalCopy = {
         license: 'MIT',
         href: 'https://github.com/github-linguist/linguist',
       },
+      {
+        name: 'github/explore',
+        use: 'Topic names, aliases and related topics.',
+        license: 'CC BY 4.0, © GitHub, Inc.',
+        href: 'https://github.com/github/explore',
+      },
     ],
     assets: [
       { name: 'Inter', use: 'Body text.', license: 'SIL Open Font License 1.1', href: 'https://rsms.me/inter/' },

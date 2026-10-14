@@ -41,6 +41,15 @@ describe('recompute_settings job', () => {
     expect(row).toMatchObject({ status: 'done', result_ref: { updated: [], empty: [], failed: [] } });
   });
 
+  it('source syncs are scheduled weekly by migrations', async () => {
+    const rows = await database.sql`
+      select name, job_type from job_schedules where name in ('sync-linguist', 'sync-explore') order by name`;
+    expect(rows).toEqual([
+      { name: 'sync-explore', job_type: 'sync_explore' },
+      { name: 'sync-linguist', job_type: 'sync_linguist' },
+    ]);
+  });
+
   it('is scheduled nightly by a migration', async () => {
     const [row] = await database.sql`select cron_expr, job_type, enabled from job_schedules where name = 'recompute-settings'`;
     expect(row).toMatchObject({ job_type: 'recompute_settings', enabled: true });

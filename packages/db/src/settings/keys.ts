@@ -169,6 +169,7 @@ export const SettingKeys = {
   'admin.sourceStaleDays': 'integer',
   'admin.staleComputedDays': 'integer',
   'admin.jobListLimit': 'integer',
+  'sources.explore.batchSize': 'integer',
 } as const;
 
 export type SettingKey = keyof typeof SettingKeys;

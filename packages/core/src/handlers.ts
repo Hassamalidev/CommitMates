@@ -2,7 +2,7 @@ import { registerHandler, type JobHandler } from '@commitmates/jobs';
 
 import { cleanupRateBucketsJob, rotateSaltsJob } from './security/jobs';
 import { recomputeSettingsJob } from './settings/jobs';
-import { syncLinguistJob } from './sources/jobs';
+import { syncExploreJob, syncLinguistJob } from './sources/jobs';
 
 type Registration = { type: string; register: () => void };
 
@@ -20,6 +20,7 @@ export const jobHandlers: readonly Registration[] = [
   define(cleanupRateBucketsJob),
   define(rotateSaltsJob),
   define(syncLinguistJob),
+  define(syncExploreJob),
 ];
 
 /** Registers every handler. Safe to call on each request: re-registering is a no-op. */

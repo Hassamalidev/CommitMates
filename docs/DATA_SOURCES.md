@@ -10,7 +10,7 @@ No list of universities, skills, topics, languages or secret patterns is written
 | --- | --- | --- | --- | --- | --- |
 | GitHub REST and GraphQL | Users, repos, activity, search | `packages/github` | On demand, ETag-cached | GitHub Terms of Service; rate limits read from response headers | P1-T04 |
 | GitHub Linguist | Language colors, extensions, vendored and documentation paths | `packages/sources/linguist` | Weekly | MIT | P1-T09 |
-| `github/explore` | Topic aliases and related topics | `packages/sources/explore` | Weekly | Recorded when implemented | P2-T01 |
+| `github/explore` | Topic aliases and related topics | `packages/sources/explore` | Weekly | CC BY 4.0 | P2-T01 |
 | Package registries (npm, PyPI, crates.io, pub.dev, Packagist) | Package keywords and classifiers | `packages/sources/registries` | On demand, TTL `cache.packageMetaTtlDays` | Recorded per registry when implemented | P2-T03 |
 | Nominatim (OpenStreetMap) | Free-text location → coordinates | `packages/sources/geocoder` | On demand, cached forever | ODbL data; Nominatim usage policy | P2-T05 |
 | Coordinates → timezone (offline library) | IANA timezone lookup | `packages/sources/timezone` | Bundled | Recorded in the ADR that picks the library | P2-T05 |
@@ -19,7 +19,7 @@ No list of universities, skills, topics, languages or secret patterns is written
 | Hipo university-domains-list | Universities and email domains | `packages/sources/hipo` | Weekly | MIT | P3-T01 |
 | Disposable email domains | Rejecting throwaway addresses | `packages/sources/disposable-emails` | Weekly | Recorded in the ADR that picks the list | P3-T01 |
 
-Implemented so far: GitHub REST and GraphQL, GitHub Linguist (below). A row moves to its own section below when its module lands, with the exact endpoint, request pacing, User-Agent and attribution text.
+Implemented so far: GitHub REST and GraphQL, GitHub Linguist, github/explore (below). A row moves to its own section below when its module lands, with the exact endpoint, request pacing, User-Agent and attribution text.
 
 ## Policies that apply to every source
 
@@ -51,6 +51,16 @@ Implemented so far: GitHub REST and GraphQL, GitHub Linguist (below). A row move
 - Stored in: `languages`, `path_patterns`.
 - Refresh: weekly, Sundays 04:00 UTC (job `sync_linguist`); diff-based. A failed or unparseable fetch keeps the existing rows and records `last_error`.
 - License and attribution: MIT, © GitHub, Inc.; credited on `/attribution`.
+
+## github/explore
+
+- Endpoint: `GET /repos/github/explore` (default branch), `GET /repos/github/explore/git/trees/{branch}?recursive=1` (one listing), then `GET /repos/github/explore/git/blobs/{sha}` with the raw media type for each `topics/<slug>/index.md` whose blob sha differs from `topics.blob_sha`.
+- Auth: the `server` identity.
+- Pacing and limits: at most `sources.explore.batchSize` files per run and never past the job deadline; the job continues in a follow-up run until nothing remains. The first sync reads about 1,300 small files; a normal week reads a handful. An exhausted GitHub budget makes the job wait; it is not recorded as a source failure.
+- Fields used: `topic`, `display_name`, `aliases`, `related` from the YAML front matter. `aliases` and `related` are comma-separated strings upstream; entries that are not valid topic slugs are dropped.
+- Stored in: `topics` (with the blob sha of the source file).
+- Refresh: weekly, Sundays 04:30 UTC (job `sync_explore`). Topics removed upstream are deleted, but never from a truncated listing.
+- License and attribution: CC BY 4.0, © GitHub, Inc.; credited on `/attribution`.
 
 ## How to add a section
 
