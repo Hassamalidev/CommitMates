@@ -12,7 +12,7 @@ import {
   type RuleResult,
   type ShowcaseRepo,
 } from '@commitmates/algorithms';
-import { countGenericMessages, getDb, getSetting, topGenericMessages } from '@commitmates/db';
+import { countGenericMessages, getDb, getSetting, latestSecretScan, topGenericMessages, type LatestSecretScan } from '@commitmates/db';
 import { fetchReadme, type GitHubClient, type ProfileRepo } from '@commitmates/github';
 import { loadAliasMap, normalizeTag, type AliasMap } from '@commitmates/sources';
 
@@ -127,4 +127,9 @@ export async function scoreRecruiterFacts(facts: RecruiterFacts): Promise<{ scor
     activeDayTarget,
   });
   return { score: recruiterScore(rules), rules };
+}
+
+/** A member's latest secret scan of their own account. Callers pass the signed-in member's id. */
+export function getOwnSecretScan(userId: string): Promise<LatestSecretScan | null> {
+  return latestSecretScan(userId);
 }

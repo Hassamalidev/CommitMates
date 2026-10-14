@@ -66,3 +66,5 @@ export { compatShareAllowed } from './compat/sharing';
 export { scanRepositories, type RepoFinding, type ScanReport, type ScanTarget } from './secrets/scanner';
 export { RECRUITER_STEPS, recruiterTool } from './recruiter/jobs';
 export { MAX_RESUME_SKILLS, recruiterInputSchema, recruiterResultSchema, type RecruiterInput, type RecruiterResult } from './recruiter/schemas';
+export { getOwnSecretScan } from './recruiter/service';
+export type { LatestSecretScan, StoredSecretFinding } from '@commitmates/db';
