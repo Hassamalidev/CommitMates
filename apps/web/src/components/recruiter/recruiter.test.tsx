@@ -140,7 +140,10 @@ describe('RecruiterTool', () => {
       expect(screen.getByTestId('secret-panel')).toBeTruthy();
     });
     expect(sentBody()).toEqual({ login: 'Fixture-User-1', resumeSkills: ['React', 'Go'], scanSecrets: true });
-    expect(loadOwnSecretScan).toHaveBeenCalledTimes(1);
+    // The scan is loaded by an effect after the panel renders; wait for it rather than racing it.
+    await waitFor(() => {
+      expect(loadOwnSecretScan).toHaveBeenCalledTimes(1);
+    });
 
     fireEvent.change(screen.getByLabelText('GitHub username'), { target: { value: 'someone-else' } });
     expect(screen.queryByRole('checkbox')).toBeNull();

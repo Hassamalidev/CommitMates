@@ -281,6 +281,13 @@
       "when": 1791986419947,
       "tag": "0039_settings_matching_vectors",
       "breakpoints": true
+    },
+    {
+      "idx": 40,
+      "version": "7",
+      "when": 1791987608544,
+      "tag": "0040_schedule_match_daily",
+      "breakpoints": true
     }
   ]
 }

@@ -10,6 +10,7 @@ import { ossSearchJob } from './oss/jobs';
 import { analyzeProfileJob } from './persona/jobs';
 import { recruiterReportJob } from './recruiter/jobs';
 import { taxonomyExpandJob } from './taxonomy/jobs';
+import { matchDailyJob } from './matching/daily';
 import { computeSkillVectorJob, refreshSkillVectorsJob } from './matching/vectors';
 import { sendEmailJob } from './notifications/email';
 import { sendOtpJob } from './verification/jobs';
@@ -63,6 +64,7 @@ export const jobHandlers: readonly Registration[] = [
   define(sendOtpJob),
   define(computeSkillVectorJob),
   define(refreshSkillVectorsJob),
+  define(matchDailyJob),
 ];
 
 /** Registers every handler. Safe to call on each request: re-registering is a no-op. */

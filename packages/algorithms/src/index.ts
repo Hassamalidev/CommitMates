@@ -138,3 +138,21 @@ export { median } from './stats/basic';
 export { levenshteinSimilarity, splitSentences, tokenize, wordTag, yake, type Keyphrase, type YakeOptions } from './ir/yake';
 export { bm25Index, bm25Scores, bm25Tokens, type Bm25Index } from './ir/bm25';
 export { l2Normalize, mergeMax, tfidfVectors, topTags } from './matching/tfidf';
+export { mulberry32, seedFrom, shuffled } from './stats/random';
+export {
+  MATCH_MODES,
+  buildDecks,
+  complementarity,
+  explainMatch,
+  matchComponents,
+  maxNormalize,
+  modeScore,
+  sharesSignal,
+  universityGaps,
+  type DeckEntry,
+  type MatchComponents,
+  type MatchExplanation,
+  type MatchMode,
+  type MatchProfile,
+  type ModeWeights,
+} from './matching/match';

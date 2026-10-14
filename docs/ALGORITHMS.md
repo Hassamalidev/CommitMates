@@ -298,6 +298,22 @@ TF-IDF arrives in P4-T02.
 - Tests: `packages/algorithms/src/matching/tfidf.test.ts` (hand-computed three-member university), `packages/core/src/matching/vectors.test.ts`
 - Spec: CLAUDE.md §8 F11 "Vectors"
 
+### Scoring and daily decks
+
+- Code: `packages/algorithms/src/matching/match.ts`, `packages/algorithms/src/stats/random.ts`; job `match_daily` in `packages/core/src/matching/daily.ts`
+- Formula:
+  - sim = cosine of TF-IDF vectors; int = Jaccard of interest sets
+  - comp = mean over the member's goals of min(1, candidate weight ÷ candidate's max weight); without learning goals, the university's 20 strongest tags (sum of members' vectors) minus the member's own top tags stand in
+  - score = weights of the mode (`matching.weights`: study, teammate, explore) · (sim, int, comp)
+  - only pairs sharing a tag, an interest or a covered goal are scored
+  - decks (nightly, per university with at least `unlock.matching.minMembers` verified members): members are served in a seeded random order (mulberry32 seeded by FNV-1a of `day:university`); the three modes take turns picking their best remaining candidate up to `matching.deckSize` each; a candidate appears once per member per day and at most `matching.maxDailyImpressions` times across all decks
+  - excluded: blocks either way, existing connections, ghost mode or hidden profiles (as candidates), suspended or hidden-pending-review accounts, unverified members
+  - explanations: up to 3 shared top tags, up to 3 goals the candidate covers, the number of shared interests
+- Not yet: the rhythm-overlap explanation needs both members' hour histograms, which are not stored per member; it arrives with Discover (P4-T04) if the Dev Card is cached
+- Settings: `matching.weights`, `matching.deckSize` (15), `matching.maxDailyImpressions` (20), `unlock.matching.minMembers` (10)
+- Tests: `packages/algorithms/src/matching/match.test.ts`, `packages/algorithms/src/stats/random.test.ts`, `packages/core/src/matching/daily.test.ts`
+- Spec: CLAUDE.md §8 F11 "Scoring", "Deck", "Explanations"
+
 ## Clustering, graphs and assignment
 
 No entries yet. k-means with silhouette selection arrives in P6-T06; cycle search in P5-T06.

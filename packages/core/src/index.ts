@@ -108,3 +108,4 @@ export { AUDIT_PAGE_SIZE, adminChangeSchema, auditFilterSchema, changeAdmin, lis
 export type { AuditEntryRow, RoleGrant } from '@commitmates/db';
 export { TOP_SKILL_TAGS, baseFromCard, interestsOf, recomputeUniversityVectors, requestSkillVector } from './matching/vectors';
 export { getSkillVector } from '@commitmates/db';
+export { buildUniversityDecks } from './matching/daily';
