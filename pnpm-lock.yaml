@@ -250,6 +250,9 @@ importers:
 
   apps/web:
     dependencies:
+      '@commitmates/algorithms':
+        specifier: workspace:*
+        version: link:../../packages/algorithms
       '@commitmates/core':
         specifier: workspace:*
         version: link:../../packages/core

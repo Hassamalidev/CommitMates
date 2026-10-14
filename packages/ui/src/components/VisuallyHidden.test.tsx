@@ -23,6 +23,20 @@ describe('VisuallyHidden', () => {
     expect(element).toHaveClass('sr-only', 'chart-data');
   });
 
+  it('wraps a table so it cannot widen the page', () => {
+    render(
+      <VisuallyHidden as="table">
+        <tbody>
+          <tr>
+            <td>42</td>
+          </tr>
+        </tbody>
+      </VisuallyHidden>,
+    );
+    const table = screen.getByRole('table');
+    expect(table.parentElement).toHaveClass('sr-only');
+  });
+
   it('has no serious accessibility violations', async () => {
     const { container } = render(
       <main>

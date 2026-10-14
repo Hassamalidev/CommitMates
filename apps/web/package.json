@@ -13,6 +13,7 @@
     "test": "vitest run"
   },
   "dependencies": {
+    "@commitmates/algorithms": "workspace:*",
     "@commitmates/core": "workspace:*",
     "@commitmates/env": "workspace:*",
     "@commitmates/ui": "workspace:*",

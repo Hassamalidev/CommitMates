@@ -64,3 +64,5 @@ export { Heatmap, heatLevel, type HeatmapDay, type HeatmapProps } from './charts
 export { LanguageBar, formatSharePercent, type LanguageBarItem, type LanguageBarProps } from './charts/LanguageBar';
 export { RhythmStrip, topHours, type RhythmStripProps } from './charts/RhythmStrip';
 export { ScoreDial, normalizeScore, type ScoreDialProps } from './charts/ScoreDial';
+export { BarList, type BarListItem, type BarListProps } from './charts/BarList';
+export { Timeline, type TimelineProps, type TimelineSeries } from './charts/Timeline';

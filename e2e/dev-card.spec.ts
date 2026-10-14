@@ -116,8 +116,11 @@ test.describe('Dev Card tool', () => {
       expect(overflow).toBeLessThanOrEqual(0);
       await expectNoSeriousA11yViolations(page);
 
-      const [session] = await withAppDatabase((sql) => sql`select tool, ip_hash_day, user_id from tool_sessions order by created_at desc limit 1`);
-      expect(session).toMatchObject({ tool: 'dev-card', user_id: null });
+      // Other tools run in parallel; read this tool's latest session only.
+      const [session] = await withAppDatabase(
+        (sql) => sql`select tool, ip_hash_day, user_id from tool_sessions where tool = 'dev-card' order by created_at desc limit 1`,
+      );
+      expect(session).toMatchObject({ tool: 'dev-card' });
       expect(session?.ip_hash_day).toMatch(/^[0-9a-f]{64}$/);
     } finally {
       await withAppDatabase((sql) => sql`delete from analysis_cache where subject_key = ${login}`);

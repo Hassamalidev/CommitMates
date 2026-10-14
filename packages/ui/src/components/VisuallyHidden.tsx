@@ -16,5 +16,13 @@ export function VisuallyHidden<T extends ElementType = 'span'>({
 }: VisuallyHiddenProps<T>) {
   const Component: ElementType = as ?? 'span';
   const classes = typeof className === 'string' && className.length > 0 ? `sr-only ${className}` : 'sr-only';
+  // A table ignores the 1px width of `sr-only` and would widen the page; a clipped wrapper keeps it out of the layout.
+  if (Component === 'table') {
+    return (
+      <div className="sr-only">
+        <table {...rest} className={className} />
+      </div>
+    );
+  }
   return <Component {...rest} className={classes} />;
 }
