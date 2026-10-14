@@ -14,3 +14,17 @@ export {
 } from './profiles/service';
 export { signInSchema, type Member, type MemberRole, type SignInInput } from './profiles/schemas';
 export { AppError, ForbiddenError, NotFoundError, RateLimitedError, ValidationError } from '@commitmates/db';
+export {
+  getHealth,
+  getJobsOverview,
+  getSettingHistory,
+  listSettings,
+  overrideSetting,
+  retryJob,
+  toggleSchedule,
+  type Health,
+  type JobsOverview,
+  type SettingView,
+} from './admin/service';
+export { jobIdSchema, scheduleToggleSchema, settingOverrideSchema, type Alert, type AlertKey } from './admin/schemas';
+export { ConflictError, hashUserId } from '@commitmates/db';

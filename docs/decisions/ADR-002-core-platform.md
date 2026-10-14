@@ -56,6 +56,16 @@ A fresh database has no Supabase `auth` schema, so the template gets a minimal s
 
 §3.1 offers `re2-wasm` or `re2`. `re2` is a native addon, which is fragile on serverless hosts and on Windows development machines; `re2-wasm` has had no release since 2022. `re2js` is a maintained pure-JavaScript port of RE2 (MIT) with the same linear-time guarantee and the same refusal of look-arounds and backreferences, which is the property the spec asks for.
 
+### Error tracking is opt-in and stripped of personal data
+
+The Sentry SDK (`@sentry/node` 11) is MIT itself but depends on Sentry's CLI under FSL-1.1, a source-available license that §2.2 forbids, and on several BlueOak-1.0.0 packages; `pnpm check:licenses` rejected it. Error tracking therefore uses no SDK: when `SENTRY_DSN` is set, `apps/web/src/server/observability.ts` posts a minimal event to Sentry's envelope endpoint with `fetch`. The event is built from scratch (error type, message, stack, route, method, digest), so there is no user, cookie, header, body or query string in it to strip. Without a DSN nothing is sent. Next.js's `onRequestError` hook is the single place uncaught server errors are logged and reported.
+
+### Admin alert thresholds are settings
+
+§5.13 states the alert thresholds as numbers (24 hours, 2 minutes, 90%, 14 days, 3 days). Under §2.3 they are settings: `admin.deadJobWindowHours`, `admin.interactiveQueueAlertSeconds`, `admin.budgetAlertPct`, `admin.sourceStaleDays`, `admin.staleComputedDays`, plus `admin.jobListLimit`, seeded with the spec's values.
+
+The daily alert email and the "emails sent today" indicator need the email package and arrive with it (P3-T03) and the notification digest (P4-T07).
+
 ### Search results are not ETag-cached
 
 Search responses are paced and budgeted but not stored in `api_cache`: the results feed `analysis_cache` with their own TTLs (§5.8), and caching raw search pages would duplicate that.

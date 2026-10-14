@@ -941,6 +941,12 @@ Keys that §8 names as "new key" (or that a formula needs), seeded in `0003_sett
 | `leaderboard.weights` | json | {"activeRatio":0.5,"medianActiveDays":0.3,"revivals":0.1,"helpfulReviews":0.1} | — | University score weights (F19) |
 | `alumni.transitionMonth` | integer | 7 | — | Month after which last year's graduates become alumni (F20) |
 | `squads.minOverlapHours` | integer | 4 | — | Weekly availability overlap a team needs (F21) |
+| `admin.deadJobWindowHours` | integer | 24 | — | Window in which a dead job raises an alert (§5.13) |
+| `admin.interactiveQueueAlertSeconds` | integer | 120 | — | An interactive job queued longer than this raises an alert (§5.13) |
+| `admin.budgetAlertPct` | number | 0.9 | — | Share of a budget (database size, daily email) that raises an alert (§5.13) |
+| `admin.sourceStaleDays` | integer | 14 | — | A source snapshot older than this raises an alert (§5.13) |
+| `admin.staleComputedDays` | integer | 3 | — | A computed setting not refreshed for this long is listed as stale (§5.13) |
+| `admin.jobListLimit` | integer | 100 | — | Rows shown per job list on the admin pages (§5.13) |
 
 `min_sample` for computed keys is seeded as 200 for sample percentiles, 30 for `matching.weights` and `streaks.companionStageDays`. `graveyard.idleMonths.<category>` rows are created by the recompute job per category and are not part of the static key registry.
 
@@ -2936,7 +2942,7 @@ Branch `phase/1-core`. Goal: database, settings, jobs, GitHub client, auth, desi
   - Landing sections with real copy (live demo wired in P2).
   - First versions of `/privacy`, `/terms` and `/attribution` written from §5.12 and §6.11 (finalized in P7).
   - Done when: Lighthouse accessibility ≥ 90 on the landing page.
-- [ ] **P1-T11 Observability and admin base.** Spec: §5.11, §5.13.
+- [x] **P1-T11 Observability and admin base.** Spec: §5.11, §5.13.
   - pino logger with request and job ids, `withAction` wrapper, error boundaries, optional Sentry.
   - `/admin/health`, `/admin/jobs` (queue, dead jobs, schedules toggle), `/admin/settings` (values, history, override), audit-log writes.
   - Done when: admin pages require the admin role (tested) and show live data.
@@ -3173,6 +3179,7 @@ Branch `phase/7-launch`. Goal: secure, fast, accessible, documented, deployed.
 
 Newest first, one line per completed task or subtask: `YYYY-MM-DD — <task id> — <what was done>`. A `BLOCKED:` line, when present, is always the first line (§13). Spec fixes made under §0.9 are logged here too.
 
+- 2026-10-14 — P1-T11 — Observability and admin base: withAction wrapper and ActionResult (AppError and zod failures become inline errors; unexpected errors are logged with a reference id), hashed user ids for logs, onRequestError logging, optional Sentry reporting without the SDK (its dependency tree includes FSL-1.1 and BlueOak licenses that check:licenses rejects; a minimal event is posted with fetch when SENTRY_DSN is set), error boundaries. /admin/health (alerts, queue depth, longest wait per priority, dead jobs, GitHub budgets, sources, database size vs budget, stale computed settings), /admin/jobs (schedules with enable/disable, dead/failed with retry, running, queued), /admin/settings (filter, resolved value and source, per-key page with override form and history). Every admin action checks the admin role and writes audit_log; non-admins get a 404 (unit and e2e tested). Six admin.* settings added for the alert thresholds of §5.13. Not yet built: the daily alert email and the emails-sent indicator, which need the email package (P3-T03, P4-T07).
 - 2026-10-14 — P1-T10 — App shell: header (brand companion, nav, sign-in state, theme toggle), footer, skip link, (marketing) route group, 404, error and global-error pages, generated site icon. Landing page with real copy: hero, five-state companion strip, tools grid (a tool links only once its page exists; until then it is marked in development), how it works, campus unlocks, privacy promise, FAQ. First versions of /privacy, /terms and /attribution. Lighthouse on the production build: accessibility 100, SEO 100, best practices 96 before the favicon fix. 42 e2e tests pass at desktop and 360px. P1-T09 parent ticked.
 - 2026-10-14 — P1-T09b — Companion engine: mulberry32-seeded 16x16 generator (8 species, 5 stages, symmetric cleaned body mask, ears/tail/antenna, outline, eyes, OKLCH palette with light/shade and pair two-tone, trait accessories, stage-4 aura), frames for the five states, CompanionView (inline SVG stepped with CSS, reduced motion shows frame 1, done settles to idle) and SpeechBubble. Deterministic per seed; committed SVG snapshots for fixed seeds in every state; outline contrast >= 3:1 on every surface. Deviation (ADR-003): inline SVG with a stepped transform instead of background-position so the outline can follow the theme; new token --companion-outline. Linguist sync now inserts in batches.
 - 2026-10-14 — P1-T09a — Source framework (SourceModule contract, runSourceSync with source_snapshots, last good data kept on failure, empty results refused) and the Linguist source: languages and path_patterns tables, YAML parsing, RE2 compilation with re2js (uncompilable patterns stored and counted, not used), path matcher, sync_linguist job with a weekly schedule. Fixtures are the real vendor.yml and documentation.yml and an excerpt of languages.yml.

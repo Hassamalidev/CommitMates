@@ -163,6 +163,12 @@ export const SettingKeys = {
   'squads.kMax': 'integer',
   'squads.defaultTeamSize': 'integer',
   'squads.minOverlapHours': 'integer',
+  'admin.deadJobWindowHours': 'integer',
+  'admin.interactiveQueueAlertSeconds': 'integer',
+  'admin.budgetAlertPct': 'number',
+  'admin.sourceStaleDays': 'integer',
+  'admin.staleComputedDays': 'integer',
+  'admin.jobListLimit': 'integer',
 } as const;
 
 export type SettingKey = keyof typeof SettingKeys;

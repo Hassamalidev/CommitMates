@@ -88,5 +88,9 @@ Normalized free-text location strings and their coordinates. Not linked to a per
 
 ## Environment and logs
 
+- Logs are JSON (pino). Tokens, emails, one-time codes, message bodies, cookies, authorization headers and IP addresses are redacted by the logger's configuration. A member is identified in logs only by `hashUserId` (a truncated SHA-256), and request errors are logged by route without the query string.
+- Error tracking (Sentry) is off unless `SENTRY_DSN` is set. When on, an event carries only the error type, message, stack, route, method and digest; no user, cookie, header, body or query string is ever added to it.
+- Admin pages show GitHub budgets by identity kind (`server` or `member`), never by member id.
+
 - `.env.local` holds secrets and is never committed. `EnvError` messages name the variable and the problem and never echo a value (`packages/env`, tested).
 - The local Supabase stack uses its fixed development keys; they protect nothing outside the developer's machine.

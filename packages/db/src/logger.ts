@@ -1,3 +1,5 @@
+import { createHash } from 'node:crypto';
+
 import pino, { type Logger as PinoLogger } from 'pino';
 
 export type Logger = PinoLogger;
@@ -27,6 +29,14 @@ const REDACTED_PATHS = [
   'headers.cookie',
   'headers["x-tick-secret"]',
 ];
+
+/** Characters of the hash kept: enough to follow one member through the logs, useless for looking them up. */
+const USER_HASH_CHARS = 12;
+
+/** A member id as it may appear in logs: hashed, never raw (CLAUDE.md §5.13). */
+export function hashUserId(userId: string): string {
+  return createHash('sha256').update(userId).digest('hex').slice(0, USER_HASH_CHARS);
+}
 
 let root: Logger | undefined;
 

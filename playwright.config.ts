@@ -35,7 +35,12 @@ export default defineConfig({
   projects: [
     { name: 'desktop', use: { ...devices['Desktop Chrome'] } },
     // The smallest supported width (CLAUDE.md §2.9).
-    { name: 'mobile-360', use: { ...devices['Desktop Chrome'], viewport: { width: 360, height: 740 } } },
+    // Tests that change shared database rows run once, in the desktop project.
+    {
+      name: 'mobile-360',
+      use: { ...devices['Desktop Chrome'], viewport: { width: 360, height: 740 } },
+      grepInvert: /@shared-state/,
+    },
   ],
   webServer: {
     command: `pnpm --filter @commitmates/web exec next start --port ${E2E_PORT}`,

@@ -64,6 +64,13 @@
       "when": 1791934262776,
       "tag": "0008_schedule_sync_linguist",
       "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "7",
+      "when": 1791937644413,
+      "tag": "0009_settings_admin",
+      "breakpoints": true
     }
   ]
 }
