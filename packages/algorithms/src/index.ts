@@ -1,1 +1,51 @@
-export { clamp, mean } from './stats/basic';
+export {
+  clamp,
+  coefficientOfVariation,
+  mean,
+  percentile,
+  percentileRank,
+  standardDeviation,
+  sum,
+} from './stats/basic';
+export { isValidTimeZone, localClock, weekdayOfDate, type LocalClock } from './time/local';
+export {
+  HOURS_PER_DAY,
+  MAX_PUSH_WEIGHT,
+  MORNING_HOURS,
+  NIGHT_HOURS,
+  activeDayShare,
+  dailyCv,
+  eventWeight,
+  hourHistogram,
+  hourShare,
+  lastDays,
+  longestStreak,
+  morningShare,
+  nightShare,
+  rhythmMetrics,
+  weekendShare,
+  type DayCount,
+  type RhythmMetrics,
+  type TimedEvent,
+} from './persona/metrics';
+export {
+  MAX_LABELS,
+  activityScore,
+  companionStage,
+  fallbackActivityScore,
+  personaLabels,
+  type LabelThresholds,
+  type PersonaLabel,
+  type PersonaLabelKey,
+} from './persona/labels';
+export {
+  MAX_LANGUAGES,
+  MAX_SKILL_TAGS,
+  OTHER_LANGUAGE,
+  languageShares,
+  skillTags,
+  type LanguageShare,
+  type RepoLanguages,
+  type RepoSkills,
+  type SkillTag,
+} from './persona/skills';
