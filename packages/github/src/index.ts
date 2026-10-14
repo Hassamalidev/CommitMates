@@ -42,3 +42,4 @@ export {
   type ContributorStats,
   type Repository,
 } from './queries/repos';
+export { countTopicRepositories, searchRepositories, type SearchRepo } from './queries/search';

@@ -115,7 +115,12 @@ async function storeProfile(profile: Profile, isMember: boolean, now: Date): Pro
 }
 
 /** Reads and stores the manifests in one repository's root. Unchanged files are not fetched again. */
-async function ingestRepoManifests(client: GitHubClient, repo: ProfileRepo, now: Date, deadline: number | undefined): Promise<void> {
+export async function ingestRepoManifests(
+  client: GitHubClient,
+  repo: Pick<ProfileRepo, 'githubId' | 'fullName'>,
+  now: Date,
+  deadline: number | undefined,
+): Promise<void> {
   const [owner, name] = repo.fullName.split('/');
   if (!owner || !name) return;
 

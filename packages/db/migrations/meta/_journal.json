@@ -162,6 +162,13 @@
       "when": 1791951950469,
       "tag": "0022_fairness_reports",
       "breakpoints": true
+    },
+    {
+      "idx": 23,
+      "version": "7",
+      "when": 1791953660495,
+      "tag": "0023_taxonomy",
+      "breakpoints": true
     }
   ]
 }

@@ -70,3 +70,5 @@ export { getOwnSecretScan } from './recruiter/service';
 export type { LatestSecretScan, StoredSecretFinding } from '@commitmates/db';
 export { FAIRNESS_STEPS, fairnessTool } from './fairness/jobs';
 export { fairnessInputSchema, fairnessResultSchema, type FairnessInput, type FairnessResult } from './fairness/schemas';
+export { computeExpansion, getCachedExpansion, type Expansion, type ExpansionRun } from './taxonomy/service';
+export { requestExpansion } from './taxonomy/jobs';

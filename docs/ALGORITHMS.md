@@ -151,6 +151,22 @@ All algorithms live in `packages/algorithms` and are pure: no I/O, no clock, no 
 - Tests: `packages/algorithms/src/fairness/fairness.test.ts`, `packages/core/src/fairness/fairness.test.ts`
 - Spec: CLAUDE.md §8 F4
 
+## Taxonomy
+
+### Term expansion
+
+- Code: `packages/algorithms/src/taxonomy/taxonomy.ts`; orchestration in `packages/core/src/taxonomy/service.ts` (`computeExpansion`, `getCachedExpansion`), job `taxonomy_expand`
+- Formula:
+  - term: lowercase, trimmed, spaces collapsed; slug = spaces → hyphens; fewer than two characters is rejected
+  - seeds from github/explore: the topic named by the slug or by one of its aliases (score 1), its aliases (1) and its related topics (0.5)
+  - sample: GitHub repository search `<term> in:name,description,readme`, then `topic:<slug>` when the topic exists, up to `taxonomy.sampleSize` repositories; dependencies from the manifests of the top 30
+  - `sampleFreq(x)` = share of sampled repositories with `x`; topics keep `sampleFreq ≥ taxonomy.minSampleFreq` and get GitHub's `topic:x` total (cached `cache.topicCountTtlDays`); dependencies use our own `repo_dependencies` once it covers `taxonomy.minCorpus` repositories, and the sample share alone before that
+  - `score(x) = sampleFreq(x) × log(1 + maxGlobal / globalCount(x))`, with `maxGlobal` the largest count among this term's candidates of the same kind (topic totals and corpus counts are on different scales)
+  - keep the top `taxonomy.maxExpansions` by score, after all seeds; cache for `cache.taxonomyTtlDays`
+- Runs that reach the deadline return `partial`; topic counts and manifests already read are stored, so the follow-up finishes quickly.
+- Tests: `packages/algorithms/src/taxonomy/taxonomy.test.ts`, `packages/core/src/taxonomy/taxonomy.test.ts`
+- Spec: CLAUDE.md §8 F6
+
 ## Information retrieval
 
 No entries yet. YAKE and BM25 arrive in P2-T17; TF-IDF in P4-T02.

@@ -101,3 +101,14 @@ export {
   type FairnessMetric,
   type TeamMetrics,
 } from './fairness/fairness';
+export {
+  ALIAS_SCORE,
+  MIN_TERM_LENGTH,
+  RELATED_SCORE,
+  mergeExpansion,
+  normalizeTerm,
+  sampleFrequencies,
+  scoreCandidates,
+  type ExpansionItem,
+  type TaxonomyCandidate,
+} from './taxonomy/taxonomy';

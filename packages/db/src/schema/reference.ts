@@ -1,4 +1,4 @@
-import { boolean, index, jsonb, pgEnum, pgTable, primaryKey, real, smallint, text, uniqueIndex, uuid } from 'drizzle-orm/pg-core';
+import { boolean, index, integer, jsonb, pgEnum, pgTable, primaryKey, real, smallint, text, uniqueIndex, uuid } from 'drizzle-orm/pg-core';
 
 import { createdAt, timestamptz } from './columns';
 
@@ -118,3 +118,34 @@ export const secretGlobalAllowlist = pgTable('secret_global_allowlist', {
   syncedAt: timestamptz('synced_at').notNull(),
   createdAt: createdAt(),
 }).enableRLS();
+
+/** How many public repositories carry each topic on GitHub (`topic:<slug>`), cached for `cache.topicCountTtlDays`. */
+export const topicGlobalCounts = pgTable('topic_global_counts', {
+  slug: text('slug').primaryKey(),
+  totalCount: integer('total_count').notNull(),
+  fetchedAt: timestamptz('fetched_at').notNull(),
+  createdAt: createdAt(),
+}).enableRLS();
+
+/** One item learned for a search term (CLAUDE.md §8 F6 "Output"). */
+export type TaxonomyItem = {
+  kind: 'topic' | 'dependency';
+  value: string;
+  score: number;
+  source: 'alias' | 'related' | 'cooccurrence';
+};
+
+/** Topics and dependencies learned for a search term, cached for `cache.taxonomyTtlDays`. */
+export const taxonomyExpansions = pgTable(
+  'taxonomy_expansions',
+  {
+    term: text('term').primaryKey(),
+    slug: text('slug').notNull(),
+    items: jsonb('items').$type<TaxonomyItem[]>().notNull(),
+    sampleSize: integer('sample_size').notNull(),
+    computedAt: timestamptz('computed_at').notNull(),
+    expiresAt: timestamptz('expires_at').notNull(),
+    createdAt: createdAt(),
+  },
+  (table) => [index('taxonomy_expansions_expires_idx').on(table.expiresAt)],
+).enableRLS();
