@@ -62,6 +62,14 @@ In-app notifications and the member's email preferences. Deleted by cascade from
 
 Feedback text with the page it was sent from. `user_id` is set to null when the account is deleted, so the text stays without a link to the person.
 
+### `email_daily_counts` (class D)
+
+One row per UTC day with the number of emails sent, for the daily cap. No recipient, subject or content is stored.
+
+### Email delivery
+
+Member emails go to the address in Supabase Auth, read at send time. The `send_email` job stores only the member id and the template data (digest lines or an account-notice kind), never the address. Verification codes are never stored in a job or anywhere else: only their hash is kept (§5.10). Email bodies and addresses are not logged.
+
 ### `tool_sessions` (class D)
 
 One row per day-one tool run: the tool name and `ip_hash_day = sha256(ip + daily_salt)`. No raw IP address is stored, and the salt is deleted when it rotates, so the hash cannot be reversed or linked across days. `user_id` and `converted_user_id` are set to null on account deletion. When someone signs up for the first time, `converted_user_id` is set on anonymous runs from the previous 24 hours that carry the same daily hash (the tool-conversion metric); it is computed from the sign-in request's address and today's salt, and nothing else about the runs is linked.

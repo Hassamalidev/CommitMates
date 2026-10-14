@@ -12,6 +12,7 @@ export const adminCopy = {
       dead_jobs: (v) => `${v.count} job(s) died in the last ${v.hours} hours.`,
       interactive_queue: (v) => `A job someone is waiting on has been queued for ${v.seconds} seconds.`,
       database_size: (v) => `The database is at ${v.mb} MB of its ${v.budgetMb} MB budget.`,
+      email_quota: (v) => `${v.sent} of today's ${v.cap} emails are used; further sends wait until tomorrow (UTC).`,
       stale_source: (v) => `The ${v.source} source has not synced for more than ${v.days} days.`,
       source_error: (v) => `The last sync of the ${v.source} source failed.`,
     } satisfies Record<AlertKey, (values: Record<string, string | number>) => string>,
@@ -43,6 +44,11 @@ export const adminCopy = {
       title: 'Database',
       size: (mb: number, budget: number) => `${mb.toFixed(1)} MB used of a ${budget} MB budget`,
       label: 'Database size',
+    },
+    email: {
+      title: 'Email',
+      sent: (sent: number, cap: number) => `${sent} of ${cap} emails sent today (UTC); the rest wait for tomorrow`,
+      label: 'Emails sent today',
     },
     stale: {
       title: 'Computed settings not refreshed recently',

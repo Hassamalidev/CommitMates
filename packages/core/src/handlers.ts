@@ -10,6 +10,7 @@ import { ossSearchJob } from './oss/jobs';
 import { analyzeProfileJob } from './persona/jobs';
 import { recruiterReportJob } from './recruiter/jobs';
 import { taxonomyExpandJob } from './taxonomy/jobs';
+import { sendEmailJob } from './notifications/email';
 import { purgeNonUserRawJob } from './privacy/jobs';
 import { cleanupRateBucketsJob, rotateSaltsJob } from './security/jobs';
 import { recomputeSettingsJob } from './settings/jobs';
@@ -56,6 +57,7 @@ export const jobHandlers: readonly Registration[] = [
   define(gapAnalysisJob),
   define(ossSearchJob),
   define(fypCheckJob),
+  define(sendEmailJob),
 ];
 
 /** Registers every handler. Safe to call on each request: re-registering is a no-op. */

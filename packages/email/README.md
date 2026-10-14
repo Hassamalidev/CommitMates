@@ -1,10 +1,14 @@
 # @commitmates/email
 
-Sends transactional email over SMTP from plain-text and simple HTML templates.
+Renders transactional email (plain text and simple inline-styled HTML) and sends it over SMTP with Nodemailer.
 
 ## Public API
 
-`sendEmail(template, data)`.
+- `renderEmail(template, data, brand)`: pure; templates are `verificationCode`, `digest` and `accountNotice`.
+- `sendEmail(template, data, to)`: renders with the site name and URL from the environment and sends from `EMAIL_FROM` through `SMTP_*`.
+- `setMailTransport(transport)`: test helper.
+
+The daily cap (`email.maxPerDay`) is enforced by `deliverEmail` in `packages/core`, which owns the database (ADR-009). Call that, not `sendEmail`, from application code.
 
 ## Import boundaries
 

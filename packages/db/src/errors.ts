@@ -66,16 +66,16 @@ export class RateLimitedError extends AppError {
 }
 
 /**
- * An upstream rate limit (GitHub's, not ours) is exhausted until `resetAt`.
- * The job runner waits for it without consuming an attempt.
+ * An upstream limit (GitHub's rate limit, the email provider's daily quota) is exhausted
+ * until `resetAt`. The job runner waits for it without consuming an attempt.
  */
 export class RateLimitError extends AppError {
   readonly resetAt: Date;
 
-  constructor(resetAt: Date, options?: { cause?: unknown; resource?: string }) {
+  constructor(resetAt: Date, options?: { cause?: unknown; resource?: string; userMessage?: string }) {
     super(
       'rate_limit.upstream',
-      'GitHub asked us to slow down. We will keep going as soon as it lets us.',
+      options?.userMessage ?? 'GitHub asked us to slow down. We will keep going as soon as it lets us.',
       STATUS.TOO_MANY_REQUESTS,
       options,
     );

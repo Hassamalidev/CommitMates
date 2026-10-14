@@ -8,6 +8,6 @@ export const settingOverrideSchema = z.object({
   value: z.string(),
 });
 
-export type AlertKey = 'dead_jobs' | 'interactive_queue' | 'database_size' | 'stale_source' | 'source_error';
+export type AlertKey = 'dead_jobs' | 'interactive_queue' | 'database_size' | 'email_quota' | 'stale_source' | 'source_error';
 
 export type Alert = { key: AlertKey; values: Record<string, string | number> };

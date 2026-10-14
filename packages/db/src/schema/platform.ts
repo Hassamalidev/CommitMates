@@ -173,3 +173,14 @@ export const toolSessions = pgTable(
     index('tool_sessions_converted_idx').on(table.convertedUserId),
   ],
 ).enableRLS();
+
+/**
+ * Emails sent per UTC day, for the daily cap `email.maxPerDay` (CLAUDE.md §3.2, §5.13).
+ * Counts only: no recipients or content.
+ */
+export const emailDailyCounts = pgTable('email_daily_counts', {
+  day: date('day', { mode: 'string' }).primaryKey(),
+  sent: integer('sent').notNull().default(0),
+  createdAt: createdAt(),
+  updatedAt: updatedAt(),
+}).enableRLS();

@@ -16,6 +16,7 @@ export default async function AdminHealthPage() {
   const health = await getHealth();
   const copy = adminCopy.health;
   const percent = Math.min(100, (health.database.sizeMb / Math.max(health.database.budgetMb, 1)) * 100);
+  const emailPercent = Math.min(100, (health.email.sentToday / Math.max(health.email.cap, 1)) * 100);
 
   return (
     <>
@@ -113,6 +114,20 @@ export default async function AdminHealthPage() {
         <div className="h-full bg-accent" style={{ width: `${percent}%` }} />
       </div>
       <p className="type-small mt-2 text-fg-muted">{copy.database.size(health.database.sizeMb, health.database.budgetMb)}</p>
+
+      <h2 className={sectionTitle}>{copy.email.title}</h2>
+      <div
+        role="progressbar"
+        aria-label={copy.email.label}
+        aria-valuemin={0}
+        aria-valuemax={health.email.cap}
+        aria-valuenow={health.email.sentToday}
+        aria-valuetext={copy.email.sent(health.email.sentToday, health.email.cap)}
+        className="h-3 max-w-reading overflow-hidden rounded-full border border-line bg-surface-2"
+      >
+        <div className="h-full bg-accent" style={{ width: `${emailPercent}%` }} />
+      </div>
+      <p className="type-small mt-2 text-fg-muted">{copy.email.sent(health.email.sentToday, health.email.cap)}</p>
 
       <h2 className={sectionTitle}>{copy.stale.title}</h2>
       <DataTable
