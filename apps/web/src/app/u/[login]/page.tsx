@@ -1,14 +1,17 @@
-import { canViewProfile, getProfileOwner, isPublicProfile } from '@commitmates/core';
+import { canViewProfile, canVouchFor, getProfileOwner, getVouchingStatus, hasVouched, isPublicProfile } from '@commitmates/core';
 import type { Metadata } from 'next';
 import { notFound } from 'next/navigation';
 import { cache } from 'react';
 
 import { DevCardTool } from '@/components/dev-card/DevCardTool';
+import { ActionForm } from '@/components/forms/ActionForm';
 import { SiteFrame } from '@/components/layout/SiteFrame';
 import { ShareButton } from '@/components/share/ShareButton';
 import { devCardCopy } from '@/copy/dev-card';
+import { vouchCopy } from '@/copy/onboarding';
 import { shareCopy } from '@/copy/share';
 import { siteName, siteUrl } from '@/lib/site';
+import { vouchAction } from '@/server/actions/verification';
 import { getCurrentMember } from '@/server/auth';
 
 export const dynamic = 'force-dynamic';
@@ -57,6 +60,11 @@ export default async function MemberProfilePage({ params }: Props) {
   const profile = await loadProfile((await params).login);
   if (!profile) notFound();
   const { owner, isSelf } = profile;
+  // Verified members of the university this member chose may vouch for them (CLAUDE.md §8 F10 step 5).
+  const viewer = await getCurrentMember();
+  const vouching = viewer && (await canVouchFor(viewer.id, owner.userId)) ? await getVouchingStatus(owner.userId) : null;
+  // After vouching the button goes away; say so instead of leaving nothing.
+  const vouched = viewer && !isSelf ? await hasVouched(viewer.id, owner.userId) : false;
 
   return (
     <SiteFrame>
@@ -73,6 +81,25 @@ export default async function MemberProfilePage({ params }: Props) {
             <p className="type-small mt-2 text-fg-muted">{devCardCopy.profile.hiddenFromOthers}</p>
           ) : null}
         </header>
+        {vouching ? (
+          <section aria-label={vouchCopy.button(owner.login)} className="flex flex-col gap-2 rounded-card border border-line bg-surface p-4">
+            <p className="type-body">{vouchCopy.waiting(owner.login, vouching.universityName)}</p>
+            <p className="type-small text-fg-muted">{vouchCopy.hint}</p>
+            <ActionForm
+              action={vouchAction}
+              values={{ login: owner.login }}
+              submitLabel={vouchCopy.button(owner.login)}
+              successMessage={vouchCopy.done}
+              variant="primary"
+              size="md"
+            />
+          </section>
+        ) : null}
+        {vouched ? (
+          <p role="status" className="type-body rounded-card border border-line bg-surface p-4">
+            {vouchCopy.done}
+          </p>
+        ) : null}
         <DevCardTool initialLogin={owner.login} fixed />
       </div>
     </SiteFrame>

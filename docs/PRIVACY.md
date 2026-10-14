@@ -62,6 +62,10 @@ A member's university email verification: the address, its domain, the universit
 
 A member's request to add a university domain: the domain, the proposed name and country, its review status, the reviewer and an optional note to the member. No email address is kept. Deleted by cascade from `users`; a reviewer who deletes their account leaves `reviewed_by` empty.
 
+### `vouches` (class A)
+
+Who vouched for whom, and at which university. Visible to nobody else: a member sees only their own vouch count. Deleted by cascade when either member deletes their account; a vouch already used for verification does not undo it.
+
 ### `notifications`, `notification_prefs` (class A)
 
 In-app notifications and the member's email preferences. Deleted by cascade from `users`.

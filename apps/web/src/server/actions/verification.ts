@@ -1,12 +1,19 @@
 'use server';
 
-import { confirmEmailCode, guardRate, startEmailVerification, type StartVerificationResult } from '@commitmates/core';
+import {
+  chooseUniversityForVouching,
+  confirmEmailCode,
+  guardRate,
+  startEmailVerification,
+  vouchForMember,
+  type StartVerificationResult,
+} from '@commitmates/core';
 import { revalidatePath } from 'next/cache';
 import { headers } from 'next/headers';
 import { redirect } from 'next/navigation';
 
 import { withAction, type ActionResult } from '@/server/action';
-import { requireUser } from '@/server/guards';
+import { requireUser, requireVerified } from '@/server/guards';
 import { startJobAfterResponse } from '@/server/jobs';
 import { guardWriteRate, requestIpHash } from '@/server/rate';
 
@@ -42,4 +49,25 @@ export const confirmCodeAction = async (_previous: ActionResult<null> | null, fo
     await confirmEmailCode(member.id, { code: field(formData, 'code') });
     revalidatePath('/', 'layout');
     redirect('/home');
+  })();
+
+/** Picks the university for the vouching path (CLAUDE.md §8 F10 step 5). */
+export const chooseUniversityAction = async (_previous: ActionResult<null> | null, formData: FormData) =>
+  withAction('verification.chooseUniversity', async (): Promise<null> => {
+    const member = await requireUser();
+    await guardWriteRate(member.id);
+    await chooseUniversityForVouching(member, { universityId: field(formData, 'universityId') });
+    revalidatePath('/onboarding');
+    return null;
+  })();
+
+/** A verified member vouches for another from their profile page (§8 F10 step 5). */
+export const vouchAction = async (_previous: ActionResult<null> | null, formData: FormData) =>
+  withAction('verification.vouch', async (): Promise<null> => {
+    const member = await requireVerified();
+    await guardWriteRate(member.id);
+    const login = field(formData, 'login');
+    await vouchForMember(member, { login });
+    revalidatePath(`/u/${encodeURIComponent(login)}`);
+    return null;
   })();

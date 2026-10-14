@@ -1,26 +1,43 @@
-import { getPendingVerification, getUniversity, latestUniversityRequest, listCountries } from '@commitmates/core';
+import {
+  findUniversities,
+  getPendingVerification,
+  getSetting,
+  getUniversity,
+  getVouchingStatus,
+  latestUniversityRequest,
+  listCountries,
+} from '@commitmates/core';
 import { Card, buttonStyles } from '@commitmates/ui';
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import { redirect } from 'next/navigation';
 
 import { VerifyEmail } from '@/components/onboarding/VerifyEmail';
+import { VouchPath } from '@/components/onboarding/VouchPath';
 import { onboardingCopy } from '@/copy/onboarding';
+import { siteUrl } from '@/lib/site';
 import { getCurrentMember } from '@/server/auth';
 
 export function generateMetadata(): Metadata {
   return { title: onboardingCopy.meta.title, robots: { index: false } };
 }
 
-export default async function OnboardingPage() {
+type Props = { searchParams: Promise<{ q?: string | string[] }> };
+
+export default async function OnboardingPage({ searchParams }: Props) {
+  const { q } = await searchParams;
+  const query = typeof q === 'string' ? q : '';
   const member = await getCurrentMember();
   if (!member) redirect('/auth/sign-in?next=/onboarding');
   const copy = onboardingCopy;
-  const [university, pending, request, countries] = await Promise.all([
+  const [university, pending, request, countries, vouching, vouchesRequired, results] = await Promise.all([
     member.verified && member.universityId ? getUniversity(member.universityId) : null,
     getPendingVerification(member.id),
     latestUniversityRequest(member.id),
     listCountries(),
+    member.verified ? null : getVouchingStatus(member.id),
+    getSetting('verify.vouchesRequired'),
+    member.verified ? [] : findUniversities(query),
   ]);
 
   return (
@@ -48,6 +65,15 @@ export default async function OnboardingPage() {
         pending={pending?.email && pending.universityName ? { email: pending.email, universityName: pending.universityName } : null}
         countries={countries}
       />
+      {member.verified ? null : (
+        <VouchPath
+          status={vouching}
+          required={vouchesRequired}
+          query={query}
+          results={results}
+          profileUrl={member.login ? `${siteUrl}/u/${encodeURIComponent(member.login)}` : null}
+        />
+      )}
     </div>
   );
 }

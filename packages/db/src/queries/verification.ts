@@ -1,8 +1,8 @@
-import { and, eq, isNull, sql } from 'drizzle-orm';
+import { and, count, eq, isNull, sql } from 'drizzle-orm';
 
 import { getDb, type DbOrTx } from '../client';
 import { verifyOtp } from '../otp';
-import { emailVerifications, profiles, universities } from '../schema';
+import { emailVerifications, notifications, profiles, universities, users, vouches } from '../schema';
 
 /** Length of `YYYY-MM-DD`, the date part of an ISO timestamp. */
 const ISO_DATE_LENGTH = 10;
@@ -169,4 +169,117 @@ export async function checkVerificationCode(
     }
     return { status: 'verified', universityId: pending.universityId };
   });
+}
+
+const MS_PER_DAY = 24 * 60 * 60 * 1000; // allowed-literal: unit conversion
+
+/**
+ * Records the university an unverified member says they attend, for the vouching path
+ * (§8 F10 step 5). Verified members change university by email instead. Returns false when the
+ * member is already verified.
+ */
+export async function claimUniversity(userId: string, universityId: string, db: DbOrTx = getDb()): Promise<boolean> {
+  const rows = await db
+    .update(profiles)
+    .set({ universityId })
+    .where(and(eq(profiles.userId, userId), isNull(profiles.verifiedAt)))
+    .returning({ userId: profiles.userId });
+  return rows.length > 0;
+}
+
+export type VouchProgress = { universityId: string; universityName: string; vouches: number };
+
+/** An unverified member's chosen university and how many members have vouched for them there. */
+export async function getVouchProgress(userId: string, db: DbOrTx = getDb()): Promise<VouchProgress | null> {
+  const [claim] = await db
+    .select({ universityId: profiles.universityId, universityName: universities.name })
+    .from(profiles)
+    .innerJoin(universities, eq(universities.id, profiles.universityId))
+    .where(and(eq(profiles.userId, userId), isNull(profiles.verifiedAt)));
+  if (!claim?.universityId) return null;
+  const [row] = await db
+    .select({ vouches: count() })
+    .from(vouches)
+    .where(and(eq(vouches.voucheeUserId, userId), eq(vouches.universityId, claim.universityId)));
+  return { universityId: claim.universityId, universityName: claim.universityName, vouches: row?.vouches ?? 0 };
+}
+
+export type VouchOutcome =
+  | { status: 'no_claim' }
+  | { status: 'voucher_not_eligible' }
+  | { status: 'already_vouched' }
+  | { status: 'vouched'; vouches: number; verified: boolean };
+
+/**
+ * One member vouches for another (§8 F10 step 5), in a transaction that locks the vouchee's
+ * profile so two last vouches cannot both verify. The voucher must be an active member verified
+ * at the vouchee's chosen university for at least `voucherMinDays`. At `required` vouches the
+ * vouchee is verified (`verified_via = 'vouch'`), counted as a member and notified.
+ */
+export async function vouchFor(
+  voucherId: string,
+  voucheeId: string,
+  now: Date,
+  rules: { required: number; voucherMinDays: number },
+  db: DbOrTx = getDb(),
+): Promise<VouchOutcome> {
+  return db.transaction(async (tx): Promise<VouchOutcome> => {
+    const [vouchee] = await tx
+      .select({ universityId: profiles.universityId, verifiedAt: profiles.verifiedAt })
+      .from(profiles)
+      .where(eq(profiles.userId, voucheeId))
+      .for('update');
+    if (!vouchee?.universityId || vouchee.verifiedAt !== null || voucherId === voucheeId) return { status: 'no_claim' };
+
+    const [voucher] = await tx
+      .select({ universityId: profiles.universityId, verifiedAt: profiles.verifiedAt, status: users.status })
+      .from(profiles)
+      .innerJoin(users, eq(users.id, profiles.userId))
+      .where(eq(profiles.userId, voucherId));
+    const cutoff = now.getTime() - rules.voucherMinDays * MS_PER_DAY;
+    if (voucher?.status !== 'active' || voucher.universityId !== vouchee.universityId || voucher.verifiedAt === null || voucher.verifiedAt.getTime() > cutoff) {
+      return { status: 'voucher_not_eligible' };
+    }
+
+    const inserted = await tx
+      .insert(vouches)
+      .values({ voucherUserId: voucherId, voucheeUserId: voucheeId, universityId: vouchee.universityId })
+      .onConflictDoNothing()
+      .returning({ id: vouches.id });
+    if (inserted.length === 0) return { status: 'already_vouched' };
+
+    const [row] = await tx
+      .select({ vouches: count() })
+      .from(vouches)
+      .where(and(eq(vouches.voucheeUserId, voucheeId), eq(vouches.universityId, vouchee.universityId)));
+    const total = row?.vouches ?? 0;
+    if (total < rules.required) return { status: 'vouched', vouches: total, verified: false };
+
+    await tx.update(profiles).set({ verifiedAt: now, verifiedVia: 'vouch' }).where(eq(profiles.userId, voucheeId));
+    await tx
+      .update(universities)
+      .set({ memberCount: sql`${universities.memberCount} + 1` })
+      .where(eq(universities.id, vouchee.universityId));
+    await tx.insert(notifications).values({ userId: voucheeId, kind: 'verified_by_vouches', data: { universityId: vouchee.universityId } });
+    return { status: 'vouched', vouches: total, verified: true };
+  });
+}
+
+/** Whether this member already vouched for that one, to hide the button. */
+export async function hasVouched(voucherId: string, voucheeId: string, db: DbOrTx = getDb()): Promise<boolean> {
+  const [row] = await db
+    .select({ id: vouches.id })
+    .from(vouches)
+    .where(and(eq(vouches.voucherUserId, voucherId), eq(vouches.voucheeUserId, voucheeId)));
+  return row !== undefined;
+}
+
+/** Where and since when a member is verified, and whether their account is active. */
+export async function getVerificationState(userId: string, db: DbOrTx = getDb()) {
+  const [row] = await db
+    .select({ universityId: profiles.universityId, verifiedAt: profiles.verifiedAt, status: users.status })
+    .from(profiles)
+    .innerJoin(users, eq(users.id, profiles.userId))
+    .where(eq(profiles.userId, userId));
+  return row ?? null;
 }

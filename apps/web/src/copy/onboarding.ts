@@ -38,6 +38,19 @@ export const onboardingCopy = {
     resend: 'Send a new code',
     other: 'Use a different email',
   },
+  vouch: {
+    title: 'No university email?',
+    line: (required: number) =>
+      `Pick your university, then ask ${required} members who are verified there to vouch for you from your profile page.`,
+    searchLabel: 'Search universities',
+    search: 'Search',
+    none: 'No university matches that name.',
+    choose: 'This is my university',
+    chosen: 'Saved.',
+    waiting: (university: string, vouches: number, required: number) => `${university}: ${vouches} of ${required} vouches so far.`,
+    share: 'Send them your profile link:',
+    noLink: 'Your profile link appears once we know your GitHub login. Sign out and in again to refresh it.',
+  },
   verified: {
     title: "You're verified",
     line: (university: string) => `You are a verified member of ${university}.`,
@@ -53,4 +66,11 @@ export const homeCopy = {
   toolsTitle: 'Try the tools',
   toolsLine: 'Every day-one tool works right now, on live GitHub data.',
   toolsLink: 'Open the tools',
+} as const;
+
+export const vouchCopy = {
+  waiting: (login: string, university: string) => `@${login} is waiting for members of ${university} to vouch for them.`,
+  button: (login: string) => `Vouch for @${login}`,
+  hint: 'Only vouch if you know this person studies at your university.',
+  done: 'Thank you. Your vouch is recorded.',
 } as const;

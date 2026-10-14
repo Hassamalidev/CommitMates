@@ -1,5 +1,5 @@
 import { sql } from 'drizzle-orm';
-import { char, index, pgEnum, pgTable, smallint, text, uniqueIndex, uuid } from 'drizzle-orm/pg-core';
+import { char, check, index, pgEnum, pgTable, smallint, text, uniqueIndex, uuid } from 'drizzle-orm/pg-core';
 
 import { citext, createdAt, timestamptz, updatedAt } from './columns';
 import { users } from './identity';
@@ -67,5 +67,32 @@ export const universityRequests = pgTable(
     uniqueIndex('university_requests_pending_key').on(table.userId, table.domain).where(sql`${table.status} = 'pending'`),
     index('university_requests_status_idx').on(table.status, table.createdAt),
     index('university_requests_user_idx').on(table.userId),
+  ],
+).enableRLS();
+
+/**
+ * "I know this person studies here" (CLAUDE.md §7.2, §8 F10 step 5). A member without a working
+ * university email is verified once `verify.vouchesRequired` verified members of the university
+ * they chose have vouched for them.
+ */
+export const vouches = pgTable(
+  'vouches',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    voucherUserId: uuid('voucher_user_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
+    voucheeUserId: uuid('vouchee_user_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
+    universityId: uuid('university_id')
+      .notNull()
+      .references(() => universities.id, { onDelete: 'cascade' }),
+    createdAt: createdAt(),
+  },
+  (table) => [
+    uniqueIndex('vouches_voucher_vouchee_key').on(table.voucherUserId, table.voucheeUserId),
+    index('vouches_vouchee_university_idx').on(table.voucheeUserId, table.universityId),
+    check('vouches_not_self', sql`${table.voucherUserId} <> ${table.voucheeUserId}`),
   ],
 ).enableRLS();

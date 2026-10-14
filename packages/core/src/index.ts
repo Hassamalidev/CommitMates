@@ -98,3 +98,5 @@ export {
   universityRequestSchema,
 } from './universities/requests';
 export { latestUniversityRequest, listCountries, type Country, type ModeratorRow, type PendingRequest } from '@commitmates/db';
+export { hasVouched } from '@commitmates/db';
+export { canVouchFor, chooseUniversityForVouching, findUniversities, getVouchingStatus, vouchForMember, type VouchingStatus } from './verification/vouching';

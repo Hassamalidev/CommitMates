@@ -1,4 +1,4 @@
-import { desc, eq, inArray, sql } from 'drizzle-orm';
+import { asc, desc, eq, ilike, inArray, sql } from 'drizzle-orm';
 
 import { getDb, type DbOrTx } from '../client';
 import { disposableDomains, universities, universityDomains } from '../schema';
@@ -72,4 +72,25 @@ export async function getUniversityBySlug(slug: string, db: DbOrTx = getDb()): P
     .from(universities)
     .where(eq(universities.slug, slug.trim().toLowerCase()));
   return row ?? null;
+}
+
+/**
+ * Universities whose name contains `query` (case-insensitive), most members first, for the
+ * vouching path's picker. `%`, `_` and `\` in the query are matched literally.
+ */
+export async function searchUniversities(query: string, limit: number, db: DbOrTx = getDb()): Promise<UniversitySummary[]> {
+  const pattern = `%${query.trim().replace(/[\\%_]/g, (char) => `\\${char}`)}%`;
+  return db
+    .select({
+      id: universities.id,
+      name: universities.name,
+      slug: universities.slug,
+      country: universities.country,
+      countryCode: universities.countryCode,
+      memberCount: universities.memberCount,
+    })
+    .from(universities)
+    .where(ilike(universities.name, pattern))
+    .orderBy(desc(universities.memberCount), asc(universities.name))
+    .limit(limit);
 }
