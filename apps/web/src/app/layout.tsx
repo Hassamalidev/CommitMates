@@ -19,6 +19,7 @@ export function generateMetadata(): Metadata {
     title: { default: siteName, template: `%s · ${siteName}` },
     description: siteCopy.description,
     applicationName: siteName,
+    icons: { icon: [{ url: '/brand-icon', type: 'image/svg+xml' }] },
   };
 }
 

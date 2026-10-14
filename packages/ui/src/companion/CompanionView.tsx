@@ -11,8 +11,11 @@ export type CompanionViewProps = {
   companion: CompanionInput;
   state: CompanionState;
   size?: 64 | 96 | 160 | 240;
-  /** Text alternative including the state, e.g. "Your companion is working". */
-  label: string;
+  /**
+   * Text alternative including the state, e.g. "Your companion is working". Omit only
+   * when the companion is decoration next to text that already says the same thing.
+   */
+  label?: string;
   className?: string;
 };
 
@@ -65,8 +68,7 @@ export function CompanionView({ companion, state, size = 96, label, className }:
 
   return (
     <svg
-      role="img"
-      aria-label={label}
+      {...(label ? { role: 'img', 'aria-label': label } : { 'aria-hidden': true })}
       data-state={visibleState}
       data-frames={frameCount}
       viewBox={`0 0 ${GRID} ${GRID}`}

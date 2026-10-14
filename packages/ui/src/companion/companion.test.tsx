@@ -20,7 +20,7 @@ import {
   type CompanionInput,
   type CompanionState,
 } from './generate';
-import { frameToRuns, renderSpriteSheet, roleColors } from './render';
+import { frameToRuns, renderSpriteSheet, renderStill, roleColors } from './render';
 
 const STATES: CompanionState[] = ['idle', 'working', 'waiting', 'done', 'error'];
 const DARK_SURFACE = '#151923';
@@ -273,6 +273,17 @@ describe('rendering', () => {
     expect(svg).toContain('shape-rendering="crispEdges"');
     expect(svg).toContain('viewBox="0 0 32 16"');
     expect(svg).toContain('fill="#7cff6b"');
+  });
+
+  it('renders a single still frame for icons', () => {
+    const still = renderStill(companion(), sheetOptions);
+    expect(still).toContain('viewBox="0 0 16 16"');
+    expect(still).toContain('width="16"');
+    // The still is the first idle frame: every one of its rects also opens the full sheet.
+    const rects = (svg: string) => svg.match(/<rect[^>]*>/g) ?? [];
+    const sheet = rects(renderSpriteSheet(companion(), 'idle', sheetOptions));
+    expect(rects(still).length).toBeGreaterThan(10);
+    expect(sheet.slice(0, rects(still).length)).toEqual(rects(still));
   });
 
   it('always produces the same SVG for the same seed', () => {

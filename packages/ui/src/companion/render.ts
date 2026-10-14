@@ -69,7 +69,15 @@ export function renderSpriteSheet(
   state: CompanionState,
   options: SpriteSheetOptions,
 ): string {
-  const { frames } = generateFrames(input, state);
+  return renderFrames(generateFrames(input, state).frames, input, options);
+}
+
+/** A single still image of the companion at rest: icons and share images. */
+export function renderStill(input: CompanionInput, options: SpriteSheetOptions): string {
+  return renderFrames(generateFrames(input, 'idle').frames.slice(0, 1), input, options);
+}
+
+function renderFrames(frames: Frame[], input: CompanionInput, options: SpriteSheetOptions): string {
   const colors = roleColors(input, {
     outline: outlineFor(input.paletteHex, options.surfaceHex),
     aura: options.accentHex,

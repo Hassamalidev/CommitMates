@@ -1,5 +1,6 @@
 import type { Metadata } from 'next';
 
+import { SiteFrame } from '@/components/layout/SiteFrame';
 import { healthCopy } from '@/copy/health';
 import { getAppVersion } from '@/lib/version';
 
@@ -15,7 +16,8 @@ export default function HealthPage() {
   const now = new Date().toISOString();
 
   return (
-    <main className="mx-auto max-w-reading px-4 py-16">
+    <SiteFrame>
+      <div className="mx-auto max-w-reading px-4 py-16">
       <h1 className="type-h1">{healthCopy.title}</h1>
       <p className="type-body mt-2 text-fg-muted">{healthCopy.intro}</p>
       <dl className="mt-8 grid grid-cols-[auto_1fr] gap-x-6 gap-y-3">
@@ -30,6 +32,7 @@ export default function HealthPage() {
           <time dateTime={now}>{now}</time>
         </dd>
       </dl>
-    </main>
+      </div>
+    </SiteFrame>
   );
 }

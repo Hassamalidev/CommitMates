@@ -45,7 +45,7 @@ export {
   type CompanionState,
   type CompanionTrait,
 } from './companion/generate';
-export { renderSpriteSheet, type SpriteSheetOptions } from './companion/render';
+export { renderSpriteSheet, renderStill, type SpriteSheetOptions } from './companion/render';
 export { contrastRatio, derivePalette, outlineFor } from './companion/color';
 
 export { ThemeToggle, type ThemeToggleProps } from './theme/ThemeToggle';

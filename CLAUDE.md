@@ -2925,13 +2925,13 @@ Branch `phase/1-core`. Goal: database, settings, jobs, GitHub client, auth, desi
   - `tokens.css`, Tailwind mapping, fonts, Material Symbols subset, theme toggle (system default, persisted).
   - Components from §9.4 except `CompanionView` and charts.
   - Done when: `check:contrast` passes and every interactive component passes axe in tests.
-- [ ] **P1-T09 Linguist sync and companion engine.** Spec: §6.3, §9.5.
+- [x] **P1-T09 Linguist sync and companion engine.** Spec: §6.3, §9.5.
   - Source framework basics (§5.7) and `sync_linguist` (languages and path patterns compiled with RE2).
   - Companion generator, five state animations, `CompanionView`, `SpeechBubble`, reduced motion.
   - Done when: snapshot tests for fixed seeds and states pass; the same seed always produces the same SVG.
   - [x] **P1-T09a Source framework and Linguist sync.** `SourceModule` contract, `runSourceSync` with `source_snapshots`, `languages` and `path_patterns` tables, `sync_linguist` job and weekly schedule.
   - [x] **P1-T09b Companion engine.** Generator, sprite sheet, `CompanionView`, `SpeechBubble`, reduced motion, snapshot tests.
-- [ ] **P1-T10 App shell and landing skeleton.** Spec: §9.6, §9.8.
+- [x] **P1-T10 App shell and landing skeleton.** Spec: §9.6, §9.8.
   - Navbar, footer, route groups, 404 and 500 pages, theme toggle placement.
   - Landing sections with real copy (live demo wired in P2).
   - First versions of `/privacy`, `/terms` and `/attribution` written from §5.12 and §6.11 (finalized in P7).
@@ -3173,6 +3173,7 @@ Branch `phase/7-launch`. Goal: secure, fast, accessible, documented, deployed.
 
 Newest first, one line per completed task or subtask: `YYYY-MM-DD — <task id> — <what was done>`. A `BLOCKED:` line, when present, is always the first line (§13). Spec fixes made under §0.9 are logged here too.
 
+- 2026-10-14 — P1-T10 — App shell: header (brand companion, nav, sign-in state, theme toggle), footer, skip link, (marketing) route group, 404, error and global-error pages, generated site icon. Landing page with real copy: hero, five-state companion strip, tools grid (a tool links only once its page exists; until then it is marked in development), how it works, campus unlocks, privacy promise, FAQ. First versions of /privacy, /terms and /attribution. Lighthouse on the production build: accessibility 100, SEO 100, best practices 96 before the favicon fix. 42 e2e tests pass at desktop and 360px. P1-T09 parent ticked.
 - 2026-10-14 — P1-T09b — Companion engine: mulberry32-seeded 16x16 generator (8 species, 5 stages, symmetric cleaned body mask, ears/tail/antenna, outline, eyes, OKLCH palette with light/shade and pair two-tone, trait accessories, stage-4 aura), frames for the five states, CompanionView (inline SVG stepped with CSS, reduced motion shows frame 1, done settles to idle) and SpeechBubble. Deterministic per seed; committed SVG snapshots for fixed seeds in every state; outline contrast >= 3:1 on every surface. Deviation (ADR-003): inline SVG with a stepped transform instead of background-position so the outline can follow the theme; new token --companion-outline. Linguist sync now inserts in batches.
 - 2026-10-14 — P1-T09a — Source framework (SourceModule contract, runSourceSync with source_snapshots, last good data kept on failure, empty results refused) and the Linguist source: languages and path_patterns tables, YAML parsing, RE2 compilation with re2js (uncompilable patterns stored and counted, not used), path matcher, sync_linguist job with a weekly schedule. Fixtures are the real vendor.yml and documentation.yml and an excerpt of languages.yml.
 - 2026-10-14 — P1-T08 — Design tokens (dark and light), Tailwind 4 mapping and typography roles, self-hosted Inter / Pixelify Sans / JetBrains Mono via next/font, generated Material Symbols subset (25 icons), theme toggle (system default, persisted, no flash), and base components: Button, Field, Input, Textarea, Select, Combobox, Card, Chip, StateChip, TerminalWindow, UnlockCard, ChecklistRule, Tabs, Dialog, Accordion, Toast, Tooltip, Popover, DropdownMenu, Skeleton, EmptyState, Avatar, Icon. 34 component tests with axe; e2e checks both themes in a real browser. Spec fix (§9.2): light --accent, --state-working and --state-done darkened to #177A30, #8F5A00 and #136F35 because the original values failed the WCAG AA rule the same section requires (ADR-003). Dependabot now ignores TypeScript, ESLint and MSW majors.
