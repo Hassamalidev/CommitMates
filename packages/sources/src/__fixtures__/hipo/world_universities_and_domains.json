@@ -1,0 +1,14 @@
+[
+  {"web_pages": ["https://www.mit.edu/"], "name": "Massachusetts Institute of Technology", "alpha_two_code": "US", "state-province": null, "domains": ["mit.edu"], "country": "United States"},
+  {"web_pages": ["https://lums.edu.pk/"], "name": "Lahore University of Management Sciences", "alpha_two_code": "PK", "state-province": "Punjab", "domains": ["LUMS.edu.pk"], "country": "Pakistan"},
+  {"web_pages": ["https://www.uni-muenchen.de/"], "name": "Ludwig-Maximilians-Universität München", "alpha_two_code": "DE", "state-province": null, "domains": ["uni-muenchen.de", "lmu.de"], "country": "Germany"},
+  {"web_pages": ["https://www.pku.edu.cn/"], "name": "北京大学", "alpha_two_code": "CN", "state-province": null, "domains": ["pku.edu.cn"], "country": "China"},
+  {"web_pages": ["https://www.uma.es/"], "name": "Universidad de Málaga", "alpha_two_code": "ES", "state-province": null, "domains": ["uma.es"], "country": "Spain"},
+  {"web_pages": ["https://www.uma-example.es/"], "name": "Universidad de Malaga", "alpha_two_code": "ES", "state-province": null, "domains": ["uma-example.es"], "country": "Spain"},
+  {"web_pages": ["https://campus-one.example.edu/"], "name": "Shared Campus One", "alpha_two_code": "US", "state-province": null, "domains": ["shared.example.edu"], "country": "United States"},
+  {"web_pages": ["https://campus-two.example.edu/"], "name": "Shared Campus Two", "alpha_two_code": "US", "state-province": null, "domains": ["shared.example.edu"], "country": "United States"},
+  {"web_pages": ["https://mitsloan.mit.edu/"], "name": "Massachusetts Institute of Technology", "alpha_two_code": "US", "state-province": null, "domains": ["sloan.mit.edu", "mit.edu"], "country": "United States"},
+  {"web_pages": [], "name": "No Domains College", "alpha_two_code": "US", "state-province": null, "domains": [], "country": "United States"},
+  {"web_pages": [], "name": "Bad Code University", "alpha_two_code": "USA", "state-province": null, "domains": ["bad.example.edu"], "country": "United States"},
+  {"name": "Missing fields"}
+]

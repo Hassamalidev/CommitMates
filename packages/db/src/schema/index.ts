@@ -1,3 +1,4 @@
+export * from './universities';
 export * from './identity';
 export * from './jobs';
 export * from './settings';

@@ -112,7 +112,10 @@ describe('getMember', () => {
       roles: [],
     });
 
-    const universityId = '11111111-1111-4111-8111-111111111111';
+    const [university] = await database.sql<{ id: string }[]>`
+      insert into universities (name, slug, country, country_code, web_pages, source, checksum)
+      values ('Test University', 'test-university-tl', 'Testland', 'TL', '{}', 'admin', 'x') returning id`;
+    const universityId = university!.id;
     await database.sql`update profiles set university_id = ${universityId}, verified_at = now(), onboarded_at = now()
                        where user_id = ${userId}`;
     await database.sql`insert into roles (user_id, role, university_id) values (${userId}, 'uni_moderator', ${universityId})`;

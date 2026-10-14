@@ -82,3 +82,4 @@ export { listLanguages as listLanguageNames } from '@commitmates/db';
 export { FYP_STEPS, fypTool } from './fyp/jobs';
 export { FYP_DESCRIPTION_MAX, FYP_DESCRIPTION_MIN, FYP_TITLE_MAX, fypInputSchema, fypResultSchema, type FypInput, type FypResult } from './fyp/schemas';
 export { METRIC_WINDOWS, getToolMetrics, recordSignUpConversion, type ToolMetrics } from './metrics/service';
+export { matchEmailToUniversity, type EmailUniversityCheck } from './universities/service';

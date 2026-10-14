@@ -16,10 +16,10 @@ No list of universities, skills, topics, languages or secret patterns is written
 | Coordinates → timezone (offline library) | IANA timezone lookup | `packages/sources/geocoder` | Bundled | CC0-1.0 (ADR-004) | P2-T05 |
 | gitleaks default rules | Secret detection patterns | `packages/sources/gitleaks` | Weekly | MIT (code and configuration) | P2-T10 |
 | Stopword dataset (stopwords-iso) | YAKE and BM25 | `packages/sources/stopwords` | Weekly | MIT (ADR-005) | P2-T17 |
-| Hipo university-domains-list | Universities and email domains | `packages/sources/hipo` | Weekly | MIT | P3-T01 |
-| Disposable email domains | Rejecting throwaway addresses | `packages/sources/disposable-emails` | Weekly | Recorded in the ADR that picks the list | P3-T01 |
+| Hipo university-domains-list | Universities and email domains | `packages/sources/hipo` | Weekly | MIT (ADR-007) | P3-T01 |
+| Disposable email domains | Rejecting throwaway addresses | `packages/sources/disposable-emails` | Weekly | CC0-1.0 (ADR-007) | P3-T01 |
 
-Implemented so far: GitHub REST and GraphQL, GitHub Linguist, github/explore, package registries, Nominatim, coordinates → timezone, gitleaks, stopwords-iso (below). A row moves to its own section below when its module lands, with the exact endpoint, request pacing, User-Agent and attribution text.
+Implemented so far: GitHub REST and GraphQL, GitHub Linguist, github/explore, package registries, Nominatim, coordinates → timezone, gitleaks, stopwords-iso, Hipo university-domains-list, disposable email domains (below). A row moves to its own section below when its module lands, with the exact endpoint, request pacing, User-Agent and attribution text.
 
 ## Policies that apply to every source
 
@@ -139,6 +139,25 @@ PyPI names are normalized per PEP 503. Fixtures are real manifests from well-kno
 - Stored in: `stopwords` (one row per language, diffed by checksum). Callers fall back to English for a language without a list.
 - Refresh: weekly (job `sync_stopwords`, Sunday 05:00 UTC).
 - License and attribution: MIT, © 2020 Gene Diaz; credited on `/attribution`.
+
+## Hipo university-domains-list
+
+- Endpoint: `GET /repos/Hipo/university-domains-list/contents/world_universities_and_domains.json` (raw media type, conditional request, default branch `master`).
+- Fields used: `name`, `domains`, `web_pages`, `country`, `alpha_two_code`, `state-province`. Entries without domains or with a code that is not two letters are skipped; repeated entries (same country code and name) are merged.
+- Normalization: domains lowercased, trimmed and deduplicated; `slug = kebab(name) + "-" + code`, with `-2`, `-3` on collision (a name with no Latin letters uses its first domain); checksum per university.
+- Stored in: `universities` (`source = 'hipo'`, `source_key = CODE:lowercased name`) and `university_domains`. Diff upsert by checksum. A university the list drops is deleted when it has no members, otherwise marked `source_missing`.
+- Matching: `matchEmailToUniversity` walks the email domain's label-boundary suffixes, longest first (`domainSuffixes` in `packages/algorithms`). The longest registered suffix wins, and several universities are returned when they share that domain.
+- Refresh: weekly (job `sync_hipo`, Sunday 06:00 UTC).
+- License and attribution: MIT; credited on `/attribution`.
+
+## Disposable email domains
+
+- Endpoint: `GET /repos/disposable-email-domains/disposable-email-domains/contents/disposable_email_blocklist.conf` (raw media type, conditional request, default branch `main`).
+- Format: one domain per line; blank lines and `#` comments skipped; lowercased and deduplicated.
+- Stored in: `disposable_domains` (set difference: new domains inserted, dropped ones deleted).
+- Use: an email is rejected when its domain or any parent domain is listed.
+- Refresh: weekly (job `sync_disposable_emails`, Sunday 06:30 UTC).
+- License and attribution: CC0 1.0 (ADR-007); credited on `/attribution` as a courtesy.
 
 ## How to add a section
 

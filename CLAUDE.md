@@ -1341,8 +1341,8 @@ The schema is split into nine groups. This section is the contract; the exact de
 
 | Table | Columns |
 | --- | --- |
-| `universities` | `id`, `name`, `slug unique`, `country`, `country_code char(2)`, `state_province`, `web_pages text[]`, `source enum(hipo, admin)`, `source_missing boolean`, `checksum`, `member_count int` (trigger-maintained) |
-| `university_domains` | `domain citext pk`, `university_id fk` |
+| `universities` | `id`, `name`, `slug unique`, `country`, `country_code char(2)`, `state_province`, `web_pages text[]`, `source enum(hipo, admin)`, `source_key unique null` (Hipo identity: country code + lowercased name), `source_missing boolean`, `checksum`, `member_count int` (trigger-maintained) |
+| `university_domains` | `domain citext`, `university_id fk`; unique `(domain, university_id)` (some universities share a domain, §8 F10) |
 | `university_requests` | `id`, `user_id`, `domain`, `proposed_name`, `country_code`, `status enum(pending, approved, rejected)`, `reviewed_by`, `reviewed_at`, `note` |
 | `disposable_domains` | `domain citext pk`, `synced_at` |
 | `email_verifications` | `id`, `user_id`, `email citext`, `domain`, `university_id null`, `code_hash`, `expires_at`, `attempts smallint`, `sends_today smallint`, `last_sent_at`, `verified_at`; partial unique index on `user_id` where `verified_at is null` |
@@ -3038,7 +3038,7 @@ Branch `phase/2-day-one-tools`. Goal: all eight public tools working on live dat
 
 Branch `phase/3-university`. Goal: verified university membership, onboarding, university pages, privacy controls.
 
-- [ ] **P3-T01 University and disposable-domain sources.** Spec: §6.4, §6.5.
+- [x] **P3-T01 University and disposable-domain sources.** Spec: §6.4, §6.5.
   - `sync_hipo` (diff upsert, slugs, `source_missing`), `sync_disposable_emails` (choose the list and record its license in an ADR), suffix-matching helper.
   - Done when: fixture syncs work and suffix matching passes boundary tests.
 - [ ] **P3-T02 \[HUMAN\] Transactional email provider.** Spec: §3.2, §14.1.
@@ -3200,6 +3200,7 @@ Branch `phase/7-launch`. Goal: secure, fast, accessible, documented, deployed.
 
 Newest first, one line per completed task or subtask: `YYYY-MM-DD — <task id> — <what was done>`. A `BLOCKED:` line, when present, is always the first line (§13). Spec fixes made under §0.9 are logged here too.
 
+- 2026-10-14 — P3-T01 — University and disposable-domain sources: universities, university_domains and disposable_domains tables (profiles and roles now reference universities); sync_hipo (diff upsert by checksum, stable slugs with -2/-3 on collision, repeats merged, dropped universities deleted only without members, otherwise marked source_missing) and sync_disposable_emails (the CC0 disposable-email-domains list, ADR-007), both weekly; label-boundary suffix matching (domainSuffixes) and matchEmailToUniversity (longest registered suffix wins, disposable parents rejected, shared domains return every match). Spec fix (§7.2): university_domains is unique on (domain, university_id) because §8 F10 expects shared domains, and universities gains source_key as the Hipo identity between syncs.
 - 2026-10-14 — P2-T20 — Recompute jobs and metrics: the nightly recompute_settings now derives the five persona thresholds (persona.percentile of their samples), companion.stageCuts (quantiles of companion.activityScore at the seeded cut shares), oss.maxResponseHours (p60) and recruiter.readme.minChars (p40 of README lengths of repos with at least recruiter.readme.sampleMinStars stars; new key, default 10). The Dev Card now records companion.activityScore samples, and the Recruiter score records recruiter.readmeChars samples. /admin/metrics shows runs per tool, tool conversion (a new member's first sign-in credits the past day's anonymous runs from the same daily IP hash) and fairness reports per week. graveyard.idleMonths.<category> waits for push-gap samples (P6); matching and streak keys arrive with P4. Test stability: each package's Vitest workers are capped at 25%, because the parallel suite oversubscribed the CPU and Postgres and job deadlines in tests ran out; the two-worker job test now waits for real overlap instead of relying on timing.
 - 2026-10-14 — P2-T19 — Landing live demo and SEO: a terminal on the landing page runs a real Dev Card job, streams its steps, and the companion reacts beside it; the card loads below it. Also: robots.txt, sitemap (public pages only), hero CTA "Try it with your GitHub". Performance work (ADR-006): public pages prerendered, with the sign-in state read in the browser; CompanionSprite with one path per color (landing DOM 1,276 → 336 nodes); zod and unused ui components out of client bundles. Lighthouse on the production build: accessibility, best practices and SEO 100; performance 88–92 on the landing page and 91–92 on tool pages with 2× CPU throttling (Lighthouse's calibration for this machine's benchmark index of about 735), 69 with the default 4×. Simulated LCP 3.3–3.8 s and route JS 185 KB gzipped still exceed the §11.6 budgets locally; both are re-measured on deployed hardware in P7-T02. E2e flow 1 passes.
 - 2026-10-14 — P2-T18 — FYP Idea Checker: fyp_check job (language from the synced stopword lists, YAKE keyphrases, three paced searches, READMEs truncated to 20,000 characters, BM25 against the idea's own score, fyp.bands, shared and unique keyphrases), /tools/fyp-check with bands and a 'what makes yours different' panel. The university-first list (step 6) waits for the FYP corpus in P6-T07.

@@ -13,7 +13,15 @@ import { taxonomyExpandJob } from './taxonomy/jobs';
 import { purgeNonUserRawJob } from './privacy/jobs';
 import { cleanupRateBucketsJob, rotateSaltsJob } from './security/jobs';
 import { recomputeSettingsJob } from './settings/jobs';
-import { enrichPackagesJob, syncExploreJob, syncGitleaksJob, syncLinguistJob, syncStopwordsJob } from './sources/jobs';
+import {
+  enrichPackagesJob,
+  syncDisposableEmailsJob,
+  syncExploreJob,
+  syncGitleaksJob,
+  syncHipoJob,
+  syncLinguistJob,
+  syncStopwordsJob,
+} from './sources/jobs';
 
 type Registration = { type: string; register: () => void };
 
@@ -34,6 +42,8 @@ export const jobHandlers: readonly Registration[] = [
   define(syncExploreJob),
   define(syncGitleaksJob),
   define(syncStopwordsJob),
+  define(syncHipoJob),
+  define(syncDisposableEmailsJob),
   define(enrichPackagesJob),
   define(purgeNonUserRawJob),
   define(geocodePendingJob),

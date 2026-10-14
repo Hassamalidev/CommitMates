@@ -1,8 +1,10 @@
 import { PRIORITY, enqueue, type JobHandler } from '@commitmates/jobs';
 import {
+  disposableEmailsSource,
   enrichPackage,
   exploreSource,
   gitleaksSource,
+  hipoSource,
   stopwordsSource,
   findStalePackages,
   linguistSource,
@@ -35,6 +37,28 @@ export const syncStopwordsJob: JobHandler<EmptyPayload> = {
   priority: PRIORITY.MAINTENANCE,
   async run(_payload, ctx) {
     const result = await runSourceSync(stopwordsSource, { now: ctx.now });
+    return { kind: 'done', resultRef: result };
+  },
+};
+
+/** Weekly: refresh universities and their email domains from the Hipo list (CLAUDE.md §6.4). */
+export const syncHipoJob: JobHandler<EmptyPayload> = {
+  type: 'sync_hipo',
+  schema: emptyPayload,
+  priority: PRIORITY.MAINTENANCE,
+  async run(_payload, ctx) {
+    const result = await runSourceSync(hipoSource, { now: ctx.now });
+    return { kind: 'done', resultRef: result };
+  },
+};
+
+/** Weekly: refresh the disposable email domain blocklist (CLAUDE.md §6.5). */
+export const syncDisposableEmailsJob: JobHandler<EmptyPayload> = {
+  type: 'sync_disposable_emails',
+  schema: emptyPayload,
+  priority: PRIORITY.MAINTENANCE,
+  async run(_payload, ctx) {
+    const result = await runSourceSync(disposableEmailsSource, { now: ctx.now });
     return { kind: 'done', resultRef: result };
   },
 };

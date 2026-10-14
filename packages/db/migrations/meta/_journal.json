@@ -197,6 +197,20 @@
       "when": 1791963427337,
       "tag": "0027_settings_recruiter",
       "breakpoints": true
+    },
+    {
+      "idx": 28,
+      "version": "7",
+      "when": 1791965516831,
+      "tag": "0028_universities",
+      "breakpoints": true
+    },
+    {
+      "idx": 29,
+      "version": "7",
+      "when": 1791965646555,
+      "tag": "0029_schedule_university_sources",
+      "breakpoints": true
     }
   ]
 }

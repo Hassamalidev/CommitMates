@@ -2,6 +2,7 @@ import { sql } from 'drizzle-orm';
 import { bigint, boolean, index, pgEnum, pgTable, smallint, text, uniqueIndex, uuid } from 'drizzle-orm/pg-core';
 
 import { citext, createdAt, timestamptz, updatedAt } from './columns';
+import { universities } from './universities';
 
 export const userStatus = pgEnum('user_status', ['active', 'suspended', 'hidden_pending_review']);
 export const profileRole = pgEnum('profile_role', ['student', 'alumni', 'supervisor_pending', 'supervisor']);
@@ -42,7 +43,8 @@ export const profiles = pgTable(
     userId: uuid('user_id')
       .primaryKey()
       .references(() => users.id, { onDelete: 'cascade' }),
-    universityId: uuid('university_id'),
+    // A university with members is never deleted (§6.4), so no delete rule is needed.
+    universityId: uuid('university_id').references(() => universities.id),
     role: profileRole('role').notNull().default('student'),
     gradYear: smallint('grad_year'),
     departmentId: uuid('department_id'),
@@ -71,7 +73,7 @@ export const roles = pgTable(
       .notNull()
       .references(() => users.id, { onDelete: 'cascade' }),
     role: roleKind('role').notNull(),
-    universityId: uuid('university_id'),
+    universityId: uuid('university_id').references(() => universities.id, { onDelete: 'cascade' }),
     grantedBy: uuid('granted_by'),
     grantedAt: timestamptz('granted_at').notNull().defaultNow(),
     createdAt: createdAt(),
