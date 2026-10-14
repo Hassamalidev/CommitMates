@@ -52,3 +52,11 @@ export { registerAllTools, toolDefinitions } from './tools/definitions';
 export { DEV_CARD_STEPS, devCardTool } from './persona/jobs';
 export { devCardInputSchema, devCardSchema, loginSchema, type DevCard, type DevCardInput } from './persona/schemas';
 export { EVENTS_WINDOW_DAYS, RHYTHM_WINDOW_DAYS } from './persona/service';
+export {
+  canViewProfile,
+  getProfileOwner,
+  isPublicProfile,
+  type ProfileOwner,
+  type ProfileViewer,
+  type ProfileVisibility,
+} from './profiles/visibility';

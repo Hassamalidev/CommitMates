@@ -6,7 +6,13 @@ import { ingestProfile } from '../profiles/ingest';
 import { getMember } from '../profiles/service';
 import { hourBucket, storeToolResult, type ToolDefinition } from '../tools/service';
 
-import { analyzeProfilePayloadSchema, devCardInputSchema, type AnalyzeProfilePayload, type DevCardInput } from './schemas';
+import {
+  analyzeProfilePayloadSchema,
+  devCardInputSchema,
+  devCardSchema,
+  type AnalyzeProfilePayload,
+  type DevCardInput,
+} from './schemas';
 import { buildDevCard, recordPersonaSamples } from './service';
 
 /** Continuations allowed before a card is built from whatever has been read so far. */
@@ -84,7 +90,8 @@ export const analyzeProfileJob: JobHandler<AnalyzeProfilePayload> = {
     }
 
     await ctx.progress({ step: DEV_CARD_STEPS.building });
-    const card = await buildDevCard(snapshot);
+    // The stored card is the contract with every page that draws it; a malformed one must not be cached.
+    const card = devCardSchema.parse(await buildDevCard(snapshot));
     await recordPersonaSamples(card, ctx.now());
     const resultRef = await storeToolResult(devCardTool, { login: card.login }, card, {
       isMemberSubject: snapshot.isMember,

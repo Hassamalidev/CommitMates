@@ -2973,14 +2973,14 @@ Branch `phase/2-day-one-tools`. Goal: all eight public tools working on live dat
 - [x] **P2-T06 Tool page framework.** Spec: §5.3, §5.14, §9.6.
   - Shared tool page template, `useJob` hook (EventSource), companion state mapping, `/api/tools/[tool]` routing with rate limits and caching, `tool_sessions` writes.
   - Done when: a test tool runs end to end with progress events and all five states.
-- [ ] **P2-T07 Dev Card.** Spec: §8 F1, §9.4–9.6.
+- [x] **P2-T07 Dev Card.** Spec: §8 F1, §9.4–9.6.
   - Pure metric and label functions, `analyze_profile` handler, card UI, `/tools/dev-card`, `/u/[login]` for members with visibility, `noindex` for non-members.
   - Done when: F1's tests pass and the e2e flow 2 (§11.4) passes.
   - Split into subtasks (§0.5):
   - [x] **P2-T07a Persona algorithms.** Statistics, local clock, rhythm metrics, labels, activity score, language shares and skill tags in `packages/algorithms`.
   - [x] **P2-T07b Dev Card job.** `analyze_profile` handler, the `dev-card` tool definition, timezone resolution, the `DevCard` result and anonymous samples.
   - [x] **P2-T07c Chart components.** `LanguageBar`, `RhythmStrip` and `Heatmap` in `packages/ui`.
-  - [ ] **P2-T07d Dev Card pages.** `/tools/dev-card`, `/u/[login]` with visibility, `noindex` for non-members, e2e flow 2.
+  - [x] **P2-T07d Dev Card pages.** `/tools/dev-card`, `/u/[login]` with visibility, `noindex` for non-members, e2e flow 2.
 - [ ] **P2-T08 Share images.** Spec: §9.7.
   - `/api/og/dev-card` for members; share buttons that appear only when allowed.
   - Done when: images render for members and return 404 for non-members.
@@ -3187,6 +3187,7 @@ Branch `phase/7-launch`. Goal: secure, fast, accessible, documented, deployed.
 
 Newest first, one line per completed task or subtask: `YYYY-MM-DD — <task id> — <what was done>`. A `BLOCKED:` line, when present, is always the first line (§13). Spec fixes made under §0.9 are logged here too.
 
+- 2026-10-14 — P2-T07d — Dev Card pages (P2-T07 complete): /tools/dev-card with the shared template, a username form, inline validation errors, companion progress and the card (labels with evidence, language bar, hour rhythm with timezone source and OpenStreetMap credit, 90-day heatmap, numbers, top skills); a ?login= address builds that card at once and is noindex; /u/[login] for members only, following visibility (self always; public to anyone and indexable; university to verified members of the same university; country treated as the same university until universities exist in Phase 3; hidden and suspended accounts look like missing pages); no share controls on visitor results. Dev Card listed on the landing page. e2e flow 2 passes (62 e2e tests green, desktop and 360px).
 - 2026-10-14 — P2-T07c — Chart components in packages/ui: LanguageBar (stacked bar and legend colored from Linguist data, screen-reader table), RhythmStrip (24 hour cells shaded by share, axis label every six hours, busiest hours listed for screen readers), Heatmap (seven-row calendar grid shaded by quarter of the busiest day; one tab stop exposed as a slider whose value text describes the highlighted day, instead of a tooltip per cell, so there are no 12px touch targets; screen-reader table). 20 tests including axe.
 - 2026-10-14 — P2-T07b — Dev Card job: analyze_profile handler and the dev-card tool definition; timezone from the member profile, the geocoded location or UTC; card assembly from settings-driven thresholds, Linguist colors and derived package tags; activity score by percentile rank once contrib.total365 has enough samples; anonymous persona samples with salted dedupe; a member analyzing their own account uses their own token; continuation while manifests are unread; kind errors for organizations and unknown accounts. Spec deviation (§8 F1 output): the stored companion carries a speciesKey instead of a species number, because the species table lives in packages/ui, which core may not import (§4.3); the web layer derives the number. The card also records enoughActivity, reposTruncated and isMember for the page.
 - 2026-10-14 — P2-T07a — Persona algorithms (P2-T07 split into four subtasks): standard deviation, coefficient of variation, percentile and percentile rank; local clock readings per IANA timezone through Intl (DST-correct, no dependency); hour histogram with capped push weights, night, morning and weekend shares, active-day share, burstiness and longest streak; labels by threshold with strength, activity score with its logarithmic fallback, companion stage; language shares and skill tags. 44 tests, 100% line coverage.
