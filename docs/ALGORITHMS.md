@@ -240,6 +240,22 @@ All algorithms live in `packages/algorithms` and are pure: no I/O, no clock, no 
 - Tests: `packages/algorithms/src/ir/bm25.test.ts`
 - Spec: CLAUDE.md §8 F9 step 3
 
+### FYP idea similarity
+
+- Code: job `fyp_check` in `packages/core/src/fyp/jobs.ts` (uses `yake` and `bm25`)
+- Formula:
+  - language: the synced stopword list that shares the most words with the idea (English when nothing overlaps)
+  - keyphrases: YAKE over "title\ndescription", top `fyp.yake.maxKeyphrases`
+  - searches (search pacer): the top 3 keyphrases quoted together, then the pairs (1, 2) and (1, 3), each `in:name,description,readme`; unique repositories in result order
+  - for the first `fyp.searchTopN` results: repository name, description and raw README, truncated together to 20,000 characters
+  - BM25 of the idea against each README, with the idea itself added to the corpus; similarity % = min(100, round(100 · score / score(idea, idea)))
+  - bands from `fyp.bands` [40, 70]: below 40 loosely related, 40–69 related, 70 and above very similar
+  - shared keyphrases = the idea's keyphrases that YAKE also finds in the README (case-insensitive); unique = the idea's keyphrases found in none of the 5 most similar READMEs
+- Settings: `fyp.yake.maxKeyphrases` (10), `fyp.yake.ngramMax` (3), `fyp.searchTopN` (20), `fyp.bands`, `ir.bm25.k1`, `ir.bm25.b`, `cache.searchTtlHours`
+- The university-first list (step 6) arrives with the FYP corpus in P6-T07.
+- Tests: `packages/core/src/fyp/fyp.test.ts`
+- Spec: CLAUDE.md §8 F9
+
 TF-IDF arrives in P4-T02.
 
 ## Clustering, graphs and assignment

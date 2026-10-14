@@ -79,3 +79,5 @@ export { gapInputSchema, gapResultSchema, type GapFacet, type GapInput, type Gap
 export { OSS_STEPS, ossTool } from './oss/jobs';
 export { ossInputSchema, ossResultSchema, type OssInput, type OssIssue, type OssResult } from './oss/schemas';
 export { listLanguages as listLanguageNames } from '@commitmates/db';
+export { FYP_STEPS, fypTool } from './fyp/jobs';
+export { FYP_DESCRIPTION_MAX, FYP_DESCRIPTION_MIN, FYP_TITLE_MAX, fypInputSchema, fypResultSchema, type FypInput, type FypResult } from './fyp/schemas';
