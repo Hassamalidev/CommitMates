@@ -20,6 +20,17 @@ Every personal-data field the app stores: why it exists, how long it is kept, an
 | D: anonymous aggregates | `metric_samples` | Kept | Not linkable to a person |
 | E: country index | Minimal public metadata for search | Refreshed; removed when GitHub returns 404 | Opt-out form by GitHub login |
 
+## Export and deletion (as implemented)
+
+- **Export:** `/settings/privacy` links to `GET /api/me/export`, a JSON download of every class A and B row about the member, grouped by table: every table listed below as class A, or class B for members. A test reads this file and fails if the export misses one. Secrets are left out: the encrypted GitHub token and a verification code's hash.
+- **Deletion:** the member types their GitHub login (or `delete my account` without one).
+  1. A confirmation email goes out first, best effort and within the daily cap; afterwards there is no address to send it to.
+  2. One transaction deletes what no foreign key cascades from: analyses cached about the member (by login), their GitHub user row and their repositories with manifests, dependencies and paths. It also writes an `audit_log` entry whose target is `hashUserId(id)`.
+  3. The Supabase auth user is deleted, and every class A and B table cascades from it.
+  4. The session ends.
+- **Not yet applicable:** §5.12 step 3 (ending pairs, withdrawing listings, refunding escrows, cancelling questions) and replacing a member's chat messages arrive with those features in Phases 4–6.
+- **Deviation from §5.12 step 1:** the GitHub OAuth grant is not revoked by the server. Revoking a grant needs the OAuth app's client secret, which only Supabase Auth holds. The page links to GitHub's authorized-applications settings instead, where the member can revoke it.
+
 ## Field inventory
 
 Row Level Security is enabled on every table. Only `notifications` has a policy (a member reads their own rows); every other table is unreadable by the browser roles and is accessed only by server code.

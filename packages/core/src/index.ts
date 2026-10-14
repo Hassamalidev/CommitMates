@@ -13,7 +13,7 @@ export {
   type SignInResult,
 } from './profiles/service';
 export { signInSchema, type Member, type MemberRole, type SignInInput } from './profiles/schemas';
-export { AppError, ForbiddenError, NotFoundError, RateLimitedError, ValidationError } from '@commitmates/db';
+export { AppError, ExternalServiceError, ForbiddenError, NotFoundError, RateLimitedError, ValidationError } from '@commitmates/db';
 export {
   getHealth,
   getJobsOverview,
@@ -86,7 +86,7 @@ export { matchEmailToUniversity, type EmailUniversityCheck } from './universitie
 export { EmailQuotaError, deliverEmail, nextUtcMidnight, sendEmailPayloadSchema, utcDay, type SendEmailPayload } from './notifications/email';
 export { confirmEmailCode, startEmailVerification } from './verification/service';
 export { CODE_DIGITS, confirmCodeSchema, startVerificationSchema, type StartVerificationResult } from './verification/schemas';
-export { getPendingVerification, getUniversity, getUniversityBySlug, type PendingVerification, type UniversitySummary } from '@commitmates/db';
+export { getPendingVerification, getProfileDetails, getUniversity, getUniversityBySlug, type PendingVerification, type UniversitySummary } from '@commitmates/db';
 export {
   changeModerator,
   listModeratorGrants,
@@ -103,3 +103,4 @@ export { canVouchFor, chooseUniversityForVouching, findUniversities, getVouching
 export { getOnboardingOptions, onboardingDetailsSchema, resolveDepartment, saveOnboardingDetails } from './profiles/onboarding';
 export { campusUnlocks, creditInvite, getCampus, inviteFor, recentNotifications, type Campus, type Unlock, type UnlockKey } from './universities/campus';
 export type { NotificationRow, TopicCount } from '@commitmates/db';
+export { DELETE_PHRASE, deletionConfirmation, exportMemberData, prepareAccountDeletion, privacySettingsSchema, updatePrivacySettings } from './privacy/service';

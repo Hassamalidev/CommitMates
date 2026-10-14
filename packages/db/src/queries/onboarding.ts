@@ -149,6 +149,7 @@ export async function getProfileDetails(userId: string, db: DbOrTx = getDb()) {
       departmentId: profiles.departmentId,
       learningGoals: profiles.learningGoals,
       visibility: profiles.visibility,
+      ghostMode: profiles.ghostMode,
       shareTodayStatus: profiles.shareTodayStatus,
       timezone: profiles.timezone,
       onboardedAt: profiles.onboardedAt,
