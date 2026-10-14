@@ -19,7 +19,7 @@ No list of universities, skills, topics, languages or secret patterns is written
 | Hipo university-domains-list | Universities and email domains | `packages/sources/hipo` | Weekly | MIT | P3-T01 |
 | Disposable email domains | Rejecting throwaway addresses | `packages/sources/disposable-emails` | Weekly | Recorded in the ADR that picks the list | P3-T01 |
 
-Implemented so far: GitHub REST and GraphQL, GitHub Linguist, github/explore (below). A row moves to its own section below when its module lands, with the exact endpoint, request pacing, User-Agent and attribution text.
+Implemented so far: GitHub REST and GraphQL, GitHub Linguist, github/explore, package registries (below). A row moves to its own section below when its module lands, with the exact endpoint, request pacing, User-Agent and attribution text.
 
 ## Policies that apply to every source
 
@@ -82,6 +82,24 @@ Not an external source, but the reading side of §6.6: `packages/sources/src/man
 | `build.gradle(.kts)` | Maven | String and map coordinates of dependency configurations; version-catalog aliases cannot be resolved | Configuration starts with test, androidTest or debug |
 
 PyPI names are normalized per PEP 503. Fixtures are real manifests from well-known public repositories (`packages/sources/src/__fixtures__/manifests/README.md`).
+
+## Package registries
+
+- Endpoints (one GET per package, JSON):
+  - npm: `https://registry.npmjs.org/<name>/latest` (the `latest` document has the same `keywords` and `repository` as the full packument, at a fraction of its size)
+  - PyPI: `https://pypi.org/pypi/<name>/json`
+  - crates.io: `https://crates.io/api/v1/crates/<name>`
+  - pub.dev: `https://pub.dev/api/packages/<name>`
+  - Packagist: `https://repo.packagist.org/p2/<vendor>/<name>.json`
+  - Go, Maven and RubyGems: no registry call.
+- Fallback for every ecosystem: the topics of the package's GitHub repository (from registry metadata, or from a `github.com/…` Go module path), read through the GitHub client.
+- Auth: none. Identifying `User-Agent`: `sources.userAgent` plus `CONTACT_EMAIL` (crates.io requires one).
+- Pacing and limits: one request in flight per registry and at least `sources.registry.minIntervalMs` between calls, enforced app-wide by locking the registry's row in `registry_pacing`. A failed call still counts. `sources.requestTimeoutMs` per request.
+- Fields used: keywords, `Topic ::` classifiers (leaf only), crates.io categories (leaf only), repository URL.
+- Derived tags: lowercase, separators become hyphens, then mapped through topic aliases from github/explore so `reactjs` and `react` are one tag. No vocabulary is hand-written.
+- Stored in: `package_meta`. A package the registry does not know is stored empty so it is not requested on every run.
+- Refresh: on demand (job `enrich_packages`, one per package and month), TTL `cache.packageMetaTtlDays`.
+- License and attribution: metadata is published by each registry for programmatic use under its terms; registries are credited on `/attribution`.
 
 ## How to add a section
 

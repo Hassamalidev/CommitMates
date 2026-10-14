@@ -948,6 +948,7 @@ Keys that §8 names as "new key" (or that a formula needs), seeded in `0003_sett
 | `admin.staleComputedDays` | integer | 3 | — | A computed setting not refreshed for this long is listed as stale (§5.13) |
 | `admin.jobListLimit` | integer | 100 | — | Rows shown per job list on the admin pages (§5.13) |
 | `sources.explore.batchSize` | integer | 200 | — | Topic files fetched per sync run; the rest continue in the next run (§6.2) |
+| `sources.requestTimeoutMs` | integer | 15000 | — | Per-request timeout for package registries and other non-GitHub sources (§6.6) |
 
 `min_sample` for computed keys is seeded as 200 for sample percentiles, 30 for `matching.weights` and `streaks.companionStageDays`. `graveyard.idleMonths.<category>` rows are created by the recompute job per category and are not part of the static key registry.
 
@@ -1358,6 +1359,7 @@ The schema is split into nine groups. This section is the contract; the exact de
 | `repo_dependencies` | `repo_github_id`, `ecosystem`, `package_name`, `is_dev boolean`; pk `(repo_github_id, ecosystem, package_name)`; index on `(ecosystem, package_name)` |
 | `repo_paths` | `repo_github_id`, `path_feature`, pk `(repo_github_id, path_feature)` — normalized top-level structure features used by F5 (e.g. `dir:tests`, `file:Dockerfile`, `dir:.github/workflows`) |
 | `package_meta` | `ecosystem`, `name`, `keywords text[]`, `classifiers text[]`, `repo_full_name null`, `gh_topics text[]`, `derived_tags text[]`, `fetched_at`, `expires_at`; pk `(ecosystem, name)` |
+| `registry_pacing` | `registry pk`, `last_call_at` — one row per package registry, locked `for update` so calls to it are spaced app-wide (§6.6) |
 | `languages` | `name pk`, `color`, `extensions text[]`, `aliases text[]`, `synced_at` |
 | `path_patterns` | `id`, `kind enum(vendored, documentation)`, `pattern`, `compiled_ok boolean`, `synced_at` |
 | `secret_rules` | `id pk` (gitleaks rule id), `description`, `regex`, `keywords text[]`, `entropy real null`, `compiled_ok boolean`, `synced_at` |
@@ -2958,7 +2960,7 @@ Branch `phase/2-day-one-tools`. Goal: all eight public tools working on live dat
 - [x] **P2-T02 Manifest parsers.** Spec: §6.6.
   - Pure parsers for `package.json`, `requirements*.txt`, `pyproject.toml`, `Pipfile`, `setup.cfg`, `pubspec.yaml`, `Cargo.toml`, `go.mod`, `composer.json`, `Gemfile`, `pom.xml`, `build.gradle(.kts)`.
   - Done when: each parser passes tests on real-world fixtures, including malformed files.
-- [ ] **P2-T03 Registry enrichment.** Spec: §6.6.
+- [x] **P2-T03 Registry enrichment.** Spec: §6.6.
   - npm, PyPI, crates.io, pub.dev, Packagist modules; GitHub-topics fallback; derived tag normalization through topic aliases; `enrich_packages` job with per-registry pacing.
   - Done when: fixtures for each registry produce expected derived tags; pacing is enforced in tests.
 - [ ] **P2-T04 Profile ingestion.** Spec: §8 F1 "Data fetched", §5.12.
@@ -3180,6 +3182,7 @@ Branch `phase/7-launch`. Goal: secure, fast, accessible, documented, deployed.
 
 Newest first, one line per completed task or subtask: `YYYY-MM-DD — <task id> — <what was done>`. A `BLOCKED:` line, when present, is always the first line (§13). Spec fixes made under §0.9 are logged here too.
 
+- 2026-10-14 — P2-T03 — Registry enrichment: clients for npm, PyPI, crates.io, pub.dev and Packagist; GitHub-topics fallback for every ecosystem (including Go module paths); tag normalization mapped through topic aliases; package_meta with TTL; app-wide per-registry pacing through a locked row (one request in flight, minimum interval, failed calls counted); enrich_packages job and requestEnrichment (one job per package and month). Fixtures are real registry responses trimmed to the fields read. Additions to the spec: registry_pacing table (§7.3), sources.requestTimeoutMs; npm is read from /<name>/latest instead of the multi-megabyte full document.
 - 2026-10-14 — P2-T02 — Manifest parsers: pure, never-throwing parsers for package.json, requirements*.txt, pyproject.toml (PEP 621, PEP 735, Poetry), Pipfile, setup.cfg, pubspec.yaml, Cargo.toml, go.mod, composer.json, Gemfile, pom.xml and build.gradle(.kts), with runtime/development separation, PEP 503 name normalization, a 500-dependency cap and a file-name registry. Tested on real manifests from well-known public repositories plus malformed input. Known limit: Gradle version-catalog aliases cannot be resolved from the build file alone.
 - 2026-10-14 — P2-T01 — Source runner extended for incremental sources (deadline, hasMore, allowEmpty; GitHub rate limits pass through as waits instead of source failures) and the github/explore source: one tree listing, then only topic files whose blob sha changed, in batches of sources.explore.batchSize within the job deadline; topics table with aliases and related (GIN index on aliases); sync_explore job continuing across runs; weekly schedule. Spec fix (§7.3): topics gains blob_sha for diff sync. Source status is on /admin/health. Fixtures are real files from the repository.
 - 2026-10-14 — P1-T11 — Observability and admin base: withAction wrapper and ActionResult (AppError and zod failures become inline errors; unexpected errors are logged with a reference id), hashed user ids for logs, onRequestError logging, optional Sentry reporting without the SDK (its dependency tree includes FSL-1.1 and BlueOak licenses that check:licenses rejects; a minimal event is posted with fetch when SENTRY_DSN is set), error boundaries. /admin/health (alerts, queue depth, longest wait per priority, dead jobs, GitHub budgets, sources, database size vs budget, stale computed settings), /admin/jobs (schedules with enable/disable, dead/failed with retry, running, queued), /admin/settings (filter, resolved value and source, per-key page with override form and history). Every admin action checks the admin role and writes audit_log; non-admins get a 404 (unit and e2e tested). Six admin.* settings added for the alert thresholds of §5.13. Not yet built: the daily alert email and the emails-sent indicator, which need the email package (P3-T03, P4-T07).

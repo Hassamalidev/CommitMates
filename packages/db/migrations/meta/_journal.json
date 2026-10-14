@@ -85,6 +85,20 @@
       "when": 1791939317603,
       "tag": "0011_settings_explore",
       "breakpoints": true
+    },
+    {
+      "idx": 12,
+      "version": "7",
+      "when": 1791940302464,
+      "tag": "0012_package_meta",
+      "breakpoints": true
+    },
+    {
+      "idx": 13,
+      "version": "7",
+      "when": 1791940304437,
+      "tag": "0013_settings_registries",
+      "breakpoints": true
     }
   ]
 }

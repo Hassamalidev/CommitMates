@@ -84,7 +84,7 @@ Normalized free-text location strings and their coordinates. Not linked to a per
 
 ### Tables without personal data
 
-`settings`, `settings_history` (an `actor_user_id` for admin overrides), `jobs` (payloads may name a GitHub login or repository; rows are operational and short-lived), `job_schedules`, `github_budgets`, `rate_limit_buckets` (keys contain hashes, never raw IPs), `geocoder_lock`, `source_snapshots`.
+`languages`, `path_patterns`, `topics`, `package_meta`, `registry_pacing` (public reference data from open sources), `settings`, `settings_history` (an `actor_user_id` for admin overrides), `jobs` (payloads may name a GitHub login or repository; rows are operational and short-lived), `job_schedules`, `github_budgets`, `rate_limit_buckets` (keys contain hashes, never raw IPs), `geocoder_lock`, `source_snapshots`.
 
 ## Environment and logs
 

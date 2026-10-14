@@ -118,6 +118,12 @@ export const legalCopy = {
         license: 'CC BY 4.0, © GitHub, Inc.',
         href: 'https://github.com/github/explore',
       },
+      {
+        name: 'npm, PyPI, crates.io, pub.dev and Packagist',
+        use: 'Keywords, classifiers and categories that packages publish about themselves.',
+        license: 'Terms of use of each registry',
+        href: 'https://docs.npmjs.com/policies/open-source-terms',
+      },
     ],
     assets: [
       { name: 'Inter', use: 'Body text.', license: 'SIL Open Font License 1.1', href: 'https://rsms.me/inter/' },

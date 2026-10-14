@@ -1,4 +1,4 @@
-import { boolean, index, pgEnum, pgTable, text, uniqueIndex, uuid } from 'drizzle-orm/pg-core';
+import { boolean, index, pgEnum, pgTable, primaryKey, text, uniqueIndex, uuid } from 'drizzle-orm/pg-core';
 
 import { createdAt, timestamptz } from './columns';
 
@@ -46,3 +46,32 @@ export const topics = pgTable(
   },
   (table) => [index('topics_aliases_idx').using('gin', table.aliases)],
 ).enableRLS();
+
+/** Registry metadata of a package and the tags derived from it (CLAUDE.md §6.6). No vocabulary is hand-written. */
+export const packageMeta = pgTable(
+  'package_meta',
+  {
+    ecosystem: text('ecosystem').notNull(),
+    name: text('name').notNull(),
+    keywords: text('keywords').array().notNull(),
+    classifiers: text('classifiers').array().notNull(),
+    repoFullName: text('repo_full_name'),
+    ghTopics: text('gh_topics').array().notNull(),
+    derivedTags: text('derived_tags').array().notNull(),
+    fetchedAt: timestamptz('fetched_at').notNull(),
+    expiresAt: timestamptz('expires_at').notNull(),
+    createdAt: createdAt(),
+  },
+  (table) => [
+    primaryKey({ columns: [table.ecosystem, table.name] }),
+    index('package_meta_expires_idx').on(table.expiresAt),
+    index('package_meta_tags_idx').using('gin', table.derivedTags),
+  ],
+).enableRLS();
+
+/** One row per registry; locked `for update` so only one request is in flight and calls are spaced. */
+export const registryPacing = pgTable('registry_pacing', {
+  registry: text('registry').primaryKey(),
+  lastCallAt: timestamptz('last_call_at'),
+  createdAt: createdAt(),
+}).enableRLS();

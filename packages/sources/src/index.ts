@@ -15,3 +15,7 @@ export {
   type Ecosystem,
   type ParsedManifest,
 } from './manifests/parsers';
+export { enrichPackage, findStalePackages, type EnrichOptions, type EnrichResult, type PackageRef } from './registries/enrich';
+export { deriveTags, loadAliasMap, normalizeTag, type AliasMap } from './registries/tags';
+export { githubRepoFromUrl, registryClientFor, type RegistryMeta } from './registries/clients';
+export { withRegistryPace } from './registries/pacer';
