@@ -33,7 +33,7 @@ Every personal-data field the app stores: why it exists, how long it is kept, an
 
 ## Field inventory
 
-Row Level Security is enabled on every table. Only `notifications` has a policy (a member reads their own rows); every other table is unreadable by the browser roles and is accessed only by server code.
+Row Level Security is enabled on every table. Only `notifications` (own rows), `thread_members` (own rows) and `messages` (threads the member belongs to) have policies; every other table is unreadable by the browser roles and is accessed only by server code.
 
 ### `users` (class A)
 
@@ -83,6 +83,22 @@ Who vouched for whom, and at which university. Visible to nobody else: a member 
 One random code per member and university, and how many invitees verified there after following it. Nothing about the invitees is stored with it. Deleted by cascade when the member deletes their account.
 
 The invite link's university slug and code are kept in a session cookie (`cm_invite`, HTTP-only) until the invitee finishes onboarding; the cookie is then removed. It holds no personal data.
+
+### `message_requests`, `threads`, `thread_members`, `messages` (class A)
+
+Chat (CLAUDE.md §8 F12): first messages waiting for consent, threads and who is in them, and messages. A member's own message requests, memberships and messages are in their export. When an author deletes their account, their messages are kept for the other members and replaced by one system note (§5.12; the replacement arrives with chat, P4-T05). Requests and memberships are deleted by cascade. Members read messages and memberships of their own threads through Supabase Realtime; Row Level Security limits each to the member's threads.
+
+### `blocks`, `reports` (class A)
+
+Who a member blocked, and their reports about others: reason, optional details, and the moderation outcome. A report outlives the reporter's account (`reporter` becomes null), because it is evidence for moderation. A report about a member is deleted with that member's account.
+
+### `match_suggestions`, `connections`, `trust_scores` (class B for members)
+
+Daily suggestions with their score components and explanation keys, connections made through features, and the nightly trust score with its components. Recomputed from activity; deleted by cascade.
+
+### `pairs`, `pair_days`, `pair_companions` (class A)
+
+Shared streaks between two members: daily contribution counts as GitHub reports them, outcomes, freezes and the pair companion. Deleted by cascade when either member deletes their account.
 
 ### `notifications`, `notification_prefs` (class A)
 

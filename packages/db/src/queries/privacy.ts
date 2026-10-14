@@ -4,19 +4,31 @@ import { getDb, type DbOrTx } from '../client';
 import { hashUserId } from '../logger';
 import {
   analysisCache,
+  blocks,
+  connections,
   emailVerifications,
   feedback,
   ghRepos,
   ghUsers,
   githubIdentities,
   invites,
+  matchSuggestions,
+  messageRequests,
+  messages,
   notificationPrefs,
   notifications,
+  pairCompanions,
+  pairDays,
+  pairs,
   profiles,
   recruiterReports,
+  reports,
   repoDependencies,
   repoManifests,
   roles,
+  threadMembers,
+  threads,
+  trustScores,
   universityRequests,
   users,
   vouches,
@@ -65,7 +77,7 @@ export async function exportMemberRows(userId: string, db: DbOrTx = getDb()): Pr
     manifests,
     dependencies,
     cached,
-    reports,
+    recruiterRows,
   ] = await Promise.all([
     db.select().from(users).where(eq(users.id, userId)),
     db
@@ -111,7 +123,38 @@ export async function exportMemberRows(userId: string, db: DbOrTx = getDb()): Pr
     db.select().from(recruiterReports).where(eq(recruiterReports.userId, userId)),
   ]);
 
+  // Social and streak rows (CLAUDE.md §7.6, §7.7): what the member wrote, sent, joined or keeps.
+  const ownPairs = await db.select().from(pairs).where(or(eq(pairs.userA, userId), eq(pairs.userB, userId)));
+  const pairIds = ownPairs.map((pair) => pair.id);
+  const [suggestions, connectionRows, requestRows, memberships, messageRows, blockRows, reportRows, trust, days, companions] = await Promise.all([
+    db.select().from(matchSuggestions).where(eq(matchSuggestions.userId, userId)),
+    db.select().from(connections).where(or(eq(connections.userA, userId), eq(connections.userB, userId))),
+    db.select().from(messageRequests).where(or(eq(messageRequests.fromUser, userId), eq(messageRequests.toUser, userId))),
+    db.select().from(threadMembers).where(eq(threadMembers.userId, userId)),
+    db.select().from(messages).where(eq(messages.authorUserId, userId)),
+    db.select().from(blocks).where(eq(blocks.blocker, userId)),
+    db.select().from(reports).where(eq(reports.reporter, userId)),
+    db.select().from(trustScores).where(eq(trustScores.userId, userId)),
+    pairIds.length === 0 ? Promise.resolve([]) : db.select().from(pairDays).where(inArray(pairDays.pairId, pairIds)),
+    pairIds.length === 0 ? Promise.resolve([]) : db.select().from(pairCompanions).where(inArray(pairCompanions.pairId, pairIds)),
+  ]);
+
+  const threadIds = memberships.map((membership) => membership.threadId);
+  const threadRows = threadIds.length === 0 ? [] : await db.select().from(threads).where(inArray(threads.id, threadIds));
+
   return {
+    match_suggestions: suggestions,
+    threads: threadRows,
+    connections: connectionRows,
+    message_requests: requestRows,
+    thread_members: memberships,
+    messages: messageRows,
+    blocks: blockRows,
+    reports: reportRows,
+    trust_scores: trust,
+    pairs: ownPairs,
+    pair_days: days,
+    pair_companions: companions,
     users: user,
     github_identities: identityRows,
     profiles: profile,
@@ -128,7 +171,7 @@ export async function exportMemberRows(userId: string, db: DbOrTx = getDb()): Pr
     repo_manifests: manifests,
     repo_dependencies: dependencies,
     analysis_cache: cached,
-    recruiter_reports: reports,
+    recruiter_reports: recruiterRows,
   };
 }
 

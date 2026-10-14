@@ -260,6 +260,13 @@
       "when": 1791977101533,
       "tag": "0036_invites",
       "breakpoints": true
+    },
+    {
+      "idx": 37,
+      "version": "7",
+      "when": 1791984161919,
+      "tag": "0037_social_streaks",
+      "breakpoints": true
     }
   ]
 }
