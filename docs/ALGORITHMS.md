@@ -282,6 +282,22 @@ TF-IDF arrives in P4-T02.
 - Tests: `packages/core/src/metrics/metrics.test.ts`
 - Spec: CLAUDE.md §1.7
 
+## Matching
+
+### Skill vectors
+
+- Code: `packages/algorithms/src/matching/tfidf.ts` (`tfidfVectors`, `l2Normalize`, `topTags`, `mergeMax`); `packages/core/src/matching/vectors.ts` (jobs `compute_skill_vector`, `refresh_skill_vectors`)
+- Formula:
+  - base tf(t): the member's Dev Card language shares and skill tags, normalized through topic aliases; when both name a tag, the larger weight
+  - w(t) = tf(t) × ln(1 + N / df(t)), N = verified members of the university with a vector, df(t) = those whose base has t; then L2-normalized
+  - `top_tags` = the 12 heaviest, ties alphabetical
+  - interests = topics of owned repositories and of up to `matching.starCap` most recently starred ones, normalized
+  - every member of the university is reweighted when one member's base changes, because df moves
+- Triggers: verification (email or vouches), each sign-in (at most once a day per member), and weekly for vectors older than `matching.vectorRefreshDays`
+- Settings: `matching.starCap`, `matching.vectorRefreshDays` (7)
+- Tests: `packages/algorithms/src/matching/tfidf.test.ts` (hand-computed three-member university), `packages/core/src/matching/vectors.test.ts`
+- Spec: CLAUDE.md §8 F11 "Vectors"
+
 ## Clustering, graphs and assignment
 
 No entries yet. k-means with silhouette selection arrives in P6-T06; cycle search in P5-T06.

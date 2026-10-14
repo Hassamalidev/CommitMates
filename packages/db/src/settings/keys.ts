@@ -114,6 +114,7 @@ export const SettingKeys = {
   'unlock.squads.minParticipants': 'integer',
   'unlock.fypBoard.minMembers': 'integer',
   'matching.starCap': 'integer',
+  'matching.vectorRefreshDays': 'integer',
   'matching.deckSize': 'integer',
   'matching.maxDailyImpressions': 'integer',
   'matching.successMessages': 'integer',

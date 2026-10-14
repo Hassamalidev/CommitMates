@@ -260,6 +260,27 @@
       "when": 1791977101533,
       "tag": "0036_invites",
       "breakpoints": true
+    },
+    {
+      "idx": 37,
+      "version": "7",
+      "when": 1791984161919,
+      "tag": "0037_social_streaks",
+      "breakpoints": true
+    },
+    {
+      "idx": 38,
+      "version": "7",
+      "when": 1791986357850,
+      "tag": "0038_skill_vectors",
+      "breakpoints": true
+    },
+    {
+      "idx": 39,
+      "version": "7",
+      "when": 1791986419947,
+      "tag": "0039_settings_matching_vectors",
+      "breakpoints": true
     }
   ]
 }

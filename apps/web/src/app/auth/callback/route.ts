@@ -1,4 +1,4 @@
-import { completeSignIn, getLogger, recordSignUpConversion } from '@commitmates/core';
+import { completeSignIn, getLogger, recordSignUpConversion, requestSkillVector } from '@commitmates/core';
 import { after } from 'next/server';
 
 import { safeNextPath } from '@/lib/paths';
@@ -35,6 +35,14 @@ export async function GET(request: Request): Promise<Response> {
 
   try {
     const result = await completeSignIn(signIn);
+    // Refresh the member's skill vector (once a day at most); the job skips members not yet verified.
+    after(async () => {
+      try {
+        await requestSkillVector(signIn.userId);
+      } catch (error_) {
+        getLogger().error({ err: error_ }, 'skill vector not queued');
+      }
+    });
     if (result.isNewMember) {
       // Tool conversion (CLAUDE.md §1.7): link this sign-up to today's anonymous tool runs from the same hashed address.
       after(async () => {
