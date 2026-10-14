@@ -9,6 +9,7 @@ import { ActionForm } from '@/components/forms/ActionForm';
 import { adminCopy } from '@/copy/admin';
 import { formatUtc, previewJson } from '@/lib/format';
 import { overrideSettingAction } from '@/server/actions/admin';
+import { requireAdminPage } from '@/server/guards';
 
 type Props = { params: Promise<{ key: string }> };
 
@@ -18,6 +19,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 }
 
 export default async function AdminSettingPage({ params }: Props) {
+  await requireAdminPage();
   const copy = adminCopy.settings.detail;
   const key = decodeURIComponent((await params).key);
   const setting = (await listSettings()).find((row) => row.key === key);

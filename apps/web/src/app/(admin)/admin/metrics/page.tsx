@@ -4,6 +4,7 @@ import type { Metadata } from 'next';
 
 import { DataTable } from '@/components/admin/DataTable';
 import { adminCopy } from '@/copy/admin';
+import { requireAdminPage } from '@/server/guards';
 
 export function generateMetadata(): Metadata {
   return { title: adminCopy.metrics.metaTitle, robots: { index: false } };
@@ -14,6 +15,7 @@ const sectionTitle = 'type-h3 mt-8 mb-3';
 const percent = (share: number) => `${(share * 100).toFixed(1)}%`;
 
 export default async function AdminMetricsPage() {
+  await requireAdminPage();
   const metrics: ToolMetrics = await getToolMetrics();
   const { conversion } = metrics;
 

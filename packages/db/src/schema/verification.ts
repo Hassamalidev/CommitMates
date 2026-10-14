@@ -1,5 +1,5 @@
 import { sql } from 'drizzle-orm';
-import { index, pgTable, smallint, text, uniqueIndex, uuid } from 'drizzle-orm/pg-core';
+import { char, index, pgEnum, pgTable, smallint, text, uniqueIndex, uuid } from 'drizzle-orm/pg-core';
 
 import { citext, createdAt, timestamptz, updatedAt } from './columns';
 import { users } from './identity';
@@ -34,5 +34,38 @@ export const emailVerifications = pgTable(
     uniqueIndex('email_verifications_pending_user_key').on(table.userId).where(sql`${table.verifiedAt} is null`),
     index('email_verifications_user_idx').on(table.userId),
     index('email_verifications_university_idx').on(table.universityId),
+  ],
+).enableRLS();
+
+export const universityRequestStatus = pgEnum('university_request_status', ['pending', 'approved', 'rejected']);
+
+/**
+ * A member asks for a domain the university list does not have (CLAUDE.md §7.2, §8 F10 step 6).
+ * Reviewed by an admin, or by a moderator of the university the domain is added to.
+ */
+export const universityRequests = pgTable(
+  'university_requests',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    userId: uuid('user_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
+    domain: citext('domain').notNull(),
+    proposedName: text('proposed_name').notNull(),
+    countryCode: char('country_code', { length: 2 }).notNull(),
+    status: universityRequestStatus('status').notNull().default('pending'),
+    reviewedBy: uuid('reviewed_by').references(() => users.id, { onDelete: 'set null' }),
+    reviewedAt: timestamptz('reviewed_at'),
+    /** The university the domain was added to, once approved. */
+    universityId: uuid('university_id').references(() => universities.id, { onDelete: 'set null' }),
+    note: text('note'),
+    createdAt: createdAt(),
+    updatedAt: updatedAt(),
+  },
+  (table) => [
+    // One open request per member and domain.
+    uniqueIndex('university_requests_pending_key').on(table.userId, table.domain).where(sql`${table.status} = 'pending'`),
+    index('university_requests_status_idx').on(table.status, table.createdAt),
+    index('university_requests_user_idx').on(table.userId),
   ],
 ).enableRLS();

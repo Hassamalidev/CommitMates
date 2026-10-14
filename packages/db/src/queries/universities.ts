@@ -57,3 +57,19 @@ export async function getUniversity(id: string, db: DbOrTx = getDb()): Promise<U
     .where(eq(universities.id, id));
   return row ?? null;
 }
+
+/** One university by its slug, for forms where a reviewer types it. */
+export async function getUniversityBySlug(slug: string, db: DbOrTx = getDb()): Promise<UniversitySummary | null> {
+  const [row] = await db
+    .select({
+      id: universities.id,
+      name: universities.name,
+      slug: universities.slug,
+      country: universities.country,
+      countryCode: universities.countryCode,
+      memberCount: universities.memberCount,
+    })
+    .from(universities)
+    .where(eq(universities.slug, slug.trim().toLowerCase()));
+  return row ?? null;
+}

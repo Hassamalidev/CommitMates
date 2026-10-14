@@ -4,7 +4,7 @@ import { expectNoSeriousA11yViolations } from './helpers/axe';
 import { grantAdmin, withAppDatabase } from './helpers/db';
 import { signInTestMember } from './helpers/session';
 
-const ADMIN_PATHS = ['/admin/health', '/admin/jobs', '/admin/settings', '/admin/settings/gap.maxGaps', '/admin/metrics'];
+const ADMIN_PATHS = ['/admin/health', '/admin/jobs', '/admin/settings', '/admin/settings/gap.maxGaps', '/admin/metrics', '/admin/universities'];
 
 // These tests change shared rows (a schedule, a setting), so they must not interleave.
 // Tests tagged with SHARED_STATE run in the desktop project only (see playwright.config.ts):

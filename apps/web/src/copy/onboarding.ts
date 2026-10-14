@@ -14,6 +14,21 @@ export const onboardingCopy = {
   },
   unknown: (domain: string) =>
     `We don't recognize ${domain} as a university domain yet. Check the spelling, or try your university's main email address.`,
+  request: {
+    title: 'Request your university',
+    line: 'Tell us which university uses this domain. A moderator or admin checks it, then you can verify by email.',
+    name: 'University name',
+    country: 'Country',
+    countryPlaceholder: 'Choose a country',
+    submit: 'Send request',
+    sent: 'Thanks. We will let you know once it is reviewed.',
+    status: {
+      pending: (domain: string) => `Your request for ${domain} is waiting for review.`,
+      approved: (domain: string) => `Your request for ${domain} was approved. Verify with your university email now.`,
+      rejected: (domain: string) => `Your request for ${domain} was not approved.`,
+    },
+    note: (note: string) => `Reviewer's note: ${note}`,
+  },
   code: {
     title: 'Enter your code',
     sent: (university: string) => `We sent a 6-digit code for ${university}. It can take a minute to arrive.`,

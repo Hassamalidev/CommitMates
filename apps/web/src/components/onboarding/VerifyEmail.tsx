@@ -4,19 +4,23 @@ import { Button, Card, Input } from '@commitmates/ui';
 import { useActionState, useState } from 'react';
 
 import { onboardingCopy } from '@/copy/onboarding';
+
+import { RequestUniversity } from './RequestUniversity';
 import type { ActionResult } from '@/server/action';
 import { confirmCodeAction, startVerificationAction, type StartResult } from '@/server/actions/verification';
 
 export type VerifyEmailProps = {
   /** An open verification from an earlier visit: the member goes straight to the code. */
   pending: { email: string; universityName: string } | null;
+  /** For "Request my university" when the domain is unknown. */
+  countries: readonly { code: string; name: string }[];
 };
 
 const fieldError = (result: ActionResult<unknown> | null, name: string) =>
   result && !result.ok && result.error.field === name ? result.error.message : undefined;
 
 /** The email-then-code verification steps (CLAUDE.md §8 F10 steps 2–4). */
-export function VerifyEmail({ pending }: VerifyEmailProps) {
+export function VerifyEmail({ pending, countries }: VerifyEmailProps) {
   const [startResult, startAction, starting] = useActionState(startVerificationAction, null);
   const [confirmResult, confirmAction, confirming] = useActionState(confirmCodeAction, null);
   const [email, setEmail] = useState(pending?.email ?? '');
@@ -141,6 +145,7 @@ export function VerifyEmail({ pending }: VerifyEmailProps) {
           {started?.status === 'choose' ? copy.choose.submit : copy.email.submit}
         </Button>
       </form>
+      {started?.status === 'unknown' ? <RequestUniversity key={started.domain} domain={started.domain} countries={countries} /> : null}
     </Card>
   );
 }

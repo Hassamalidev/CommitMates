@@ -25,6 +25,11 @@ export default defineConfig({
   testDir: './e2e',
   testMatch: '**/*.spec.ts',
   fullyParallel: true,
+  // Flows that sign in, render server pages and run Server Actions share one server and one Postgres
+  // across parallel workers; under that load a 30 s default is too tight for multi-step tests.
+  timeout: 60_000,
+  // Tool results arrive through a job and an event stream; allow them more than 5 s under the same load.
+  expect: { timeout: 10_000 },
   forbidOnly: true,
   retries: isCi ? 1 : 0,
   reporter: isCi ? [['github'], ['html', { open: 'never' }]] : [['list']],

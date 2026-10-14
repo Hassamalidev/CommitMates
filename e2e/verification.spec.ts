@@ -29,6 +29,9 @@ async function latestEmailTo(address: string): Promise<string> {
 }
 
 test.describe('university verification (e2e flow 4)', () => {
+  // Several Server Actions and an email round trip: more than the default 30 s under load.
+  test.describe.configure({ timeout: 90_000 });
+
   test('a new member verifies with a university email code and reaches home', async ({ page, context, baseURL }) => {
     const suffix = randomBytes(4).toString('hex');
     const domain = `e2e-${suffix}.edu`;

@@ -10,6 +10,9 @@ type StartAction = (previous: unknown, formData: FormData) => Promise<ActionResu
 const startVerificationAction = vi.fn<StartAction>();
 const confirmCodeAction = vi.fn<(previous: unknown, formData: FormData) => Promise<ActionResult<null>>>();
 vi.mock('@/server/actions/verification', () => ({ startVerificationAction, confirmCodeAction }));
+const requestUniversityAction = vi.fn<(previous: unknown, formData: FormData) => Promise<ActionResult<null>>>();
+vi.mock('@/server/actions/universities', () => ({ requestUniversityAction }));
+const countries = [{ code: 'TL', name: 'Testland' }];
 
 const { VerifyEmail } = await import('./VerifyEmail');
 
@@ -30,7 +33,7 @@ describe('VerifyEmail', () => {
       ok: true,
       data: { status: 'choose', universities: [{ id: 'a', name: 'Campus One' }, { id: 'b', name: 'Campus Two' }] },
     });
-    render(<VerifyEmail pending={null} />);
+    render(<VerifyEmail pending={null} countries={countries} />);
     submitEmail('ada@shared.edu');
     await waitFor(() => {
       expect(screen.getByRole('group', { name: /Several universities use this email domain/ })).toBeTruthy();
@@ -51,12 +54,25 @@ describe('VerifyEmail', () => {
 
   it('explains an unknown domain and keeps the email step', async () => {
     startVerificationAction.mockResolvedValueOnce({ ok: true, data: { status: 'unknown', domain: 'nowhere.edu' } });
-    render(<VerifyEmail pending={null} />);
+    render(<VerifyEmail pending={null} countries={countries} />);
     submitEmail('ada@nowhere.edu');
     await waitFor(() => {
       expect(screen.getByText(/We don't recognize nowhere\.edu as a university domain yet/)).toBeTruthy();
     });
     expect(screen.getByLabelText('University email')).toBeTruthy();
+
+    // The member can ask for the university to be added.
+    requestUniversityAction.mockResolvedValueOnce({ ok: true, data: null });
+    fireEvent.change(screen.getByLabelText('University name'), { target: { value: 'Nowhere College' } });
+    fireEvent.change(screen.getByLabelText('Country'), { target: { value: 'TL' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Send request' }));
+    await waitFor(() => {
+      expect(screen.getByText('Thanks. We will let you know once it is reviewed.')).toBeTruthy();
+    });
+    const sent: FormData | undefined = requestUniversityAction.mock.calls[0]?.[1];
+    expect(sent?.get('domain')).toBe('nowhere.edu');
+    expect(sent?.get('countryCode')).toBe('TL');
+    expect(await findA11yViolations(document.body)).toEqual([]);
   });
 
   it('shows an email error inline', async () => {
@@ -64,7 +80,7 @@ describe('VerifyEmail', () => {
       ok: false,
       error: { code: 'verify.disposable', message: 'Throwaway email addresses cannot verify a university.', field: 'email' },
     });
-    render(<VerifyEmail pending={null} />);
+    render(<VerifyEmail pending={null} countries={countries} />);
     submitEmail('ada@mailinator.com');
     await waitFor(() => {
       expect(screen.getByLabelText('University email').getAttribute('aria-invalid')).toBe('true');
@@ -72,7 +88,7 @@ describe('VerifyEmail', () => {
   });
 
   it('resumes at the code step, and can switch to another email', () => {
-    render(<VerifyEmail pending={{ email: 'ada@uni.edu', universityName: 'Uni' }} />);
+    render(<VerifyEmail pending={{ email: 'ada@uni.edu', universityName: 'Uni' }} countries={countries} />);
     expect(screen.getByText('Your code for Uni is on its way or already in your inbox.')).toBeTruthy();
     expect(screen.getByLabelText('Verification code')).toBeTruthy();
     fireEvent.click(screen.getByRole('button', { name: 'Use a different email' }));

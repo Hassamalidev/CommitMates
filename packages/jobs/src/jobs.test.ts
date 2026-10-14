@@ -144,7 +144,9 @@ describe('runTick errors', () => {
   it('retries retryable errors with exponential backoff and jitter', async () => {
     handler('flaky', () => Promise.reject(new ExternalServiceError('upstream.down', 'GitHub is having trouble.')));
     const job = await enqueue('flaky', { n: 1 });
-    const now = new Date('2026-10-14T10:00:00.000Z');
+    // Just ahead of the real clock: the job was queued at the database's now(), and the claim
+    // only takes jobs whose run_at has passed. A fixed date would stop working once it is past.
+    const now = new Date(Date.now() + 60_000);
 
     await runTick({ budgetMs: BUDGET_MS, now: () => now, random: () => 0.5 });
     let row = await jobRow(job.id);

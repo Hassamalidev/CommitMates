@@ -2,7 +2,7 @@ import type { AlertKey } from '@commitmates/core';
 
 export const adminCopy = {
   navLabel: 'Admin',
-  nav: { health: 'Health', jobs: 'Jobs', settings: 'Settings', metrics: 'Metrics' },
+  nav: { health: 'Health', jobs: 'Jobs', settings: 'Settings', metrics: 'Metrics', universities: 'Universities' },
   none: 'None',
   never: 'Never',
   alerts: {
@@ -76,6 +76,39 @@ export const adminCopy = {
     columns: { type: 'Type', attempts: 'Attempts', runAt: 'Run at (UTC)', updated: 'Updated (UTC)', error: 'Last error', action: 'Action' },
     retry: 'Retry',
     retried: 'Queued again.',
+  },
+  universities: {
+    metaTitle: 'Universities',
+    title: 'Universities',
+    intro: 'Requests from members whose university email domain is not in the list yet.',
+    moderatorIntro: 'You review requests from the countries of the universities you moderate, and can add a domain to your own university.',
+    requests: {
+      title: 'Open requests',
+      empty: 'No open requests.',
+      columns: { domain: 'Domain', name: 'Proposed name', country: 'Country', by: 'Requested by', when: 'Requested (UTC)', review: 'Review' },
+      create: 'Create university',
+      createName: 'University name',
+      createCountry: 'Country code',
+      attach: 'Add domain',
+      attachSlug: 'University slug',
+      attachUniversity: 'University',
+      reject: 'Reject',
+      rejectNote: 'Note to the requester (optional)',
+      done: 'Done.',
+    },
+    moderators: {
+      title: 'Moderators',
+      intro: 'Moderators approve domains for their university and review reports about its members. They must be verified members of it.',
+      empty: 'No moderators yet.',
+      columns: { login: 'Member', university: 'University', since: 'Since (UTC)', action: 'Action' },
+      login: 'GitHub login',
+      university: 'University slug',
+      grant: 'Make moderator',
+      granted: 'Granted.',
+      revoke: 'Remove',
+      revoked: 'Removed.',
+    },
+    unknownUniversity: 'No university has that slug.',
   },
   metrics: {
     metaTitle: 'Metrics',

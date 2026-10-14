@@ -5,6 +5,7 @@ import type { Metadata } from 'next';
 import { DataTable } from '@/components/admin/DataTable';
 import { adminCopy } from '@/copy/admin';
 import { formatUtc } from '@/lib/format';
+import { requireAdminPage } from '@/server/guards';
 
 export function generateMetadata(): Metadata {
   return { title: adminCopy.health.metaTitle, robots: { index: false } };
@@ -13,6 +14,7 @@ export function generateMetadata(): Metadata {
 const sectionTitle = 'type-h3 mt-8 mb-3';
 
 export default async function AdminHealthPage() {
+  await requireAdminPage();
   const health = await getHealth();
   const copy = adminCopy.health;
   const percent = Math.min(100, (health.database.sizeMb / Math.max(health.database.budgetMb, 1)) * 100);

@@ -86,4 +86,15 @@ export { matchEmailToUniversity, type EmailUniversityCheck } from './universitie
 export { EmailQuotaError, deliverEmail, nextUtcMidnight, sendEmailPayloadSchema, utcDay, type SendEmailPayload } from './notifications/email';
 export { confirmEmailCode, startEmailVerification } from './verification/service';
 export { CODE_DIGITS, confirmCodeSchema, startVerificationSchema, type StartVerificationResult } from './verification/schemas';
-export { getPendingVerification, getUniversity, type PendingVerification, type UniversitySummary } from '@commitmates/db';
+export { getPendingVerification, getUniversity, getUniversityBySlug, type PendingVerification, type UniversitySummary } from '@commitmates/db';
+export {
+  changeModerator,
+  listModeratorGrants,
+  listReviewableRequests,
+  requestUniversity,
+  reviewRequest,
+  moderatorChangeSchema,
+  requestReviewSchema,
+  universityRequestSchema,
+} from './universities/requests';
+export { latestUniversityRequest, listCountries, type Country, type ModeratorRow, type PendingRequest } from '@commitmates/db';

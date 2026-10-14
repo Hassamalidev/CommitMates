@@ -1,4 +1,4 @@
-import { getPendingVerification, getUniversity } from '@commitmates/core';
+import { getPendingVerification, getUniversity, latestUniversityRequest, listCountries } from '@commitmates/core';
 import { Card, buttonStyles } from '@commitmates/ui';
 import type { Metadata } from 'next';
 import Link from 'next/link';
@@ -16,9 +16,11 @@ export default async function OnboardingPage() {
   const member = await getCurrentMember();
   if (!member) redirect('/auth/sign-in?next=/onboarding');
   const copy = onboardingCopy;
-  const [university, pending] = await Promise.all([
+  const [university, pending, request, countries] = await Promise.all([
     member.verified && member.universityId ? getUniversity(member.universityId) : null,
     getPendingVerification(member.id),
+    latestUniversityRequest(member.id),
+    listCountries(),
   ]);
 
   return (
@@ -35,9 +37,16 @@ export default async function OnboardingPage() {
           </Link>
         </Card>
       ) : null}
+      {request && !university ? (
+        <div role="status" className="type-body rounded-control border border-line bg-surface-2 p-3">
+          <p>{copy.request.status[request.status](request.domain)}</p>
+          {request.note ? <p className="type-small mt-1 text-fg-muted">{copy.request.note(request.note)}</p> : null}
+        </div>
+      ) : null}
       {/* A verified member may verify again at another university. */}
       <VerifyEmail
         pending={pending?.email && pending.universityName ? { email: pending.email, universityName: pending.universityName } : null}
+        countries={countries}
       />
     </div>
   );

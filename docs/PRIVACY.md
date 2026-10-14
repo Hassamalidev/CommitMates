@@ -58,6 +58,10 @@ Admin and university-moderator grants with who granted them. Deleted by cascade 
 
 A member's university email verification: the address, its domain, the university, a SHA-256 hash of the code (peppered; the code itself is never stored or logged), its expiry, wrong-guess and daily-send counters. The address is kept only while verification is pending; on success it is set to null, together with the code hash, and only the domain remains. Deleted by cascade from `users`.
 
+### `university_requests` (class A)
+
+A member's request to add a university domain: the domain, the proposed name and country, its review status, the reviewer and an optional note to the member. No email address is kept. Deleted by cascade from `users`; a reviewer who deletes their account leaves `reviewed_by` empty.
+
 ### `notifications`, `notification_prefs` (class A)
 
 In-app notifications and the member's email preferences. Deleted by cascade from `users`.

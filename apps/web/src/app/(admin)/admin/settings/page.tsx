@@ -6,6 +6,7 @@ import Link from 'next/link';
 import { DataTable } from '@/components/admin/DataTable';
 import { adminCopy } from '@/copy/admin';
 import { previewJson } from '@/lib/format';
+import { requireAdminPage } from '@/server/guards';
 
 export function generateMetadata(): Metadata {
   return { title: adminCopy.settings.metaTitle, robots: { index: false } };
@@ -15,6 +16,7 @@ export function generateMetadata(): Metadata {
 const MAX_FILTER_CHARS = 80;
 
 export default async function AdminSettingsPage({ searchParams }: { searchParams: Promise<{ q?: string | string[] }> }) {
+  await requireAdminPage();
   const copy = adminCopy.settings;
   const { q } = await searchParams;
   const filter = (typeof q === 'string' ? q : '').trim().toLowerCase().slice(0, MAX_FILTER_CHARS);
