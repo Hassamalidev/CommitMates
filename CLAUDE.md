@@ -2984,12 +2984,12 @@ Branch `phase/2-day-one-tools`. Goal: all eight public tools working on live dat
 - [x] **P2-T08 Share images.** Spec: §9.7.
   - `/api/og/dev-card` for members; share buttons that appear only when allowed.
   - Done when: images render for members and return 404 for non-members.
-- [ ] **P2-T09 Compatibility Check.** Spec: §8 F2.
+- [x] **P2-T09 Compatibility Check.** Spec: §8 F2.
   - Components, weights, bands, explanations, `compat_check` job, page, share rules, OG image.
   - Done when: F2's tests and e2e flow 3 pass.
   - Split into subtasks (§0.5):
   - [x] **P2-T09a Compatibility engine.** Similarity measures, the four components, score, bands and explanations, starred repositories, the `compat_check` job.
-  - [ ] **P2-T09b Compatibility page and sharing.** `/tools/compat`, share rules, the compat share image, e2e flow 3.
+  - [x] **P2-T09b Compatibility page and sharing.** `/tools/compat`, share rules, the compat share image, e2e flow 3.
 - [ ] **P2-T10 Secret rules and scanner.** Spec: §6.7, §8 F3 "Secret scan".
   - `sync_gitleaks` into `secret_rules` (RE2 compile, skipped count), scanner over repo trees with caps.
   - Done when: fixtures with planted fake secrets are found; stored findings never contain the value.
@@ -3190,6 +3190,7 @@ Branch `phase/7-launch`. Goal: secure, fast, accessible, documented, deployed.
 
 Newest first, one line per completed task or subtask: `YYYY-MM-DD — <task id> — <what was done>`. A `BLOCKED:` line, when present, is always the first line (§13). Spec fixes made under §0.9 are logged here too.
 
+- 2026-10-14 — P2-T09b — Compatibility page and sharing (P2-T09 complete): /tools/compat with two username fields (the first prefilled for members), inline field errors, companion progress, the two companions facing each other, a ScoreDial that counts up once (reduced motion shows the final value), the band from settings, four component bars with what each means or 'Not enough data', and the reasons in plain words (shared hours shown in the viewer's own time). Results are noindex; a share link and image exist only when both people are public members, or the viewer is one of them and the other is a public member (the image needs both public, since crawlers fetch it). Visitors get a sign-in invitation that returns to the same comparison. New ScoreDial in packages/ui. e2e flow 3 passes.
 - 2026-10-14 — P2-T09a — Compatibility engine (P2-T09 split in two): cosine, Jaccard and histogram intersection; the four components with null where one side has nothing to compare, score re-normalized over the components that exist, bands from settings, explanations from real shared signals (shared tags, shared stars, longest shared active window in UTC, one strength each); starred-repository reader (newest first, capped by matching.starCap); compat_check job reusing cached Dev Cards, building and caching a missing one, continuing only after real work so a short budget cannot loop. The Dev Card now also stores its UTC hour histogram and its owned-repo topics, which the comparison needs; older cached cards fail validation and are rebuilt. Profile errors name the person and the field.
 - 2026-10-14 — P2-T08 — Share images: /api/og/dev-card renders a 1200×630 PNG with next/og (companion at 240px, name, three stats, site name; colors mirror the dark tokens, checked by a test; Pixelify Sans and Inter from @fontsource WOFF files, OFL-1.1) only for active members whose profile is public, and 404 for everyone else, including non-members with a cached result; cached for 10 minutes so a profile made private stops being shared soon. Public profiles get og:image and Twitter card metadata and a Share button (share sheet, else copy link); private profiles and visitor results have none. Tested in unit tests and e2e.
 - 2026-10-14 — P2-T07d — Dev Card pages (P2-T07 complete): /tools/dev-card with the shared template, a username form, inline validation errors, companion progress and the card (labels with evidence, language bar, hour rhythm with timezone source and OpenStreetMap credit, 90-day heatmap, numbers, top skills); a ?login= address builds that card at once and is noindex; /u/[login] for members only, following visibility (self always; public to anyone and indexable; university to verified members of the same university; country treated as the same university until universities exist in Phase 3; hidden and suspended accounts look like missing pages); no share controls on visitor results. Dev Card listed on the landing page. e2e flow 2 passes (62 e2e tests green, desktop and 360px).

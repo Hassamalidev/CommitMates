@@ -3,10 +3,18 @@ import { fetchStarredRepos, githubFor, type StarredRepo } from '@commitmates/git
 import { PRIORITY, type JobContext, type JobHandler } from '@commitmates/jobs';
 
 import { getCachedDevCard, identityFor, readProfile, storeDevCard } from '../persona/jobs';
+import { getCachedResult } from '../tools/cached';
 import type { DevCard } from '../persona/schemas';
 import { hourBucket, storeToolResult, type ToolDefinition } from '../tools/service';
 
-import { compatInputSchema, compatPayloadSchema, compatResultSchema, type CompatInput, type CompatPayload } from './schemas';
+import {
+  compatInputSchema,
+  compatPayloadSchema,
+  compatResultSchema,
+  type CompatInput,
+  type CompatPayload,
+  type CompatResult,
+} from './schemas';
 import { buildCompat } from './service';
 
 /** Time kept in hand before the deadline: reading one more profile must not start later than this. */
@@ -31,6 +39,12 @@ export const compatTool: ToolDefinition<CompatInput> = {
   payload: (input, context) => ({ ...input, ...(context.userId !== undefined ? { requestedBy: context.userId } : {}) }),
   ttlSetting: 'cache.compatTtlHours',
 };
+
+/** A cached comparison of two people, if a fresh one in the current shape exists. */
+export async function getCachedCompat(a: string, b: string, now: Date = new Date()): Promise<CompatResult | null> {
+  const parsed = compatResultSchema.safeParse(await getCachedResult(compatTool, { a, b }, now));
+  return parsed.success ? parsed.data : null;
+}
 
 /** A person's Dev Card: the cached one when it is fresh and complete, else read and stored now. */
 async function cardFor(

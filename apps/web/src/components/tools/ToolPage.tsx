@@ -15,6 +15,8 @@ export type ToolPageProps = {
   children: ReactNode;
   /** Visitors are offered sign-in to save and share; members are not. */
   signedIn: boolean;
+  /** Off when the tool shows its own sign-in offer. */
+  saveOffer?: boolean;
 };
 
 /** Related tools: every live tool except the one on screen, in landing-page order. */
@@ -26,7 +28,7 @@ export function relatedTools(current: ToolSlug, available: ReadonlySet<ToolSlug>
  * The shared layout of every day-one tool (CLAUDE.md §9.6): heading, the tool itself,
  * a sign-in offer for visitors, then other tools to try.
  */
-export function ToolPage({ slug, eyebrow, title, line, children, signedIn }: ToolPageProps) {
+export function ToolPage({ slug, eyebrow, title, line, children, signedIn, saveOffer = true }: ToolPageProps) {
   const related = relatedTools(slug);
   const { page } = toolsCopy;
 
@@ -40,7 +42,7 @@ export function ToolPage({ slug, eyebrow, title, line, children, signedIn }: Too
 
       {children}
 
-      {signedIn ? null : (
+      {signedIn || !saveOffer ? null : (
         <Card title={page.saveTitle} className="flex flex-col items-start gap-3">
           <p className="type-body text-fg-muted">{page.saveLine}</p>
           <a

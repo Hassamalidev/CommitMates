@@ -2,6 +2,7 @@ import { readFileSync } from 'node:fs';
 
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
+import { sampleCompat } from '@/__fixtures__/compat';
 import { sampleDevCard } from '@/__fixtures__/dev-card';
 import { OG_COLORS } from '@/lib/og-theme';
 
@@ -9,11 +10,15 @@ type Owner = { userId: string; login: string; githubId: number; visibility: stri
 
 const getProfileOwner = vi.fn<(login: string) => Promise<Owner | null>>();
 const getCachedDevCard = vi.fn<(login: string) => Promise<unknown>>();
+const compatShareAllowed = vi.fn<(a: string, b: string, viewer: string | null) => Promise<boolean>>();
+const getCachedCompat = vi.fn<(a: string, b: string) => Promise<unknown>>();
 vi.mock('@commitmates/core', async () => {
   const { z } = await import('zod');
   return {
     getProfileOwner,
     getCachedDevCard,
+    compatShareAllowed,
+    getCachedCompat,
     isPublicProfile: (owner: Owner) => owner.active && owner.visibility === 'public',
     loginSchema: z.string().regex(/^[A-Za-z0-9](?:[A-Za-z0-9-]{0,37}[A-Za-z0-9])?$/),
   };
@@ -42,6 +47,8 @@ const PNG_SIGNATURE = [0x89, 0x50, 0x4e, 0x47];
 beforeEach(() => {
   getProfileOwner.mockReset();
   getCachedDevCard.mockReset();
+  compatShareAllowed.mockReset();
+  getCachedCompat.mockReset();
 });
 
 describe('GET /api/og/[kind]', () => {
@@ -87,6 +94,34 @@ describe('GET /api/og/[kind]', () => {
     const response = await call('dev-card', '?login=fixture-user-1');
     expect(response.status).toBe(200);
     expect(response.headers.get('content-type')).toBe('image/png');
+  });
+});
+
+describe('GET /api/og/compat', () => {
+  it('exists only when anyone may share the comparison', async () => {
+    compatShareAllowed.mockResolvedValue(false);
+    getCachedCompat.mockResolvedValue(sampleCompat);
+    expect((await call('compat', '?a=alice-dev&b=bob-dev')).status).toBe(404);
+    // Crawlers fetch images, so the viewer is never known here.
+    expect(compatShareAllowed).toHaveBeenCalledWith('alice-dev', 'bob-dev', null);
+    expect((await call('compat', '?a=alice-dev')).status).toBe(404);
+    expect((await call('compat', '?a=alice-dev&b=not%20valid')).status).toBe(404);
+  });
+
+  it('needs a stored comparison', async () => {
+    compatShareAllowed.mockResolvedValue(true);
+    getCachedCompat.mockResolvedValue(null);
+    expect((await call('compat', '?a=alice-dev&b=bob-dev')).status).toBe(404);
+  });
+
+  it('renders a PNG for two public members', async () => {
+    compatShareAllowed.mockResolvedValue(true);
+    getCachedCompat.mockResolvedValue(sampleCompat);
+    const response = await call('compat', '?a=alice-dev&b=bob-dev');
+    expect(response.status).toBe(200);
+    expect(response.headers.get('content-type')).toBe('image/png');
+    const bytes = new Uint8Array(await response.arrayBuffer());
+    expect([...bytes.slice(0, 4)]).toEqual(PNG_SIGNATURE);
   });
 });
 
