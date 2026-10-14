@@ -68,6 +68,6 @@ export const moderatorAction: FormAction = async (_previous, formData) =>
       universityId: await universityIdFrom(formData),
       grant: field(formData, 'grant') === 'true',
     });
-    revalidatePath('/admin/universities');
+    revalidatePath('/admin/roles');
     return null;
   })();

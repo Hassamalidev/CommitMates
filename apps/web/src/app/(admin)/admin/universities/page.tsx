@@ -1,11 +1,4 @@
-import {
-  getUniversity,
-  hasRole,
-  listModeratorGrants,
-  listReviewableRequests,
-  type ModeratorRow,
-  type PendingRequest,
-} from '@commitmates/core';
+import { getUniversity, hasRole, listReviewableRequests, type PendingRequest } from '@commitmates/core';
 import { Input, Select } from '@commitmates/ui';
 import type { Metadata } from 'next';
 import { notFound } from 'next/navigation';
@@ -14,7 +7,7 @@ import { DataTable } from '@/components/admin/DataTable';
 import { ActionForm } from '@/components/forms/ActionForm';
 import { adminCopy } from '@/copy/admin';
 import { formatUtc } from '@/lib/format';
-import { moderatorAction, reviewRequestAction } from '@/server/actions/universities';
+import { reviewRequestAction } from '@/server/actions/universities';
 import { getCurrentMember } from '@/server/auth';
 
 export function generateMetadata(): Metadata {
@@ -25,8 +18,8 @@ const copy = adminCopy.universities;
 const sectionTitle = 'type-h3 mt-8 mb-3';
 
 /**
- * University requests and moderators (CLAUDE.md §8 F10 step 6, §5.11). Admins see every open
- * request and manage moderators; a moderator sees requests from their universities' countries.
+ * University requests (CLAUDE.md §8 F10 step 6, §5.11). Admins see every open request; a moderator
+ * sees requests from their universities' countries. Moderators themselves are managed on Roles.
  */
 export default async function AdminUniversitiesPage() {
   const member = await getCurrentMember();
@@ -39,10 +32,7 @@ export default async function AdminUniversitiesPage() {
       ),
     )
   ).flatMap((university) => (university ? [university] : []));
-  const [requests, moderators] = await Promise.all([
-    listReviewableRequests(member),
-    admin ? listModeratorGrants() : Promise.resolve<ModeratorRow[]>([]),
-  ]);
+  const requests = await listReviewableRequests(member);
 
   const review = (request: PendingRequest) => (
     <div className="flex min-w-72 flex-col gap-3">
@@ -120,50 +110,6 @@ export default async function AdminUniversitiesPage() {
           { header: copy.requests.columns.review, cell: review },
         ]}
       />
-
-      {admin ? (
-        <>
-          <h2 className={sectionTitle}>{copy.moderators.title}</h2>
-          <p className="type-small mb-3 max-w-reading text-fg-muted">{copy.moderators.intro}</p>
-          <ActionForm
-            action={moderatorAction}
-            values={{ grant: 'true' }}
-            submitLabel={copy.moderators.grant}
-            successMessage={copy.moderators.granted}
-            variant="primary"
-            className="mb-4 flex max-w-reading flex-col gap-2"
-          >
-            <Input name="login" label={copy.moderators.login} required />
-            <Input name="universitySlug" label={copy.moderators.university} required />
-          </ActionForm>
-          <DataTable
-            caption={copy.moderators.title}
-            empty={copy.moderators.empty}
-            rows={moderators}
-            rowKey={(row) => `${row.userId}:${row.universityId}`}
-            columns={[
-              {
-                header: copy.moderators.columns.login,
-                cell: (row) => (row.login ? `@${row.login}` : adminCopy.none),
-              },
-              { header: copy.moderators.columns.university, cell: (row) => row.universityName },
-              { header: copy.moderators.columns.since, cell: (row) => formatUtc(row.grantedAt) },
-              {
-                header: copy.moderators.columns.action,
-                cell: (row) => (
-                  <ActionForm
-                    action={moderatorAction}
-                    values={{ login: row.login ?? '', universityId: row.universityId, grant: 'false' }}
-                    submitLabel={`${copy.moderators.revoke} @${row.login ?? ''}`}
-                    successMessage={copy.moderators.revoked}
-                    variant="danger"
-                  />
-                ),
-              },
-            ]}
-          />
-        </>
-      ) : null}
     </>
   );
 }

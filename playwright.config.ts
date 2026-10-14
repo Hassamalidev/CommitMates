@@ -32,6 +32,9 @@ export default defineConfig({
   expect: { timeout: 10_000 },
   forbidOnly: true,
   retries: isCi ? 1 : 0,
+  // One local `next start` server and one Postgres serve every worker; more than two locally
+  // starve Server Actions on a busy machine. CI keeps Playwright's default.
+  ...(isCi ? {} : { workers: 2 }),
   reporter: isCi ? [['github'], ['html', { open: 'never' }]] : [['list']],
   use: {
     baseURL,

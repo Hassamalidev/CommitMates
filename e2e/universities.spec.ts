@@ -4,6 +4,7 @@ import { expect, test } from '@playwright/test';
 
 import { expectNoSeriousA11yViolations } from './helpers/axe';
 import { grantAdmin, withAppDatabase } from './helpers/db';
+import { prepareMember } from './helpers/members';
 import { signInTestMember } from './helpers/session';
 
 /** Server Action steps write to the database; allow for a loaded machine. */
@@ -108,17 +109,68 @@ test.describe('university requests (F10 step 6)', () => {
       const response = await page.goto('/admin/universities');
       expect(response?.status()).toBe(200);
       await expect(page.getByRole('heading', { level: 1, name: 'Universities' })).toBeVisible();
-      await expect(page.getByRole('navigation', { name: 'Admin' }).getByRole('link')).toHaveText([
-        'Universities',
-      ]);
+      await expect(page.getByRole('navigation', { name: 'Admin' }).getByRole('link')).toHaveText(['Universities', 'Moderation']);
       // No moderator management for moderators.
       await expect(page.getByRole('heading', { name: 'Moderators' })).toHaveCount(0);
-      for (const path of ['/admin/health', '/admin/settings', '/admin/metrics']) {
+      await page.goto('/admin/moderation');
+      await expect(page.getByText(`You moderate Seed University ${suffix}.`)).toBeVisible();
+      await expectNoSeriousA11yViolations(page);
+      for (const path of [
+        '/admin/health',
+        '/admin/settings',
+        '/admin/metrics',
+        '/admin/roles',
+        '/admin/audit',
+      ]) {
         expect((await page.goto(path))?.status(), path).toBe(404);
       }
     } finally {
       await moderator.cleanup();
       await withAppDatabase((sql) => sql`delete from universities where id = ${universityId}`);
+    }
+  });
+});
+
+test.describe('roles and audit (P3-T09)', () => {
+  test.describe.configure({ timeout: 90_000 });
+
+  test('an admin makes a verified member a moderator and finds it in the audit log', async ({
+    browser,
+    page,
+    context,
+    baseURL,
+  }) => {
+    const suffix = randomBytes(4).toString('hex');
+    const universityId = await seedCountryUniversity(suffix);
+    const admin = await signInTestMember(context, baseURL ?? '');
+    await grantAdmin(admin.userId);
+    const otherContext = await browser.newContext();
+    const candidate = await signInTestMember(otherContext, baseURL ?? '');
+    await prepareMember(candidate, { universityId, verifiedDaysAgo: 5, onboarded: true });
+    try {
+      await page.goto('/admin/roles');
+      await expect(page.getByRole('heading', { level: 1, name: 'Roles' })).toBeVisible();
+      await expectNoSeriousA11yViolations(page);
+      await page.getByLabel('GitHub login').nth(1).fill(candidate.login);
+      await page.getByLabel('University slug').fill(`seed-university-${suffix}`);
+      await page.getByRole('button', { name: 'Make moderator' }).click();
+      await expect(page.getByRole('row').filter({ hasText: `@${candidate.login}` })).toContainText(
+        'Moderator',
+        ACTION_TIMEOUT,
+      );
+
+      await page.goto('/admin/audit?action=role.');
+      await expect(page.getByRole('heading', { level: 1, name: 'Audit log' })).toBeVisible();
+      await expect(page.getByRole('row').filter({ hasText: candidate.userId })).toContainText('role.grant');
+      await expectNoSeriousA11yViolations(page);
+    } finally {
+      await otherContext.close();
+      await candidate.cleanup();
+      await admin.cleanup();
+      await withAppDatabase(async (sql) => {
+        await sql`update profiles set university_id = null where university_id = ${universityId}`;
+        await sql`delete from universities where id = ${universityId}`;
+      });
     }
   });
 });

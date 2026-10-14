@@ -9,6 +9,7 @@ export * from './queries/email';
 export * from './queries/gap';
 export * from './queries/github-data';
 export * from './queries/metrics';
+export * from './queries/moderation';
 export * from './queries/onboarding';
 export * from './queries/privacy';
 export * from './queries/persona';

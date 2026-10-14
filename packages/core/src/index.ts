@@ -104,3 +104,5 @@ export { getOnboardingOptions, onboardingDetailsSchema, resolveDepartment, saveO
 export { campusUnlocks, creditInvite, getCampus, inviteFor, recentNotifications, type Campus, type Unlock, type UnlockKey } from './universities/campus';
 export type { NotificationRow, TopicCount } from '@commitmates/db';
 export { DELETE_PHRASE, deletionConfirmation, exportMemberData, prepareAccountDeletion, privacySettingsSchema, updatePrivacySettings } from './privacy/service';
+export { AUDIT_PAGE_SIZE, adminChangeSchema, auditFilterSchema, changeAdmin, listRoles, moderationScope, readAuditLog } from './admin/roles';
+export type { AuditEntryRow, RoleGrant } from '@commitmates/db';
