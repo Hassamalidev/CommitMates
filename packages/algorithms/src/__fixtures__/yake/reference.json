@@ -1,0 +1,148 @@
+{
+  "generatedWith": "yake 0.4.8, dedupFunc levs",
+  "options": {
+    "ngramMax": 3,
+    "top": 10,
+    "dedupThreshold": 0.8
+  },
+  "cases": [
+    {
+      "id": "fyp-idea",
+      "text": "Smart Attendance System Using Face Recognition\nUniversities still take attendance by calling names, which wastes the first minutes of every lecture. This project builds a smart attendance system that recognizes students from a classroom camera. Face recognition runs on a small edge device, so video never leaves the classroom. Teachers see attendance in a web dashboard and can correct mistakes. The system stores face embeddings, not photos, and deletes them when a student graduates. We will compare face recognition accuracy under different lighting conditions.",
+      "reference": [
+        {
+          "keyphrase": "Smart Attendance",
+          "score": 0.08007338992693107
+        },
+        {
+          "keyphrase": "Attendance",
+          "score": 0.08910190862274919
+        },
+        {
+          "keyphrase": "Recognition",
+          "score": 0.13312134100836864
+        },
+        {
+          "keyphrase": "Smart",
+          "score": 0.19365480515191408
+        },
+        {
+          "keyphrase": "classroom",
+          "score": 0.28322648847411674
+        },
+        {
+          "keyphrase": "compare face recognition",
+          "score": 0.3879960968429092
+        },
+        {
+          "keyphrase": "recognition accuracy",
+          "score": 0.3879960968429092
+        },
+        {
+          "keyphrase": "classroom camera",
+          "score": 0.4049892899512287
+        },
+        {
+          "keyphrase": "Universities",
+          "score": 0.41560245832014564
+        },
+        {
+          "keyphrase": "lecture",
+          "score": 0.41560245832014564
+        }
+      ]
+    },
+    {
+      "id": "readme",
+      "text": "Campus Map is an open source web application that helps new students find buildings, lecture halls and cafeterias on a university campus. The campus map works offline and supports indoor navigation.\nFeatures\nSearch for any building by name or department. Indoor navigation shows the shortest route between lecture halls. Accessible routes avoid stairs for wheelchair users. Offline maps are cached in the browser.\nContributing\nPull requests are welcome. Please open an issue first to discuss what you would like to change.",
+      "reference": [
+        {
+          "keyphrase": "source web application",
+          "score": 0.09717763757405148
+        },
+        {
+          "keyphrase": "Campus Map",
+          "score": 0.11751940504286683
+        },
+        {
+          "keyphrase": "Campus",
+          "score": 0.14865730811727712
+        },
+        {
+          "keyphrase": "university campus",
+          "score": 0.15303659937173383
+        },
+        {
+          "keyphrase": "Map",
+          "score": 0.21336415489495242
+        },
+        {
+          "keyphrase": "lecture halls",
+          "score": 0.29149677421598785
+        },
+        {
+          "keyphrase": "source",
+          "score": 0.29760806409240576
+        },
+        {
+          "keyphrase": "application",
+          "score": 0.29760806409240576
+        },
+        {
+          "keyphrase": "students",
+          "score": 0.29760806409240576
+        },
+        {
+          "keyphrase": "cafeterias",
+          "score": 0.29760806409240576
+        }
+      ]
+    },
+    {
+      "id": "abstract",
+      "text": "Group projects are common in computer science education, yet contribution is often uneven. We study version control histories from student teams to measure how work is shared. Commit counts alone are misleading, because generated files and vendored libraries inflate line counts. We propose a contribution report that excludes generated files, credits co-authors, and summarises the distribution of work with the Gini coefficient. In a study of forty student teams, the contribution report helped teaching assistants start conversations about uneven contribution earlier in the semester.",
+      "reference": [
+        {
+          "keyphrase": "science education",
+          "score": 0.039273584568497936
+        },
+        {
+          "keyphrase": "projects are common",
+          "score": 0.05337876510603656
+        },
+        {
+          "keyphrase": "contribution",
+          "score": 0.15477158158801416
+        },
+        {
+          "keyphrase": "education",
+          "score": 0.16787215727710067
+        },
+        {
+          "keyphrase": "student teams",
+          "score": 0.19388087936957255
+        },
+        {
+          "keyphrase": "generated files",
+          "score": 0.19388087936957255
+        },
+        {
+          "keyphrase": "projects",
+          "score": 0.22510854534262714
+        },
+        {
+          "keyphrase": "common",
+          "score": 0.22510854534262714
+        },
+        {
+          "keyphrase": "science",
+          "score": 0.22510854534262714
+        },
+        {
+          "keyphrase": "version control histories",
+          "score": 0.25505330921185193
+        }
+      ]
+    }
+  ]
+}

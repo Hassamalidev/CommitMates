@@ -176,6 +176,20 @@
       "when": 1791956263501,
       "tag": "0024_gap_finder",
       "breakpoints": true
+    },
+    {
+      "idx": 25,
+      "version": "7",
+      "when": 1791959087024,
+      "tag": "0025_stopwords",
+      "breakpoints": true
+    },
+    {
+      "idx": 26,
+      "version": "7",
+      "when": 1791959090059,
+      "tag": "0026_schedule_stopwords",
+      "breakpoints": true
     }
   ]
 }

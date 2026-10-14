@@ -3,6 +3,7 @@ import {
   enrichPackage,
   exploreSource,
   gitleaksSource,
+  stopwordsSource,
   findStalePackages,
   linguistSource,
   runSourceSync,
@@ -23,6 +24,17 @@ export const syncLinguistJob: JobHandler<EmptyPayload> = {
   priority: PRIORITY.MAINTENANCE,
   async run(_payload, ctx) {
     const result = await runSourceSync(linguistSource, { now: ctx.now });
+    return { kind: 'done', resultRef: result };
+  },
+};
+
+/** Weekly: refresh the stopword lists YAKE and BM25 use (CLAUDE.md §8 F9 step 1). */
+export const syncStopwordsJob: JobHandler<EmptyPayload> = {
+  type: 'sync_stopwords',
+  schema: emptyPayload,
+  priority: PRIORITY.MAINTENANCE,
+  async run(_payload, ctx) {
+    const result = await runSourceSync(stopwordsSource, { now: ctx.now });
     return { kind: 'done', resultRef: result };
   },
 };

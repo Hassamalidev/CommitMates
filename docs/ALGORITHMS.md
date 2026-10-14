@@ -219,7 +219,28 @@ All algorithms live in `packages/algorithms` and are pure: no I/O, no clock, no 
 
 ## Information retrieval
 
-No entries yet. YAKE and BM25 arrive in P2-T17; TF-IDF in P4-T02.
+### YAKE keyphrases
+
+- Code: `packages/algorithms/src/ir/yake.ts`
+- Formula (YAKE!, Campos et al. 2020, scoring as in the reference implementation 0.4.8):
+  - word tags: `d` number, `u` unparsable (letters and digits mixed, or more than one punctuation mark), `a` all capitals, `n` capitalized and not first in its sentence, `p` otherwise; words ending in "s" longer than three letters are folded into their singular
+  - a term is a stopword when it is in the language's stopword list or shorter than three characters without punctuation
+  - per term: WCase = max(TF_a, TF_n) / (1 + ln TF); WPos = ln(ln(3 + median sentence index)); WFreq = TF / (mean + σ of non-stopword TFs); WRel = (0.5 + DL/WL · TF/maxTF) + (0.5 + DR/WR · TF/maxTF) over a one-word co-occurrence window (D distinct neighbours, W their counts); WSpread = sentences with the term / sentences; H = WPos·WRel / (WCase + WFreq/WRel + WSpread/WRel)
+  - candidates: n-grams up to `fyp.yake.ngramMax` words within a punctuation-free run, not starting or ending with a stopword, never containing a `u` or `d` word in every occurrence; S = Π H / (TF · (1 + Σ H)), where a stopword inside contributes (2 − p) to the product and −(1 − p) to the sum, p = P(left→stop)·P(stop→right)
+  - lower is better; candidates with normalized Levenshtein similarity above 0.8 to a kept one are dropped; top `fyp.yake.maxKeyphrases`
+- Tokenization differs from the reference (simple rules instead of segtok); see ADR-005.
+- Tests: `packages/algorithms/src/ir/yake.test.ts` against reference outputs in `__fixtures__/yake/reference.json`
+- Spec: CLAUDE.md §8 F9 step 1
+
+### BM25
+
+- Code: `packages/algorithms/src/ir/bm25.ts`
+- Formula: score(q, d) = Σ_t idf(t) · tf·(k1 + 1) / (tf + k1·(1 − b + b·|d|/avgdl)); idf(t) = ln(1 + (N − n(t) + 0.5)/(n(t) + 0.5)); tokens are lowercased words without stopwords
+- Settings: `ir.bm25.k1` (1.2), `ir.bm25.b` (0.75)
+- Tests: `packages/algorithms/src/ir/bm25.test.ts`
+- Spec: CLAUDE.md §8 F9 step 3
+
+TF-IDF arrives in P4-T02.
 
 ## Clustering, graphs and assignment
 

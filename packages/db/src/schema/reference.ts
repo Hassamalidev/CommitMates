@@ -149,3 +149,15 @@ export const taxonomyExpansions = pgTable(
   },
   (table) => [index('taxonomy_expansions_expires_idx').on(table.expiresAt)],
 ).enableRLS();
+
+/**
+ * Stopwords per language from stopwords-iso (CLAUDE.md §8 F9 step 1): one row per ISO 639-1
+ * code, used by YAKE and BM25. No list is written by hand.
+ */
+export const stopwords = pgTable('stopwords', {
+  language: text('language').primaryKey(),
+  words: text('words').array().notNull(),
+  checksum: text('checksum').notNull(),
+  syncedAt: timestamptz('synced_at').notNull(),
+  createdAt: createdAt(),
+}).enableRLS();

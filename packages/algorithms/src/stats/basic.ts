@@ -72,3 +72,8 @@ export function percentileRank(samples: readonly number[], value: number): numbe
   }
   return (below + equal * 0.5) / samples.length;
 }
+
+/** The middle value (the mean of the two middle values for an even count); 0 for an empty list. */
+export function median(values: readonly number[]): number {
+  return percentile(values, 0.5);
+}
