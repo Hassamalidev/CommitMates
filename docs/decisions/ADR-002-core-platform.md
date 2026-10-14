@@ -20,6 +20,7 @@ Phase 1 builds the database layer, the Settings Engine, the job system and the G
 | `@octokit/core`, `@octokit/request-error` | 7 | MIT | GitHub REST and GraphQL transport |
 | msw | 2.15 | MIT | HTTP mocking in tests |
 | yaml | 2.9 | ISC | Parsing Linguist and github/explore data |
+| smol-toml | 1.9 | BSD-3-Clause | Parsing `pyproject.toml`, `Pipfile` and `Cargo.toml` (and gitleaks rules later) |
 | re2js | 2.8 | MIT | RE2 regex engine (pure JavaScript port) for upstream patterns |
 
 ### Octokit without the throttling and retry plugins

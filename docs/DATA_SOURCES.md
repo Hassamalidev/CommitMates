@@ -62,6 +62,27 @@ Implemented so far: GitHub REST and GraphQL, GitHub Linguist, github/explore (be
 - Refresh: weekly, Sundays 04:30 UTC (job `sync_explore`). Topics removed upstream are deleted, but never from a truncated listing.
 - License and attribution: CC BY 4.0, © GitHub, Inc.; credited on `/attribution`.
 
+## Dependency manifests
+
+Not an external source, but the reading side of §6.6: `packages/sources/src/manifests/parsers.ts` turns a manifest file's text into direct dependencies. Pure, never throws, and keeps at most 500 dependencies per file.
+
+| File | Ecosystem | What is read | Development-only when |
+| --- | --- | --- | --- |
+| `package.json` | npm | `dependencies`, `peerDependencies`, `optionalDependencies`, `devDependencies` | In `devDependencies` only |
+| `requirements*.txt` | PyPI | One PEP 508 requirement per line; options, URLs and editable installs are skipped | The file name says dev, test, docs, lint or ci |
+| `pyproject.toml` | PyPI | `[project]`, optional dependencies, PEP 735 groups, Poetry tables | Group is named dev, test, docs, lint, typing, ci or build; any Poetry group |
+| `Pipfile` | PyPI | `[packages]`, `[dev-packages]` | In `[dev-packages]` |
+| `setup.cfg` | PyPI | `install_requires`, `tests_require`, `[options.extras_require]` | Extras and `tests_require` |
+| `pubspec.yaml` | pub.dev | `dependencies`, `dev_dependencies`; SDK dependencies are skipped | In `dev_dependencies` |
+| `Cargo.toml` | crates.io | `dependencies`, `build-dependencies`, `dev-dependencies`, workspace and target tables; renamed crates use `package` | In `dev-dependencies` |
+| `go.mod` | Go | `require` lines and blocks; `// indirect` is skipped | Never |
+| `composer.json` | Packagist | `require`, `require-dev`; `php`, `ext-*`, `lib-*` are skipped | In `require-dev` |
+| `Gemfile` | RubyGems | `gem` lines, with block and inline groups | Group is development, test, doc, lint or ci |
+| `pom.xml` | Maven | `<dependency>` as `group:artifact`; plugin dependencies and property coordinates are skipped | `scope` is `test` |
+| `build.gradle(.kts)` | Maven | String and map coordinates of dependency configurations; version-catalog aliases cannot be resolved | Configuration starts with test, androidTest or debug |
+
+PyPI names are normalized per PEP 503. Fixtures are real manifests from well-known public repositories (`packages/sources/src/__fixtures__/manifests/README.md`).
+
 ## How to add a section
 
 ```markdown
