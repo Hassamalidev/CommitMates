@@ -32,3 +32,13 @@ export { fetchPublicEvents, type ActivityEvent, type ActivityKind } from './quer
 export { fetchFileText, fetchReadme, listRootEntries, type RootEntry } from './queries/contents';
 export { fetchStarredRepos, type StarredRepo } from './queries/starred';
 export { fetchBlobText, fetchTree, type Tree, type TreeEntry } from './queries/git';
+export {
+  fetchCommitFiles,
+  fetchContributorStats,
+  fetchRepository,
+  listCommits,
+  type CommitFile,
+  type CommitSummary,
+  type ContributorStats,
+  type Repository,
+} from './queries/repos';

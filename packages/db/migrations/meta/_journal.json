@@ -155,6 +155,13 @@
       "when": 1791950135767,
       "tag": "0021_recruiter",
       "breakpoints": true
+    },
+    {
+      "idx": 22,
+      "version": "7",
+      "when": 1791951950469,
+      "tag": "0022_fairness_reports",
+      "breakpoints": true
     }
   ]
 }

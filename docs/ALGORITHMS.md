@@ -133,6 +133,24 @@ All algorithms live in `packages/algorithms` and are pure: no I/O, no clock, no 
 - Tests: `packages/algorithms/src/recruiter/recruiter.test.ts`, `packages/core/src/recruiter/recruiter.test.ts`
 - Spec: CLAUDE.md §8 F3
 
+## Group Fairness Report
+
+### People, lines and team metrics
+
+- Code: `packages/algorithms/src/fairness/fairness.ts`; assembly in `packages/core/src/fairness/service.ts`, job `fairness_report` in `jobs.ts`
+- Formula:
+  - people: accounts from `/stats/contributors` (merge and empty commits already excluded by GitHub); people without an account from the latest `fairness.maxCommits` commits, keyed by a hash of their email (the address is never stored)
+  - per-commit detail is read only where it changes the answer: every commit when the repository has excluded paths or no statistics (more than 10,000 commits), otherwise only commits by people without an account and co-authored commits; reading continues across runs
+  - excluded paths: Linguist vendored and documentation rules, plus `.gitattributes` patterns that set `linguist-vendored`, `linguist-generated` or `linguist-documentation`; their lines are subtracted from statistics totals and left out of per-commit totals
+  - each `Co-authored-by` trailer gives the co-author one commit credit and an equal share (1 ÷ (co-authors + 1)) of that commit's lines, taken from the author
+  - Gini `G = Σ_i Σ_j |x_i − x_j| / (2 n² x̄)`; least-share ratio = smallest share ÷ (1 / n); flagged below `fairness.leastShareThreshold`; bots are left out unless included
+  - late share = a person's commits in the final `fairness.lateWindowPct` of the team's active weeks (rounded up) ÷ their commits
+  - identity merge (in the browser): counts, lines and weeks add up into the identity that stays; chains are followed, cycles ignored
+- Settings: `fairness.leastShareThreshold` (0.14), `fairness.lateWindowPct` (0.15), `fairness.maxCommits` (500), `fairness.statsRetryMax` (6), `cache.fairnessTtlHours` (24)
+- Known limits: statistics cover the whole history while per-commit detail covers the latest `fairness.maxCommits` commits, so exclusions and co-author shares apply to that window.
+- Tests: `packages/algorithms/src/fairness/fairness.test.ts`, `packages/core/src/fairness/fairness.test.ts`
+- Spec: CLAUDE.md §8 F4
+
 ## Information retrieval
 
 No entries yet. YAKE and BM25 arrive in P2-T17; TF-IDF in P4-T02.

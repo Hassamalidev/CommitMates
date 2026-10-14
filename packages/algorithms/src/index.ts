@@ -90,3 +90,14 @@ export {
   type RuleResult,
   type ShowcaseRepo,
 } from './recruiter/rules';
+export {
+  gini,
+  lateShares,
+  leastShareRatio,
+  mergeContributors,
+  metricValue,
+  teamMetrics,
+  type Contributor,
+  type FairnessMetric,
+  type TeamMetrics,
+} from './fairness/fairness';

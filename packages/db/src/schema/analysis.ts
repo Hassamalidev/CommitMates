@@ -45,3 +45,20 @@ export const genericMessageCounts = pgTable(
   },
   (table) => [index('generic_message_counts_count_idx').on(table.count)],
 ).enableRLS();
+
+/**
+ * One Group Fairness Report per run, for the "reports per week" metric (CLAUDE.md §1.7, §7.4).
+ * Holds team-level numbers only: no names, accounts or emails of contributors.
+ */
+export const fairnessReports = pgTable(
+  'fairness_reports',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    repoGithubId: bigint('repo_github_id', { mode: 'number' }).notNull(),
+    params: jsonb('params').notNull(),
+    result: jsonb('result').notNull(),
+    computedAt: timestamptz('computed_at').notNull(),
+    createdAt: createdAt(),
+  },
+  (table) => [index('fairness_reports_computed_idx').on(table.computedAt)],
+).enableRLS();
