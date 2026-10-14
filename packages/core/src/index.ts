@@ -60,3 +60,4 @@ export {
   type ProfileViewer,
   type ProfileVisibility,
 } from './profiles/visibility';
+export { getCachedToolResult } from './tools/cached';

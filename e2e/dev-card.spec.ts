@@ -151,8 +151,15 @@ test.describe('Dev Card tool', () => {
 
 test.describe('member profile page', () => {
   test('has no page for someone who never signed up', async ({ page }) => {
-    const response = await page.goto(`/u/${uniqueLogin()}`);
-    expect(response?.status()).toBe(404);
+    const login = uniqueLogin();
+    expect((await page.goto(`/u/${login}`))?.status()).toBe(404);
+    // Nor a share image, even when a result about them is cached.
+    await cacheCard(login, 4242);
+    try {
+      expect((await page.request.get(`/api/og/dev-card?login=${login}`)).status()).toBe(404);
+    } finally {
+      await withAppDatabase((sql) => sql`delete from analysis_cache where subject_key = ${login}`);
+    }
   });
 
   test('follows the visibility its owner chose', async ({ page, context, browser, baseURL }) => {
@@ -178,6 +185,10 @@ test.describe('member profile page', () => {
       await expect(page.getByLabel('GitHub username')).toHaveCount(0);
       await expectNoSeriousA11yViolations(page);
 
+      // Nothing about a private profile can be shared.
+      await expect(page.getByRole('button', { name: 'Share' })).toHaveCount(0);
+      expect((await visitor.request.get(`/api/og/dev-card?login=${member.login}`)).status()).toBe(404);
+
       // A hidden page looks like a missing one to everyone else.
       expect((await visitor.goto(`/u/${member.login}`))?.status()).toBe(404);
 
@@ -191,6 +202,15 @@ test.describe('member profile page', () => {
       expect((await visitor.goto(`/u/${member.login}`))?.status()).toBe(200);
       await expect(visitor.getByTestId('dev-card')).toBeVisible();
       await expect(visitor.locator('meta[name="robots"]')).toHaveAttribute('content', /^index/);
+
+      // A public profile can be shared, with an image.
+      await expect(visitor.getByRole('button', { name: 'Share' })).toBeVisible();
+      const ogUrl = await visitor.locator('meta[property="og:image"]').getAttribute('content');
+      expect(ogUrl).toContain(`/api/og/dev-card?login=${member.login}`);
+      const image = await visitor.request.get(`/api/og/dev-card?login=${member.login}`);
+      expect(image.status()).toBe(200);
+      expect(image.headers()['content-type']).toBe('image/png');
+      expect((await image.body()).length).toBeGreaterThan(1000);
     } finally {
       await visitorContext.close();
       await withAppDatabase((sql) => sql`delete from analysis_cache where subject_key = ${member.login.toLowerCase()}`);

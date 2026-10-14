@@ -16,6 +16,8 @@
     "@commitmates/core": "workspace:*",
     "@commitmates/env": "workspace:*",
     "@commitmates/ui": "workspace:*",
+    "@fontsource/inter": "^5.3.0",
+    "@fontsource/pixelify-sans": "^5.3.0",
     "@next/env": "^16.4.0",
     "@supabase/ssr": "^0.12.7",
     "@supabase/supabase-js": "^2.117.3",
