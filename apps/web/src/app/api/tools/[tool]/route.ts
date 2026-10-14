@@ -61,7 +61,7 @@ export async function POST(request: Request, context: { params: Promise<{ tool: 
     parseToolInput(tool, body);
     const member = await getCurrentMember();
     const ipHash = await guardToolRate(slug, request.headers, member?.id);
-    const run = await startToolRun(slug, body);
+    const run = await startToolRun(slug, body, { userId: member?.id });
 
     after(async () => {
       try {

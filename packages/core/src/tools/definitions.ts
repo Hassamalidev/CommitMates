@@ -1,3 +1,5 @@
+import { devCardTool } from '../persona/jobs';
+
 import { registerTool, type ToolDefinition } from './service';
 
 type Registration = { slug: string; register: () => void };
@@ -11,7 +13,7 @@ export const defineTool = <I>(tool: ToolDefinition<I>): Registration => ({
 });
 
 /** Every day-one tool behind `/api/tools/<slug>`. A tool adds itself here when its job lands. */
-export const toolDefinitions: readonly Registration[] = [];
+export const toolDefinitions: readonly Registration[] = [defineTool(devCardTool)];
 
 /** Registers every tool. Safe to call on each request: re-registering replaces the same definition. */
 export function registerAllTools(): void {

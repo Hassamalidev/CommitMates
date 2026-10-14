@@ -68,7 +68,7 @@ One row per day-one tool run: the tool name and `ip_hash_day = sha256(ip + daily
 
 ### `metric_samples`, `salts` (class D)
 
-Anonymous numeric samples that feed computed settings. `subject_hash = sha256(github_id + salt)` exists only to stop one person from being counted twice within a salt period; old salts are deleted on rotation.
+Anonymous numbers that tune thresholds: a metric key, a value, a salted subject hash and the salt period. Keys so far: `persona.nightShare`, `persona.morningShare`, `persona.weekendShare`, `persona.cv`, `persona.activeDayShare`, `contrib.total365` (written by the Dev Card). The hash is `sha256(github_id + current aggregate salt)` and exists only so one person counts once per metric and period; the salt is rotated every `privacy.aggregateSaltRotationDays` and old salts are deleted, so a hash cannot be linked back to an account. Kept indefinitely.
 
 ### `audit_log`
 
@@ -88,7 +88,9 @@ Recent public events (including commit messages GitHub publishes in them) are re
 
 ### `analysis_cache` (class C for non-members, class B for members)
 
-Results of the day-one tools. Every row has an `expires_at`; `is_member_subject` records whether the subject had signed up. Expired rows are deleted hourly.
+Computed tool results, keyed by kind, subject and a hash of the parameters. Kinds so far: `dev_card` (subject = lowercased GitHub login; the result holds the login, name, avatar URL, GitHub id, language shares, skill tags, hour histogram, 90 days of daily contribution counts and the derived labels — all from public data, plus private contribution counts only when the account owner enabled them on GitHub and analyzed their own account).
+
+Retention: `cache.devCardTtlHours` for members; for people who have not signed up, never longer than `privacy.nonUserRawTtlHours`. Expired rows are deleted hourly by `purge_non_user_raw`. A job's `result_ref` only points at the row; the result is delivered to the browser that holds the unguessable job id.
 
 ### `api_cache` (class C)
 

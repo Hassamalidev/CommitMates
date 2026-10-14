@@ -44,8 +44,16 @@ export type ToolDefinition<I> = {
   params?(input: I): unknown;
   /** The job's idempotency key; the same request inside one bucket shares one job. */
   idempotencyKey(input: I, now: Date): string;
+  /** The job payload, when it carries more than the input (for example who asked). Defaults to the input. */
+  payload?(input: I, context: ToolRunContext): unknown;
   /** Hours a result stays cached. */
   ttlSetting: HourSettingKey;
+};
+
+/** What the request knows that the input does not say. */
+export type ToolRunContext = {
+  /** The signed-in member who started the run. */
+  userId?: string | undefined;
 };
 
 const tools = new Map<string, ToolDefinition<unknown>>();
@@ -96,7 +104,11 @@ export type ToolRun =
  * answer from the cache when a fresh result exists, otherwise enqueue the job. Rate
  * limiting (step 2) belongs to the caller, which knows the request.
  */
-export async function startToolRun(slug: string, rawInput: unknown, options: { now?: Date } = {}): Promise<ToolRun> {
+export async function startToolRun(
+  slug: string,
+  rawInput: unknown,
+  options: ToolRunContext & { now?: Date } = {},
+): Promise<ToolRun> {
   const tool = getTool(slug);
   if (!tool) throw new NotFoundError('tool.unknown', 'We do not have a tool by that name.');
   const input = parseToolInput(tool, rawInput);
@@ -105,7 +117,8 @@ export async function startToolRun(slug: string, rawInput: unknown, options: { n
   const cached = await getCachedAnalysis(cacheKeyFor(tool, input), now);
   if (cached) return { status: 'done', result: cached.result, computedAt: cached.computedAt.toISOString() };
 
-  const job = await enqueue(tool.jobType, input, {
+  const payload = tool.payload ? tool.payload(input, { userId: options.userId }) : input;
+  const job = await enqueue(tool.jobType, payload, {
     idempotencyKey: tool.idempotencyKey(input, now),
     priority: PRIORITY.INTERACTIVE,
   });

@@ -55,7 +55,11 @@ export type IngestOptions = {
   now?: Date;
   /** Epoch ms the caller must finish by. */
   deadline?: number;
+  /** Called as each stage begins, so a waiting visitor sees progress. */
+  onStep?: (step: IngestStep) => Promise<void>;
 };
+
+export type IngestStep = 'profile' | 'events' | 'manifests';
 
 const toDate = (value: string | null) => (value === null ? null : new Date(value));
 
@@ -145,6 +149,7 @@ export async function ingestProfile(login: string, options: IngestOptions = {}):
   const request = { deadline: options.deadline };
 
   const [repoCap, manifestRepos] = await Promise.all([getSetting('github.maxReposPerProfile'), getSetting('persona.manifestRepos')]);
+  await options.onStep?.('profile');
   const profile = await fetchProfile(client, login, {
     ...request,
     repoCap,
@@ -155,11 +160,13 @@ export async function ingestProfile(login: string, options: IngestOptions = {}):
   await storeProfile(profile, isMember, now);
 
   // Events use the canonical login: GitHub redirects a renamed account, and the profile carries the new name.
+  await options.onStep?.('events');
   const events = await fetchPublicEvents(client, profile.login, request);
 
   const recent = [...profile.repos]
     .sort((a, b) => (b.pushedAt ?? '').localeCompare(a.pushedAt ?? ''))
     .slice(0, manifestRepos);
+  await options.onStep?.('manifests');
   let manifestsComplete = true;
   for (const repo of recent) {
     if (options.deadline !== undefined && Date.now() > options.deadline - DEADLINE_MARGIN_MS) {

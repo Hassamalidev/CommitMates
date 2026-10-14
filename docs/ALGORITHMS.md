@@ -74,6 +74,22 @@ All algorithms live in `packages/algorithms` and are pure: no I/O, no clock, no 
 - Tests: `packages/algorithms/src/persona/persona.test.ts`
 - Spec: CLAUDE.md §8 F1 steps 5–6
 
+### Dev Card assembly
+
+- Code: `packages/core/src/persona/service.ts` (`buildDevCard`, `resolveTimezone`, `recordPersonaSamples`), job `analyze_profile` in `packages/core/src/persona/jobs.ts`
+- Formula, in order:
+  1. Timezone: a member's profile timezone; else the timezone of their geocoded location once `geocode_cache` has resolved it; else UTC. The card states which one was used.
+  2. Hour histogram over the public events (the last 90 days GitHub exposes), in that timezone.
+  3. Rhythm metrics over the last 90 days of the contribution calendar; longest streak over 365 days.
+  4. Labels only when the account has at least `persona.minEvents` events; thresholds from settings.
+  5. Language shares with Linguist colors; skill tags from `package_meta.derived_tags` of the dependencies plus repository topics.
+  6. Activity score: percentile rank of the yearly total among `contrib.total365` samples once that metric holds `min_sample` of `companion.stageCuts` samples; before that the logarithmic fallback.
+  7. Companion: seed = GitHub id; species key = top skill tag, else top language, else the login (the species number is derived from the key where the companion is drawn); palette = the top language's color; stage from `companion.stageCuts`.
+  8. Anonymous samples: `contrib.total365` always; the five `persona.*` shares only when step 4 had enough events. One person counts once per salt period.
+- Settings: `persona.minEvents` (15), the label thresholds above, `companion.activityRef` (1000), `companion.stageCuts`, `cache.devCardTtlHours` (12), `privacy.nonUserRawTtlHours` (24), `persona.manifestRepos` (10), `github.maxReposPerProfile` (100)
+- Tests: `packages/core/src/persona/persona.test.ts`
+- Spec: CLAUDE.md §8 F1
+
 ## Similarity
 
 No entries yet. Cosine, Jaccard and histogram intersection arrive with the Dev Card and Compatibility Check (P2-T07, P2-T09).

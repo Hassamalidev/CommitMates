@@ -131,7 +131,7 @@ describe('POST /api/tools/[tool]', () => {
     expect(registerAllHandlers).toHaveBeenCalled();
     expect(guardToolRate.mock.calls[0]?.[0]).toBe('echo');
     expect(guardToolRate.mock.calls[0]?.[2]).toBeUndefined();
-    expect(startToolRun).toHaveBeenCalledWith('echo', { login: 'someone' });
+    expect(startToolRun).toHaveBeenCalledWith('echo', { login: 'someone' }, { userId: undefined });
     expect(startJobAfterResponse).toHaveBeenCalledWith('job-1');
 
     expect(recordToolSession).not.toHaveBeenCalled();
