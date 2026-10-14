@@ -915,6 +915,41 @@ These are the seed defaults. "Computed" names the data the nightly job uses once
 | `squads.kMax` | integer | 6 | — | Max clusters tried |
 | `squads.defaultTeamSize` | integer | 4 | — | Default team size |
 
+**Added during implementation**
+
+Keys that §8 names as "new key" (or that a formula needs), seeded in `0003_settings_seed.sql` with the rest.
+
+| Key | Type | Default | Computed | Meaning |
+| --- | --- | --- | --- | --- |
+| `persona.manifestRepos` | integer | 10 | — | Most recently pushed repos whose manifests are read (F1) |
+| `companion.activityRef` | integer | 1000 | — | Yearly contributions that map to activity score 1 before samples exist (F1) |
+| `recruiter.profileReadme.minChars` | integer | 200 | — | Profile README length that earns credit (F3) |
+| `ir.bm25.k1` | number | 1.2 | — | BM25 term-frequency saturation (F9) |
+| `ir.bm25.b` | number | 0.75 | — | BM25 length normalization (F9) |
+| `fyp.bands` | number\[\] | \[40,70\] | — | Similarity cut-offs: related and very similar (F9) |
+| `fyp.detectTerms` | string\[\] | \["final year project","fyp"\] | — | Seed vocabulary that marks a README as a final-year project (F22) |
+| `verify.voucherMinDays` | integer | 7 | — | Days a member must be verified before vouching (F10) |
+| `matching.tuneMinSuccesses` | integer | 30 | — | Successful matches needed before weights are tuned (F11) |
+| `chat.requestTtlDays` | integer | 14 | — | Days before an unanswered message request expires (F12) |
+| `chat.editWindowMinutes` | integer | 10 | — | Minutes a message stays editable (F12) |
+| `streaks.maxActivePairs` | integer | 3 | — | Active pairs one member may have (F13) |
+| `adoptions.dropAfterDays` | integer | 90 | — | Days without commits before an adoption is dropped (F14) |
+| `reviews.autoSettleDays` | integer | 7 | — | Days without a rating before a review settles as helpful (F15) |
+| `crawler.minCitySeedMembers` | integer | 2 | — | Members in a city before it seeds the crawler (F18) |
+| `crawler.refreshDays` | integer | 30 | — | Days between re-crawls of a cursor (F18) |
+| `leaderboard.minDeptMembers` | integer | 5 | — | Verified members a department needs to be ranked (F19) |
+| `leaderboard.weights` | json | {"activeRatio":0.5,"medianActiveDays":0.3,"revivals":0.1,"helpfulReviews":0.1} | — | University score weights (F19) |
+| `alumni.transitionMonth` | integer | 7 | — | Month after which last year's graduates become alumni (F20) |
+| `squads.minOverlapHours` | integer | 4 | — | Weekly availability overlap a team needs (F21) |
+| `admin.deadJobWindowHours` | integer | 24 | — | Window in which a dead job raises an alert (§5.13) |
+| `admin.interactiveQueueAlertSeconds` | integer | 120 | — | An interactive job queued longer than this raises an alert (§5.13) |
+| `admin.budgetAlertPct` | number | 0.9 | — | Share of a budget (database size, daily email) that raises an alert (§5.13) |
+| `admin.sourceStaleDays` | integer | 14 | — | A source snapshot older than this raises an alert (§5.13) |
+| `admin.staleComputedDays` | integer | 3 | — | A computed setting not refreshed for this long is listed as stale (§5.13) |
+| `admin.jobListLimit` | integer | 100 | — | Rows shown per job list on the admin pages (§5.13) |
+
+`min_sample` for computed keys is seeded as 200 for sample percentiles, 30 for `matching.weights` and `streaks.companionStageDays`. `graveyard.idleMonths.<category>` rows are created by the recompute job per category and are not part of the static key registry.
+
 ### 5.6 GitHub client (`packages/github`)
 
 **Token identities.** Exactly two kinds:
@@ -1340,7 +1375,7 @@ The schema is split into nine groups. This section is the contract; the exact de
 | `fairness_reports` | `id`, `repo_github_id`, `params jsonb`, `result jsonb`, `computed_at` |
 | `gap_reports` | `id`, `repo_github_id`, `peer_repo_ids bigint[]`, `facets jsonb`, `gaps jsonb`, `computed_at` |
 | `metric_samples` | `id`, `metric_key`, `value double precision`, `subject_hash`, `salt_period int`, `recorded_on date`; unique `(metric_key, subject_hash, salt_period)`; index `(metric_key, recorded_on)` |
-| `salts` | `period int pk`, `salt bytea`, `created_at` |
+| `salts` | `kind enum(ip, aggregate)`, `period int`, `salt bytea`, `created_at`; pk `(kind, period)` |
 
 ### 7.5 Platform
 
@@ -2199,12 +2234,12 @@ Defined as CSS variables in `packages/ui/src/tokens.css` under `:root[data-theme
 | `--border-strong` | #3A4560 | #C5C0B3 | Hover, focus outlines base |
 | `--text` | #E8ECF4 | #151923 | Primary text |
 | `--text-muted` | #8C96AB | #5B6475 | Secondary text |
-| `--accent` | #7CFF6B | #1F8F3A | Brand accent, primary buttons, focus ring |
+| `--accent` | #7CFF6B | #177A30 | Brand accent, primary buttons, focus ring |
 | `--accent-ink` | #0D0F14 | #FFFFFF | Text on accent |
 | `--state-idle` | #8C96AB | #5B6475 | Idle chips |
-| `--state-working` | #FFC24B | #A86B00 | Working chips |
+| `--state-working` | #FFC24B | #8F5A00 | Working chips |
 | `--state-waiting` | #9B8CFF | #5B45D6 | Waiting chips |
-| `--state-done` | #4ADE80 | #15803D | Done chips |
+| `--state-done` | #4ADE80 | #136F35 | Done chips |
 | `--state-error` | #FF6B6B | #C42B2B | Error chips |
 | `--focus` | var(--accent) | var(--accent) | 2px focus ring |
 
@@ -2867,45 +2902,47 @@ Branch `phase/0-groundwork`. Goal: an empty but production-grade monorepo with C
 
 Branch `phase/1-core`. Goal: database, settings, jobs, GitHub client, auth, design system and admin basics.
 
-- [ ] **P1-T01 Schema v1 and RLS baseline.** Spec: §5.4, §5.5, §5.6, §5.10, §7.1, §7.4, §7.5.
+- [x] **P1-T01 Schema v1 and RLS baseline.** Spec: §5.4, §5.5, §5.6, §5.10, §7.1, §7.4, §7.5.
   - Tables: identity group, `settings`, `settings_history`, `jobs`, `job_schedules`, `api_cache`, `github_budgets`, `rate_limit_buckets`, `metric_samples`, `salts`, `geocode_cache`, `geocoder_lock`, `source_snapshots`, `audit_log`, `notifications`, `notification_prefs`, `feedback`, `tool_sessions`, `roles`.
   - `take_token` function, `updated_at` triggers, RLS enabled everywhere, policies only where §5.9 says.
   - Done when: migrations apply on a fresh database; a test proves `anon` and `authenticated` can't read platform tables.
-- [ ] **P1-T02 Settings engine.** Spec: §5.5.
+- [x] **P1-T02 Settings engine.** Spec: §5.5.
   - Key registry, `getSetting`, `setComputed`, `setOverride`, zod schemas for JSON keys, in-memory cache.
   - Seed migration containing every key in §5.5.1.
   - Recompute framework: a registry mapping computed keys to functions, run by `recompute_settings`.
   - Done when: resolution tests pass; a test asserts the registry and seed contain exactly the same keys.
-- [ ] **P1-T03 Job system.** Spec: §5.3, §5.4.
+- [x] **P1-T03 Job system.** Spec: §5.3, §5.4.
   - Queue, claim, runner rules, reaper, schedules (a permissive-licensed cron parser), priorities, `enqueue` with idempotency.
   - `/api/jobs/tick` (constant-time secret check), `apps/worker` loop, `after()` helper, SSE endpoint following continuations.
   - Done when: a concurrency test with two workers shows no double processing; retry, wait, continue and dead paths are tested.
-- [ ] **P1-T04 GitHub client.** Spec: §5.6.
+- [x] **P1-T04 GitHub client.** Spec: §5.6.
   - Identities, Octokit with throttling and retry, ETag cache, budgets, search pacer, 202 handling, error classes, zod parsing, `parseGitHubUrl`, GraphQL helper selecting `rateLimit`.
   - Done when: MSW tests cover 200, 304, 202, 401, 403/429 with and without `retry-after`, 404, 422, 5xx.
-- [ ] **P1-T05 Crypto and rate limiting.** Spec: §5.10.
+- [x] **P1-T05 Crypto and rate limiting.** Spec: §5.10.
   - `encrypt`/`decrypt` with key versions, OTP helpers, `guardRate`, IP hashing with a daily salt, `cleanup_rate_buckets` and `rotate_salts` jobs.
   - Done when: tests cover round trips, rotation, bucket refill and exhaustion.
-- [ ] **P1-T06 \[HUMAN\] GitHub OAuth app for local development.** Spec: §5.2.
+- [x] **P1-T06 \[HUMAN\] GitHub OAuth app for local development.** Spec: §5.2.
   - Human: create a GitHub OAuth app with callback `http://localhost:54321/auth/v1/callback` (or the local Supabase URL), put the client id and secret in local Supabase config, and create the fine-grained `GITHUB_SERVER_TOKEN` (public read-only).
   - Claude: write `docs/runbooks/github-oauth.md` with exact steps for dev, staging and prod.
-- [ ] **P1-T07 Authentication.** Spec: §5.11, §8 F10 step 1.
+- [x] **P1-T07 Authentication.** Spec: §5.11, §8 F10 step 1.
   - Sign in with GitHub (scopes `read:user user:email`), callback capturing the provider token (encrypted into `github_identities`), upsert `users` and `profiles`, bootstrap admin, middleware session refresh, guards, sign-out.
   - Done when: e2e sign-in works against local Supabase and the stored token is encrypted.
-- [ ] **P1-T08 Design tokens and base components.** Spec: §9.2–9.4.
+- [x] **P1-T08 Design tokens and base components.** Spec: §9.2–9.4.
   - `tokens.css`, Tailwind mapping, fonts, Material Symbols subset, theme toggle (system default, persisted).
   - Components from §9.4 except `CompanionView` and charts.
   - Done when: `check:contrast` passes and every interactive component passes axe in tests.
-- [ ] **P1-T09 Linguist sync and companion engine.** Spec: §6.3, §9.5.
+- [x] **P1-T09 Linguist sync and companion engine.** Spec: §6.3, §9.5.
   - Source framework basics (§5.7) and `sync_linguist` (languages and path patterns compiled with RE2).
   - Companion generator, five state animations, `CompanionView`, `SpeechBubble`, reduced motion.
   - Done when: snapshot tests for fixed seeds and states pass; the same seed always produces the same SVG.
-- [ ] **P1-T10 App shell and landing skeleton.** Spec: §9.6, §9.8.
+  - [x] **P1-T09a Source framework and Linguist sync.** `SourceModule` contract, `runSourceSync` with `source_snapshots`, `languages` and `path_patterns` tables, `sync_linguist` job and weekly schedule.
+  - [x] **P1-T09b Companion engine.** Generator, sprite sheet, `CompanionView`, `SpeechBubble`, reduced motion, snapshot tests.
+- [x] **P1-T10 App shell and landing skeleton.** Spec: §9.6, §9.8.
   - Navbar, footer, route groups, 404 and 500 pages, theme toggle placement.
   - Landing sections with real copy (live demo wired in P2).
   - First versions of `/privacy`, `/terms` and `/attribution` written from §5.12 and §6.11 (finalized in P7).
   - Done when: Lighthouse accessibility ≥ 90 on the landing page.
-- [ ] **P1-T11 Observability and admin base.** Spec: §5.11, §5.13.
+- [x] **P1-T11 Observability and admin base.** Spec: §5.11, §5.13.
   - pino logger with request and job ids, `withAction` wrapper, error boundaries, optional Sentry.
   - `/admin/health`, `/admin/jobs` (queue, dead jobs, schedules toggle), `/admin/settings` (values, history, override), audit-log writes.
   - Done when: admin pages require the admin role (tested) and show live data.
@@ -3142,6 +3179,18 @@ Branch `phase/7-launch`. Goal: secure, fast, accessible, documented, deployed.
 
 Newest first, one line per completed task or subtask: `YYYY-MM-DD — <task id> — <what was done>`. A `BLOCKED:` line, when present, is always the first line (§13). Spec fixes made under §0.9 are logged here too.
 
+- 2026-10-14 — P1-T11 — Observability and admin base: withAction wrapper and ActionResult (AppError and zod failures become inline errors; unexpected errors are logged with a reference id), hashed user ids for logs, onRequestError logging, optional Sentry reporting without the SDK (its dependency tree includes FSL-1.1 and BlueOak licenses that check:licenses rejects; a minimal event is posted with fetch when SENTRY_DSN is set), error boundaries. /admin/health (alerts, queue depth, longest wait per priority, dead jobs, GitHub budgets, sources, database size vs budget, stale computed settings), /admin/jobs (schedules with enable/disable, dead/failed with retry, running, queued), /admin/settings (filter, resolved value and source, per-key page with override form and history). Every admin action checks the admin role and writes audit_log; non-admins get a 404 (unit and e2e tested). Six admin.* settings added for the alert thresholds of §5.13. Not yet built: the daily alert email and the emails-sent indicator, which need the email package (P3-T03, P4-T07).
+- 2026-10-14 — P1-T10 — App shell: header (brand companion, nav, sign-in state, theme toggle), footer, skip link, (marketing) route group, 404, error and global-error pages, generated site icon. Landing page with real copy: hero, five-state companion strip, tools grid (a tool links only once its page exists; until then it is marked in development), how it works, campus unlocks, privacy promise, FAQ. First versions of /privacy, /terms and /attribution. Lighthouse on the production build: accessibility 100, SEO 100, best practices 96 before the favicon fix. 42 e2e tests pass at desktop and 360px. P1-T09 parent ticked.
+- 2026-10-14 — P1-T09b — Companion engine: mulberry32-seeded 16x16 generator (8 species, 5 stages, symmetric cleaned body mask, ears/tail/antenna, outline, eyes, OKLCH palette with light/shade and pair two-tone, trait accessories, stage-4 aura), frames for the five states, CompanionView (inline SVG stepped with CSS, reduced motion shows frame 1, done settles to idle) and SpeechBubble. Deterministic per seed; committed SVG snapshots for fixed seeds in every state; outline contrast >= 3:1 on every surface. Deviation (ADR-003): inline SVG with a stepped transform instead of background-position so the outline can follow the theme; new token --companion-outline. Linguist sync now inserts in batches.
+- 2026-10-14 — P1-T09a — Source framework (SourceModule contract, runSourceSync with source_snapshots, last good data kept on failure, empty results refused) and the Linguist source: languages and path_patterns tables, YAML parsing, RE2 compilation with re2js (uncompilable patterns stored and counted, not used), path matcher, sync_linguist job with a weekly schedule. Fixtures are the real vendor.yml and documentation.yml and an excerpt of languages.yml.
+- 2026-10-14 — P1-T08 — Design tokens (dark and light), Tailwind 4 mapping and typography roles, self-hosted Inter / Pixelify Sans / JetBrains Mono via next/font, generated Material Symbols subset (25 icons), theme toggle (system default, persisted, no flash), and base components: Button, Field, Input, Textarea, Select, Combobox, Card, Chip, StateChip, TerminalWindow, UnlockCard, ChecklistRule, Tabs, Dialog, Accordion, Toast, Tooltip, Popover, DropdownMenu, Skeleton, EmptyState, Avatar, Icon. 34 component tests with axe; e2e checks both themes in a real browser. Spec fix (§9.2): light --accent, --state-working and --state-done darkened to #177A30, #8F5A00 and #136F35 because the original values failed the WCAG AA rule the same section requires (ADR-003). Dependabot now ignores TypeScript, ESLint and MSW majors.
+- 2026-10-14 — P1-T07 — Authentication: GitHub sign-in through Supabase Auth (scopes read:user user:email), callback that stores the provider token AES-256-GCM encrypted and upserts users/profiles, bootstrap admin with audit entry, session-refreshing proxy that gates the members area, requireUser/requireVerified/requireRole guards, origin-checked POST sign-out. Verified by integration tests (token stored encrypted) and e2e against local Supabase. The e2e session is created with the Supabase admin API because GitHub's consent screen cannot run in CI; the real browser round-trip through GitHub is unverified until the OAuth app exists (docs/HUMAN_TODO.md). CI now runs e2e on phase branches too.
+- 2026-10-14 — P1-T06 — Claude part done: docs/runbooks/github-oauth.md (OAuth apps for local, staging and prod, the fine-grained server token, bootstrap admin). HUMAN part still open and listed in docs/HUMAN_TODO.md: create the local OAuth app and GITHUB_SERVER_TOKEN.
+- 2026-10-14 — P1-T05 — OTP helpers (hashed with pepper, constant-time compare), guardRate over take_token with retry hints, hashIp with a daily salt, hashSubject with an aggregate salt, rotate_salts and cleanup_rate_buckets jobs with daily schedules, web guardToolRate/guardWriteRate. Spec fix (§7.4): salts gains a kind column and pk (kind, period), because the daily IP salt and the 30-day aggregate salt have different lifetimes and would collide on period alone.
+- 2026-10-14 — P1-T04 — GitHub client: two token identities, @octokit/core transport, ETag cache, budgets from headers and /rate_limit with reserves, row-locked search pacer, secondary-limit handling, 202 stats retries, typed errors, zod parsing, GraphQL helper requiring rateLimit, parseGitHubUrl; AES-256-GCM token encryption with key versions. MSW tests cover 200, 304, 202, 401, 403/429 with and without retry-after, 404, 422, 5xx. Spec deviations recorded in ADR-002: Octokit throttling/retry plugins not used (limits are coordinated in Postgres), MSW pinned to 2.x, search responses not ETag-cached.
+- 2026-10-14 — P1-T03 — Job system: enqueue with idempotency, SKIP LOCKED claim, runner (reaper, schedules, done/continue/wait, backoff with jitter, rate-limit waits, failed/dead), cron schedules (cron-parser, MIT), watchJob event stream following continuations, /api/jobs/tick (constant-time secret), SSE route, after() helper, worker loop and jobs:tick. First handler and schedule: recompute_settings. JobContext carries no github factory: packages/jobs may not import packages/github, so handlers call githubFor() directly. pino logger with redaction lives in packages/db so every server package can use it.
+- 2026-10-14 — P1-T02 — Settings Engine: typed key registry (160 keys), getSetting with a table snapshot bounded by settings.cacheMs, setComputed (history above settings.historyMinDelta), setOverride (history + audit log), zod schemas for JSON keys, seed migration, recompute registry with metricPercentile, withSettings test helper, AppError hierarchy. 20 keys named in §8 as new were added to §5.5.1.
+- 2026-10-14 — P1-T01 — Schema v1 with Drizzle (identity, settings, jobs, caches, platform tables), take_token, updated_at triggers, RLS on every table with the single notifications policy; migrations apply to a fresh database and to local Supabase. Test isolation uses one scratch database per test file cloned from a migrated template (not a schema per file as §11.3 says) because migrations create enum types in public. CI now starts Supabase and applies migrations.
 - 2026-10-14 — P0-T09 — Maintained docs scaffold: ALGORITHMS, DATA_SOURCES, PRIVACY, runbooks index + local-setup, ADR-001 (versions, licenses, pins for TypeScript 6 / ESLint 9 / turbo, sharp removal; Supabase Free and Vercel Hobby terms read 2026-10-14; unverified terms listed explicitly).
 - 2026-10-14 — P0-T08 — CI workflow (verify + e2e on PRs, gitleaks scan), Dependabot, PR template, .gitleaks.toml; CI run 38461163142 green on push. Supabase start and db:migrate join the workflow with the first migration (P1-T01).
 - 2026-10-14 — P0-T07 — check:hardcoded (TypeScript AST: numbers > 1 and 3+ string arrays in core and algorithms unless a documented constant or allowed-literal), check:licenses (SPDX expression evaluation over the production closure, reviewed exceptions file), check:contrast (WCAG AA over token pairs; skips until tokens exist), all tested with deliberate violations and wired into pnpm verify. sharp excluded (LGPL libvips); images served unoptimized.

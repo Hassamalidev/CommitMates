@@ -22,16 +22,75 @@ Every personal-data field the app stores: why it exists, how long it is kept, an
 
 ## Field inventory
 
-No personal data is stored yet: the database schema arrives in P1-T01. Each table is added here by the task that creates it, in this form:
+Row Level Security is enabled on every table. Only `notifications` has a policy (a member reads their own rows); every other table is unreadable by the browser roles and is accessed only by server code.
 
-```markdown
-### `<table>` (class <A–E>)
+### `users` (class A)
 
 | Column | Why it exists | Retention | Deletion |
 | --- | --- | --- | --- |
-```
+| `id` | Same id as the Supabase auth user | Until account deletion | Cascades from `auth.users` |
+| `status` | Active, suspended or hidden pending review (safety) | Until account deletion | Cascade |
+| `last_seen_at` | Activity for trust and metrics | Until account deletion | Cascade |
+
+### `github_identities` (class A)
+
+| Column | Why it exists | Retention | Deletion |
+| --- | --- | --- | --- |
+| `github_id`, `login`, `name`, `avatar_url` | Link the member to their public GitHub account | Until account deletion | Cascade from `users` |
+| `token_enc`, `token_key_version` | The member's OAuth token, AES-256-GCM encrypted, so their analyses use their own rate limit | Until account deletion or sign-out revocation | Cascade; grant revoked on deletion |
+| `token_invalid`, `scopes`, `private_contrib_visible` | Token health and what it may read | Until account deletion | Cascade |
+
+### `profiles` (class A)
+
+| Column | Why it exists | Retention | Deletion |
+| --- | --- | --- | --- |
+| `university_id`, `department_id`, `role`, `grad_year` | University membership, the basis of every campus feature | Until account deletion | Cascade from `users` |
+| `timezone` | Member-facing day boundaries (streaks, digests) | Until account deletion | Cascade |
+| `visibility`, `ghost_mode` | The member's privacy choices | Until account deletion | Cascade |
+| `learning_goals`, `bio` | Shown on the profile; goals drive matching | Until account deletion | Cascade |
+| `onboarded_at`, `verified_at`, `verified_via` | Verification state | Until account deletion | Cascade |
+
+### `roles` (class A)
+
+Admin and university-moderator grants with who granted them. Deleted by cascade from `users`.
+
+### `notifications`, `notification_prefs` (class A)
+
+In-app notifications and the member's email preferences. Deleted by cascade from `users`.
+
+### `feedback` (class A)
+
+Feedback text with the page it was sent from. `user_id` is set to null when the account is deleted, so the text stays without a link to the person.
+
+### `tool_sessions` (class D)
+
+One row per day-one tool run: the tool name and `ip_hash_day = sha256(ip + daily_salt)`. No raw IP address is stored, and the salt is deleted when it rotates, so the hash cannot be reversed or linked across days. `user_id` and `converted_user_id` are set to null on account deletion.
+
+### `metric_samples`, `salts` (class D)
+
+Anonymous numeric samples that feed computed settings. `subject_hash = sha256(github_id + salt)` exists only to stop one person from being counted twice within a salt period; old salts are deleted on rotation.
+
+### `audit_log`
+
+Administrative actions. `actor_user_id` has no foreign key so the log survives account deletion; the deletion itself is logged with a hashed id only.
+
+### `api_cache` (class C)
+
+Cached GitHub API responses keyed by token identity, method and URL. Rows about non-members expire with `privacy.nonUserRawTtlHours` (purge job in P2-T04).
+
+### `geocode_cache`
+
+Normalized free-text location strings and their coordinates. Not linked to a person.
+
+### Tables without personal data
+
+`settings`, `settings_history` (an `actor_user_id` for admin overrides), `jobs` (payloads may name a GitHub login or repository; rows are operational and short-lived), `job_schedules`, `github_budgets`, `rate_limit_buckets` (keys contain hashes, never raw IPs), `geocoder_lock`, `source_snapshots`.
 
 ## Environment and logs
+
+- Logs are JSON (pino). Tokens, emails, one-time codes, message bodies, cookies, authorization headers and IP addresses are redacted by the logger's configuration. A member is identified in logs only by `hashUserId` (a truncated SHA-256), and request errors are logged by route without the query string.
+- Error tracking (Sentry) is off unless `SENTRY_DSN` is set. When on, an event carries only the error type, message, stack, route, method and digest; no user, cookie, header, body or query string is ever added to it.
+- Admin pages show GitHub budgets by identity kind (`server` or `member`), never by member id.
 
 - `.env.local` holds secrets and is never committed. `EnvError` messages name the variable and the problem and never echo a value (`packages/env`, tested).
 - The local Supabase stack uses its fixed development keys; they protect nothing outside the developer's machine.

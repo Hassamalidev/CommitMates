@@ -19,7 +19,7 @@ No list of universities, skills, topics, languages or secret patterns is written
 | Hipo university-domains-list | Universities and email domains | `packages/sources/hipo` | Weekly | MIT | P3-T01 |
 | Disposable email domains | Rejecting throwaway addresses | `packages/sources/disposable-emails` | Weekly | Recorded in the ADR that picks the list | P3-T01 |
 
-Nothing in this table is implemented yet. A row moves to its own section below when its module lands, with the exact endpoint, request pacing, User-Agent and attribution text.
+Implemented so far: GitHub REST and GraphQL, GitHub Linguist (below). A row moves to its own section below when its module lands, with the exact endpoint, request pacing, User-Agent and attribution text.
 
 ## Policies that apply to every source
 
@@ -27,6 +27,30 @@ Nothing in this table is implemented yet. A row moves to its own section below w
 - A failed or unparseable fetch keeps the last good data and records `last_error` in `source_snapshots`. Data is never wiped because a source is down.
 - Syncs are diff-based: unchanged rows are skipped by checksum.
 - Every source and asset is credited on `/attribution`.
+
+## GitHub REST and GraphQL
+
+- Endpoint: `https://api.github.com` (REST) and `POST /graphql`, through `packages/github` (`githubFor(identity)`).
+- Auth: two identities only. `server` uses `GITHUB_SERVER_TOKEN` (fine-grained, public read-only) for anonymous tools and syncs. `user` uses the member's own OAuth token (scopes `read:user`, `user:email`), decrypted per call, for their own analyses.
+- Pacing and limits: read from `x-ratelimit-*` headers on every response, from `GET /rate_limit` before an identity's first call, and from GraphQL `rateLimit`. Stored in `github_budgets`. Calls stop when `remaining - cost` would go below `github.reserve.core`, `github.reserve.graphql` or `github.reserve.search`. Search calls are spaced by `ceil(60000 / limit)` ms plus up to 250 ms of jitter under a row lock. A 403 or 429 with `retry-after` waits that long; without it, the wait starts at 60 s and doubles.
+- Conditional requests: every REST GET sends `If-None-Match` and `If-Modified-Since` from `api_cache`; a 304 returns the cached body. The cache key includes the identity because ETags are tied to the token.
+- Timeouts: `github.requestTimeoutMs` per request. Pagination is capped by `github.maxPages.default`.
+- `/stats/*`: 202 answers are retried up to `fairness.statsRetryMax` times inside the deadline, then reported as pending so the job waits.
+- User input: only links parsed by `parseGitHubUrl` into owner, repo and number are ever requested.
+- Stored in: `api_cache`, `github_budgets`; feature tables arrive with their features.
+- License and attribution: GitHub Terms of Service; credited on `/attribution`.
+- Known behaviors: public events cover about 90 days and at most 300 events; search returns at most 1,000 results per query.
+
+## GitHub Linguist
+
+- Endpoint: `GET /repos/github-linguist/linguist/contents/lib/linguist/{languages,vendor,documentation}.yml` through the GitHub client, with the raw media type. Three calls per sync, ETag-cached.
+- Auth: the `server` identity.
+- Fields used: per language `color`, `extensions`, `aliases`; every pattern in `vendor.yml` and `documentation.yml`.
+- Regexes: the patterns are Ruby regexes. They are compiled with re2js (RE2, linear time). A pattern RE2 cannot express is stored with `compiled_ok = false`, ignored by the matcher, and counted in `source_snapshots.skipped_count`.
+- Not mirrored: Linguist's generated-file detection lives in its Ruby code, not in data files. Only the path-pattern rules are mirrored; generated files are recognized through `.gitattributes` (`linguist-generated`) in the Fairness Report.
+- Stored in: `languages`, `path_patterns`.
+- Refresh: weekly, Sundays 04:00 UTC (job `sync_linguist`); diff-based. A failed or unparseable fetch keeps the existing rows and records `last_error`.
+- License and attribution: MIT, © GitHub, Inc.; credited on `/attribution`.
 
 ## How to add a section
 

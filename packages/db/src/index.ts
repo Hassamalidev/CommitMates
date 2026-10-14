@@ -1,2 +1,9 @@
-/** Workspace name of this package; used in logs and diagnostics. */
-export const PACKAGE_NAME = '@commitmates/db';
+export { closeDb, createDb, getDb, setDb, type Db, type DbHandle, type DbOrTx, type Tx } from './client';
+export * as schema from './schema';
+export * from './errors';
+export { generateOtp, hashOtp, verifyOtp } from './otp';
+export * from './queries/admin';
+export * from './queries/security';
+export * from './settings';
+export { getLogger, hashUserId, setLogger, type Logger } from './logger';
+export { decrypt, encrypt, keyVersionOf, type EncryptionKeys } from './crypto';

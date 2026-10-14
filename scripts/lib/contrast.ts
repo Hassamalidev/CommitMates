@@ -111,9 +111,9 @@ const TEXT_TOKENS = ['--text', '--text-muted'] as const;
 const STATE_TOKENS = ['--state-idle', '--state-working', '--state-waiting', '--state-done', '--state-error'] as const;
 
 /**
- * The pairs the design system actually renders (CLAUDE.md §9.2, §9.4):
- * text on every surface, text on the accent, and state colors and the focus ring
- * as UI glyphs on every surface.
+ * The pairs the design system actually renders (CLAUDE.md §9.2, §9.4): text on every
+ * surface, text on the accent, state colors as chip labels and accent as link text on
+ * every surface (all body-size text), and the focus ring as a UI component.
  */
 export const CONTRAST_RULES: readonly ContrastRule[] = [
   ...SURFACES.flatMap((background) =>
@@ -121,8 +121,14 @@ export const CONTRAST_RULES: readonly ContrastRule[] = [
   ),
   { foreground: '--accent-ink', background: '--accent', min: AA_TEXT, use: 'text on primary buttons' },
   ...SURFACES.flatMap((background) =>
-    STATE_TOKENS.map((foreground) => ({ foreground, background, min: AA_UI, use: 'state chip icon and label' })),
+    STATE_TOKENS.map((foreground) => ({ foreground, background, min: AA_TEXT, use: 'state chip label' })),
   ),
+  ...SURFACES.map((background) => ({ foreground: '--accent', background, min: AA_TEXT, use: 'links and accent text' })),
   ...SURFACES.map((background) => ({ foreground: '--focus', background, min: AA_UI, use: 'focus ring' })),
-  ...SURFACES.map((background) => ({ foreground: '--accent', background, min: AA_UI, use: 'accent glyphs' })),
+  ...SURFACES.map((background) => ({
+    foreground: '--companion-outline',
+    background,
+    min: AA_UI,
+    use: 'companion outline',
+  })),
 ];

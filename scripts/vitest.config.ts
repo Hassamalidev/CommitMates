@@ -7,6 +7,7 @@ export default defineConfig({
   cacheDir: 'node_modules/.vitest-scripts',
   test: {
     environment: 'node',
+    fsModuleCachePath: 'node_modules/.vitest-cache-scripts',
     include: ['scripts/**/*.test.ts'],
     restoreMocks: true,
   },

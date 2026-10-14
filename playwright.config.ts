@@ -1,6 +1,11 @@
+import { existsSync } from 'node:fs';
+
 import { defineConfig, devices } from '@playwright/test';
 
 import { localTestEnv } from './packages/env/src/test-values';
+
+// Real keys for the local Supabase stack live in the root .env.local (never committed).
+if (existsSync('.env.local')) process.loadEnvFile('.env.local');
 
 /** Port of the production build that Playwright starts; separate from `pnpm dev`. */
 const E2E_PORT = Number(process.env.E2E_PORT ?? '3100');
@@ -30,13 +35,19 @@ export default defineConfig({
   projects: [
     { name: 'desktop', use: { ...devices['Desktop Chrome'] } },
     // The smallest supported width (CLAUDE.md §2.9).
-    { name: 'mobile-360', use: { ...devices['Desktop Chrome'], viewport: { width: 360, height: 740 } } },
+    // Tests that change shared database rows run once, in the desktop project.
+    {
+      name: 'mobile-360',
+      use: { ...devices['Desktop Chrome'], viewport: { width: 360, height: 740 } },
+      grepInvert: /@shared-state/,
+    },
   ],
   webServer: {
     command: `pnpm --filter @commitmates/web exec next start --port ${E2E_PORT}`,
     url: `${baseURL}/api/health`,
     reuseExistingServer: !isCi,
-    env: definedEnv({ ...localTestEnv({ NEXT_PUBLIC_SITE_URL: baseURL }), ...definedEnv(process.env) }),
+    // The site URL must match the address the browser uses, or same-origin checks fail.
+    env: definedEnv({ ...localTestEnv(), ...definedEnv(process.env), NEXT_PUBLIC_SITE_URL: baseURL }),
     timeout: 120_000,
   },
 });

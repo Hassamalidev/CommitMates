@@ -14,13 +14,19 @@
   },
   "dependencies": {
     "@commitmates/db": "workspace:*",
-    "@commitmates/env": "workspace:*"
+    "@commitmates/env": "workspace:*",
+    "@octokit/core": "^7.0.0",
+    "@octokit/request-error": "^7.0.0",
+    "drizzle-orm": "^0.45.4",
+    "zod": "catalog:"
   },
   "devDependencies": {
     "@commitmates/config": "workspace:*",
     "@types/node": "catalog:",
     "eslint": "catalog:",
     "typescript": "catalog:",
-    "vitest": "catalog:"
+    "vitest": "catalog:",
+    "msw": "^2.11.0",
+    "pino": "^10.4.0"
   }
 }

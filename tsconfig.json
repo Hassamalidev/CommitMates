@@ -1,5 +1,9 @@
 {
   "extends": "./packages/config/tsconfig/base.json",
+  "compilerOptions": {
+    // Playwright specs evaluate functions in the browser, so they need DOM types.
+    "lib": ["ES2023", "DOM"]
+  },
   "include": ["scripts", "e2e", "*.ts", "*.js"],
   "exclude": ["node_modules"]
 }
