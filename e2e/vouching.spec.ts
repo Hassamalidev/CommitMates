@@ -5,28 +5,10 @@ import { expect, test, type Browser } from '@playwright/test';
 import { expectNoSeriousA11yViolations } from './helpers/axe';
 import { withAppDatabase } from './helpers/db';
 import { cacheCard } from './helpers/dev-card';
+import { prepareMember } from './helpers/members';
 import { signInTestMember, type TestMember } from './helpers/session';
 
 const ACTION_TIMEOUT = { timeout: 15_000 };
-const DAY_MS = 24 * 60 * 60 * 1000;
-
-/** Member rows with a GitHub login, as a real sign-in would create; optionally verified long ago. */
-async function prepareMember(
-  member: TestMember,
-  universityId: string | null,
-  verifiedDaysAgo: number | null,
-): Promise<void> {
-  const verifiedAt = verifiedDaysAgo === null ? null : new Date(Date.now() - verifiedDaysAgo * DAY_MS);
-  await withAppDatabase(async (sql) => {
-    await sql`insert into users (id) values (${member.userId}) on conflict (id) do nothing`;
-    await sql`insert into profiles (user_id, timezone) values (${member.userId}, 'UTC') on conflict (user_id) do nothing`;
-    await sql`update profiles set university_id = ${universityId}, verified_at = ${verifiedAt}, verified_via = ${verifiedAt ? 'email' : null}
-              where user_id = ${member.userId}`;
-    await sql`insert into github_identities (user_id, github_id, login)
-              values (${member.userId}, ${Number.parseInt(randomBytes(3).toString('hex'), 16) + 800_000_000}, ${member.login})
-              on conflict (user_id) do nothing`;
-  });
-}
 
 /** Signs in a member verified 30 days ago and vouches; `created` gets the member for cleanup first. */
 async function vouchAs(
@@ -39,7 +21,7 @@ async function vouchAs(
   const context = await browser.newContext();
   const voucher = await signInTestMember(context, baseURL);
   created.push(voucher);
-  await prepareMember(voucher, universityId, 30);
+  await prepareMember(voucher, { universityId, verifiedDaysAgo: 30, onboarded: true });
   const page = await context.newPage();
   await page.goto(`/u/${login}`);
   await expect(page.getByText(`@${login} is waiting for members of`, { exact: false })).toBeVisible();
@@ -67,7 +49,7 @@ test.describe('vouching (F10 step 5)', () => {
     );
     const universityId = university!.id;
     const newcomer = await signInTestMember(context, baseURL ?? '');
-    await prepareMember(newcomer, null, null);
+    await prepareMember(newcomer);
     await cacheCard(newcomer.login, 4545);
     const vouchers: TestMember[] = [];
     try {

@@ -3,6 +3,8 @@
 import {
   chooseUniversityForVouching,
   confirmEmailCode,
+  creditInvite,
+  getLogger,
   guardRate,
   saveOnboardingDetails,
   startEmailVerification,
@@ -10,9 +12,10 @@ import {
   type StartVerificationResult,
 } from '@commitmates/core';
 import { revalidatePath } from 'next/cache';
-import { headers } from 'next/headers';
+import { cookies, headers } from 'next/headers';
 import { redirect } from 'next/navigation';
 
+import { INVITE_COOKIE, parseInviteCookie } from '@/lib/invite-cookie';
 import { withAction, type ActionResult } from '@/server/action';
 import { requireUser, requireVerified } from '@/server/guards';
 import { startJobAfterResponse } from '@/server/jobs';
@@ -89,6 +92,17 @@ export const saveDetailsAction = async (_previous: ActionResult<null> | null, fo
       emailDigest: field(formData, 'emailDigest'),
       timezone: field(formData, 'timezone'),
     });
+    // Credit the invite this member arrived with, if any; a failure must not block onboarding.
+    const jar = await cookies();
+    const invite = parseInviteCookie(jar.get(INVITE_COOKIE)?.value);
+    if (invite) {
+      try {
+        await creditInvite(member, invite);
+      } catch (error) {
+        getLogger().warn({ err: error }, 'invite not credited');
+      }
+      jar.delete(INVITE_COOKIE);
+    }
     revalidatePath('/', 'layout');
     redirect('/home');
   })();

@@ -101,3 +101,5 @@ export { latestUniversityRequest, listCountries, type Country, type ModeratorRow
 export { hasVouched } from '@commitmates/db';
 export { canVouchFor, chooseUniversityForVouching, findUniversities, getVouchingStatus, vouchForMember, type VouchingStatus } from './verification/vouching';
 export { getOnboardingOptions, onboardingDetailsSchema, resolveDepartment, saveOnboardingDetails } from './profiles/onboarding';
+export { campusUnlocks, creditInvite, getCampus, inviteFor, recentNotifications, type Campus, type Unlock, type UnlockKey } from './universities/campus';
+export type { NotificationRow, TopicCount } from '@commitmates/db';

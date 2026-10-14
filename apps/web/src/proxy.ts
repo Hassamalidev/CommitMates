@@ -2,6 +2,7 @@ import { clientEnv } from '@commitmates/env/client';
 import { createServerClient } from '@supabase/ssr';
 import { NextResponse, type NextRequest } from 'next/server';
 
+import { INVITE_COOKIE, inviteCookieValue } from '@/lib/invite-cookie';
 import { isProtectedPath } from '@/lib/paths';
 
 /**
@@ -29,6 +30,13 @@ export async function proxy(request: NextRequest): Promise<NextResponse> {
 
   // Must run on every matched request: it rotates expiring tokens.
   const { data } = await supabase.auth.getUser();
+
+  // An invite link (`?ref=<uni-slug>&invite=<code>`) is remembered for this browsing session, so the
+  // inviter is credited once the visitor signs up and verifies there (CLAUDE.md §1.4).
+  const invite = inviteCookieValue(request.nextUrl.searchParams.get('ref'), request.nextUrl.searchParams.get('invite'));
+  if (invite) {
+    response.cookies.set(INVITE_COOKIE, invite, { httpOnly: true, sameSite: 'lax', secure: request.nextUrl.protocol === 'https:', path: '/' });
+  }
 
   if (!data.user && isProtectedPath(request.nextUrl.pathname)) {
     const signIn = request.nextUrl.clone();

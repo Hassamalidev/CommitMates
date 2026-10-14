@@ -1,4 +1,4 @@
-import { type AnyPgColumn, index, pgTable, text, uniqueIndex, uuid } from 'drizzle-orm/pg-core';
+import { type AnyPgColumn, index, integer, pgTable, text, uniqueIndex, uuid } from 'drizzle-orm/pg-core';
 
 import { createdAt } from './columns';
 import { users } from './identity';
@@ -26,4 +26,22 @@ export const departments = pgTable(
     uniqueIndex('departments_university_normalized_key').on(table.universityId, table.normalizedName),
     index('departments_normalized_trgm_idx').using('gin', table.normalizedName.op('gin_trgm_ops')),
   ],
+).enableRLS();
+
+/**
+ * Invite links (CLAUDE.md §1.4, §7.2): one code per member and university. A link carries
+ * `?ref=<uni-slug>&invite=<code>`; `uses` counts invitees who then verify at that university.
+ */
+export const invites = pgTable(
+  'invites',
+  {
+    code: text('code').primaryKey(),
+    universityId: uuid('university_id')
+      .notNull()
+      .references(() => universities.id, { onDelete: 'cascade' }),
+    createdBy: uuid('created_by').references(() => users.id, { onDelete: 'cascade' }),
+    uses: integer('uses').notNull().default(0),
+    createdAt: createdAt(),
+  },
+  (table) => [uniqueIndex('invites_university_creator_key').on(table.universityId, table.createdBy)],
 ).enableRLS();

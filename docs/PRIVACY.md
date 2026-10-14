@@ -67,6 +67,12 @@ A member's request to add a university domain: the domain, the proposed name and
 
 Who vouched for whom, and at which university. Visible to nobody else: a member sees only their own vouch count. Deleted by cascade when either member deletes their account; a vouch already used for verification does not undo it.
 
+### `invites` (class A)
+
+One random code per member and university, and how many invitees verified there after following it. Nothing about the invitees is stored with it. Deleted by cascade when the member deletes their account.
+
+The invite link's university slug and code are kept in a session cookie (`cm_invite`, HTTP-only) until the invitee finishes onboarding; the cookie is then removed. It holds no personal data.
+
 ### `notifications`, `notification_prefs` (class A)
 
 In-app notifications and the member's email preferences. Deleted by cascade from `users`.

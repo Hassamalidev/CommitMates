@@ -253,6 +253,13 @@
       "when": 1791975194642,
       "tag": "0035_settings_profile",
       "breakpoints": true
+    },
+    {
+      "idx": 36,
+      "version": "7",
+      "when": 1791977101533,
+      "tag": "0036_invites",
+      "breakpoints": true
     }
   ]
 }
