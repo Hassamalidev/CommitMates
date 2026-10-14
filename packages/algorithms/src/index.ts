@@ -67,3 +67,26 @@ export {
   type HourWindow,
 } from './compat/compat';
 export { shannonEntropy } from './text/entropy';
+export {
+  commitUnfinishedSignal,
+  hasExternalLink,
+  isInformativeMessage,
+  messageTokens,
+  normalizeCommitMessage,
+  readmeUnfinishedSignal,
+  termMatcher,
+  unfinishedScore,
+} from './recruiter/text';
+export {
+  MAX_MISSING_SKILLS,
+  RECRUITER_RULES,
+  UNFINISHED_AT,
+  evaluateRecruiterRules,
+  recruiterScore,
+  type RecruiterFacts,
+  type RecruiterRuleKey,
+  type RecruiterSettings,
+  type RuleEvidence,
+  type RuleResult,
+  type ShowcaseRepo,
+} from './recruiter/rules';

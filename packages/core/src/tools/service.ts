@@ -40,8 +40,11 @@ export type ToolDefinition<I> = {
   input: z.ZodType<I>;
   /** Who or what the result is about, in canonical form (lowercased login, `owner/repo`, …). */
   subjectKey(input: I): string;
-  /** The part of the input that changes the result without changing the subject. */
-  params?(input: I): unknown;
+  /**
+   * What changes the result without changing the subject: parts of the input, and for
+   * results only one person may see, who asked.
+   */
+  params?(input: I, context: ToolRunContext): unknown;
   /** The job's idempotency key; the same request inside one bucket shares one job. */
   idempotencyKey(input: I, now: Date): string;
   /** The job payload, when it carries more than the input (for example who asked). Defaults to the input. */
@@ -91,8 +94,8 @@ export function hashParams(params: unknown): string {
   return createHash('sha256').update(JSON.stringify(stable(params))).digest('hex');
 }
 
-export function cacheKeyFor<I>(tool: ToolDefinition<I>, input: I): AnalysisKey {
-  return { kind: tool.cacheKind, subjectKey: tool.subjectKey(input), paramsHash: hashParams(tool.params?.(input)) };
+export function cacheKeyFor<I>(tool: ToolDefinition<I>, input: I, context: ToolRunContext = {}): AnalysisKey {
+  return { kind: tool.cacheKind, subjectKey: tool.subjectKey(input), paramsHash: hashParams(tool.params?.(input, context)) };
 }
 
 export type ToolRun =
@@ -114,7 +117,7 @@ export async function startToolRun(
   const input = parseToolInput(tool, rawInput);
   const now = options.now ?? new Date();
 
-  const cached = await getCachedAnalysis(cacheKeyFor(tool, input), now);
+  const cached = await getCachedAnalysis(cacheKeyFor(tool, input, { userId: options.userId }), now);
   if (cached) return { status: 'done', result: cached.result, computedAt: cached.computedAt.toISOString() };
 
   const payload = tool.payload ? tool.payload(input, { userId: options.userId }) : input;
@@ -152,14 +155,14 @@ export async function storeToolResult<I>(
   tool: ToolDefinition<I>,
   input: I,
   result: unknown,
-  options: { isMemberSubject: boolean; now: Date },
+  options: { isMemberSubject: boolean; now: Date; context?: ToolRunContext },
 ): Promise<ToolResultRef> {
   const [ttlHours, nonUserTtlHours] = await Promise.all([
     getSetting(tool.ttlSetting),
     getSetting('privacy.nonUserRawTtlHours'),
   ]);
   const hours = options.isMemberSubject ? ttlHours : Math.min(ttlHours, nonUserTtlHours);
-  const key = cacheKeyFor(tool, input);
+  const key = cacheKeyFor(tool, input, options.context);
   await putCachedAnalysis({
     ...key,
     result,

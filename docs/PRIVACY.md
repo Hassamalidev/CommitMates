@@ -88,9 +88,17 @@ Recent public events (including commit messages GitHub publishes in them) are re
 
 ### `analysis_cache` (class C for non-members, class B for members)
 
-Computed tool results, keyed by kind, subject and a hash of the parameters. Kinds so far: `compat` (subject = the two lowercased logins, sorted; scores, components, shared tags and starred repositories; kept for `cache.compatTtlHours` only when both people are members, otherwise no longer than `privacy.nonUserRawTtlHours`), `dev_card` (subject = lowercased GitHub login; the result holds the login, name, avatar URL, GitHub id, language shares, skill tags, hour histogram, 90 days of daily contribution counts and the derived labels — all from public data, plus private contribution counts only when the account owner enabled them on GitHub and analyzed their own account).
+Computed tool results, keyed by kind, subject and a hash of the parameters. Kinds so far: `recruiter` (subject = lowercased login, parameters = the claimed skills and, for an owner's own check, the owner's user id so nobody else can read that entry; rule credits and evidence, never a secret or where one is), `compat` (subject = the two lowercased logins, sorted; scores, components, shared tags and starred repositories; kept for `cache.compatTtlHours` only when both people are members, otherwise no longer than `privacy.nonUserRawTtlHours`), `dev_card` (subject = lowercased GitHub login; the result holds the login, name, avatar URL, GitHub id, language shares, skill tags, hour histogram, 90 days of daily contribution counts and the derived labels — all from public data, plus private contribution counts only when the account owner enabled them on GitHub and analyzed their own account).
 
 Retention: `cache.devCardTtlHours` for members; for people who have not signed up, never longer than `privacy.nonUserRawTtlHours`. Expired rows are deleted hourly by `purge_non_user_raw`. A job's `result_ref` only points at the row; the result is delivered to the browser that holds the unguessable job id.
+
+### `recruiter_reports` (class B)
+
+A member's own Recruiter-Ready check with the secret scan: score, rule results, files scanned, and each finding as rule id, repository, path and line. The secret itself is never stored or shown. Readable only by that member (the server checks the signed-in member owns the row); deleted with the account.
+
+### `generic_message_counts` (class D)
+
+Short normalized commit messages (at most a few words, like "fix" or "update readme") with how many analyses saw them. No person, repository or time is stored with a message. Kept indefinitely.
 
 ### `api_cache` (class C)
 

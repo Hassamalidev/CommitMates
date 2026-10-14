@@ -29,6 +29,6 @@ export {
   type ProfileRepo,
 } from './queries/profile';
 export { fetchPublicEvents, type ActivityEvent, type ActivityKind } from './queries/events';
-export { fetchFileText, listRootEntries, type RootEntry } from './queries/contents';
+export { fetchFileText, fetchReadme, listRootEntries, type RootEntry } from './queries/contents';
 export { fetchStarredRepos, type StarredRepo } from './queries/starred';
 export { fetchBlobText, fetchTree, type Tree, type TreeEntry } from './queries/git';

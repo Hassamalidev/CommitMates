@@ -1,0 +1,47 @@
+import { bigint, boolean, index, integer, jsonb, pgTable, smallint, text, uuid } from 'drizzle-orm/pg-core';
+
+import { createdAt, timestamptz, updatedAt } from './columns';
+import { users } from './identity';
+
+/** Where a secret was found. The value is never stored (CLAUDE.md §2.6, §8 F3). */
+export type StoredSecretFinding = { ruleId: string; repo: string; path: string; line: number };
+
+/**
+ * A member's own Recruiter-Ready check with the secret scan (CLAUDE.md §7.4). Readable only by
+ * that member. Rows belong to the member and are deleted with the account.
+ */
+export const recruiterReports = pgTable(
+  'recruiter_reports',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    userId: uuid('user_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
+    subjectGithubId: bigint('subject_github_id', { mode: 'number' }).notNull(),
+    score: smallint('score'),
+    rules: jsonb('rules').notNull(),
+    secretFindings: jsonb('secret_findings').$type<StoredSecretFinding[]>().notNull(),
+    /** True when the scan stopped at a cap, a truncated tree or the deadline. */
+    secretScanPartial: boolean('secret_scan_partial').notNull().default(false),
+    filesScanned: integer('files_scanned').notNull().default(0),
+    computedAt: timestamptz('computed_at').notNull(),
+    createdAt: createdAt(),
+  },
+  (table) => [index('recruiter_reports_user_computed_idx').on(table.userId, table.computedAt)],
+).enableRLS();
+
+/**
+ * How often each short commit message occurs across analyses, so the most common ones can
+ * be treated as generic (CLAUDE.md §8 F3). Normalized text and a count only: no person,
+ * repository or time is linked to a message.
+ */
+export const genericMessageCounts = pgTable(
+  'generic_message_counts',
+  {
+    message: text('message').primaryKey(),
+    count: integer('count').notNull(),
+    createdAt: createdAt(),
+    updatedAt: updatedAt(),
+  },
+  (table) => [index('generic_message_counts_count_idx').on(table.count)],
+).enableRLS();

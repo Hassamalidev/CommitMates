@@ -115,6 +115,24 @@ All algorithms live in `packages/algorithms` and are pure: no I/O, no clock, no 
 - Tests: `packages/algorithms/src/compat/compat.test.ts`, `packages/core/src/compat/compat.test.ts`
 - Spec: CLAUDE.md §8 F2
 
+## Recruiter-Ready Score
+
+### Rules, credit and score
+
+- Code: `packages/algorithms/src/recruiter/rules.ts` and `text.ts`; orchestration in `packages/core/src/recruiter/` (job `recruiter_report`)
+- Formula:
+  - showcase = the pinned repositories the person owns; when there are none, the top `recruiter.pinned.max` by stars (the report says so)
+  - `profileReadme` 1 when the `<login>/<login>` README has at least `recruiter.profileReadme.minChars` characters; `pinnedCount` 1 inside [`recruiter.pinned.min`, `recruiter.pinned.max`], 0.5 for exactly one, else 0; `pinnedReadme`, `pinnedDemo` (homepage, or a README link outside GitHub — images and github.com links do not count, GitHub Pages does), `pinnedLicense`, `pinnedDescription`, `pinnedTopics` are shares of the showcase
+  - `commitMessages` = share of push messages (subject line, lowercased, issue references removed) with at least `recruiter.minMessageTokens` words that are not among the `recruiter.genericMessageTopK` most frequent short messages in `generic_message_counts`
+  - `unfinishedRatio` = 1 − share of showcased repositories whose unfinished score is at least 0.5; unfinished score = mean of the README signal (an unfinished term as a whole word, or an unchecked task) and the share of that repository's recent commit messages with an unfinished term. The issue and release signals of F7 join in P2-T14.
+  - `languageMatch` (only with claimed skills) = share of claimed skills, normalized through topic aliases, found among the person's languages and skill tags
+  - `activityConsistency` = min(1, activeDayShare ÷ `persona.marathoner.activeDayShare`)
+  - score = round(100 × Σ weight·credit ÷ Σ weight) over the rules that apply and have a positive weight in `recruiter.weights`
+- Short messages (at most `recruiter.minMessageTokens + 2` words) are counted once per analysis in `generic_message_counts`, with no link to any person.
+- Settings: `recruiter.weights`, `recruiter.pinned.min` (2), `recruiter.pinned.max` (6), `recruiter.readme.minChars` (600), `recruiter.profileReadme.minChars` (200), `recruiter.minMessageTokens` (3), `recruiter.genericMessageTopK` (50), `graveyard.unfinishedTerms`, `persona.marathoner.activeDayShare`, `cache.recruiterTtlHours` (24)
+- Tests: `packages/algorithms/src/recruiter/recruiter.test.ts`, `packages/core/src/recruiter/recruiter.test.ts`
+- Spec: CLAUDE.md §8 F3
+
 ## Information retrieval
 
 No entries yet. YAKE and BM25 arrive in P2-T17; TF-IDF in P4-T02.

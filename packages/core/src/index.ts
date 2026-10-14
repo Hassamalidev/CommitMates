@@ -64,3 +64,5 @@ export { COMPAT_STEPS, compatTool, getCachedCompat } from './compat/jobs';
 export { compatInputSchema, compatResultSchema, type CompatInput, type CompatResult, type CompatSideSummary } from './compat/schemas';
 export { compatShareAllowed } from './compat/sharing';
 export { scanRepositories, type RepoFinding, type ScanReport, type ScanTarget } from './secrets/scanner';
+export { RECRUITER_STEPS, recruiterTool } from './recruiter/jobs';
+export { MAX_RESUME_SKILLS, recruiterInputSchema, recruiterResultSchema, type RecruiterInput, type RecruiterResult } from './recruiter/schemas';

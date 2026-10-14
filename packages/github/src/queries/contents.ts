@@ -62,3 +62,25 @@ export async function fetchFileText(
     throw error;
   }
 }
+
+/**
+ * A repository's README as GitHub picks it (any name and format GitHub recognizes), as
+ * text. `null` when the repository has none.
+ */
+export async function fetchReadme(
+  client: GitHubClient,
+  owner: string,
+  repo: string,
+  options: RequestOptions = {},
+): Promise<string | null> {
+  try {
+    return await client.get('GET /repos/{owner}/{repo}/readme', { owner, repo }, z.string(), {
+      ...options,
+      accept: RAW_MEDIA_TYPE,
+      what: `${owner}/${repo}`,
+    });
+  } catch (error) {
+    if (error instanceof GitHubNotFoundError) return null;
+    throw error;
+  }
+}
