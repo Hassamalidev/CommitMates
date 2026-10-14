@@ -31,6 +31,8 @@ export function definePackageConfig(options = {}) {
       fsModuleCachePath: 'node_modules/.vitest-cache',
       // Integration tests create a scratch database per file.
       hookTimeout: 60000,
+      // Integration tests share one Postgres with every other package running in parallel.
+      testTimeout: 20000,
       restoreMocks: true,
       unstubEnvs: true,
       coverage: {

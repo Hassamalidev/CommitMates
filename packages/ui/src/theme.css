@@ -103,6 +103,26 @@
   font-weight: 400;
 }
 
+/* Companion sprite sheets: the frames sit side by side and the group steps left (CLAUDE.md §9.5). */
+@keyframes companion-steps {
+  to {
+    transform: translateX(var(--companion-shift));
+  }
+}
+
+@layer components {
+  .companion-frames {
+    animation-name: companion-steps;
+    animation-fill-mode: forwards;
+  }
+  /* Reduced motion: show the first frame only. */
+  @media (prefers-reduced-motion: reduce) {
+    .companion-frames {
+      animation: none !important;
+    }
+  }
+}
+
 @layer base {
   html {
     background-color: var(--bg);

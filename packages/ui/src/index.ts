@@ -7,7 +7,7 @@ export { Avatar, sizedAvatarUrl, type AvatarProps } from './components/Avatar';
 export { Button, buttonStyles, type ButtonProps } from './components/Button';
 export { Card, type CardProps } from './components/Card';
 export { ChecklistRule, type ChecklistRuleProps, type RuleStatus } from './components/ChecklistRule';
-export { Chip, StateChip, type ChipProps, type CompanionState, type StateChipProps } from './components/Chip';
+export { Chip, StateChip, type ChipProps, type StateChipProps } from './components/Chip';
 export { Combobox, type ComboboxOption, type ComboboxProps } from './components/Combobox';
 export { Dialog, type DialogProps } from './components/Dialog';
 export { DropdownMenu, type DropdownMenuItem, type DropdownMenuProps } from './components/DropdownMenu';
@@ -30,6 +30,23 @@ export { ToastProvider, useToast, type ToastInput, type ToastProviderProps, type
 export { Tooltip, type TooltipProps } from './components/Tooltip';
 export { UnlockCard, type UnlockCardProps } from './components/UnlockCard';
 export { VisuallyHidden } from './components/VisuallyHidden';
+
+export { CompanionView, type CompanionViewProps } from './companion/CompanionView';
+export { SpeechBubble, type SpeechBubbleProps } from './companion/SpeechBubble';
+export {
+  COMPANION_TRAITS,
+  MAX_STAGE,
+  SPECIES_COUNT,
+  generateFrames,
+  hashSeed,
+  speciesFor,
+  type CompanionFrames,
+  type CompanionInput,
+  type CompanionState,
+  type CompanionTrait,
+} from './companion/generate';
+export { renderSpriteSheet, type SpriteSheetOptions } from './companion/render';
+export { contrastRatio, derivePalette, outlineFor } from './companion/color';
 
 export { ThemeToggle, type ThemeToggleProps } from './theme/ThemeToggle';
 export {

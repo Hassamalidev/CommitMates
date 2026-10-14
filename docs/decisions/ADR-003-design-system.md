@@ -44,9 +44,17 @@ Mapping `--text` and `--bg` directly would produce utilities such as `text-text`
 
 A native `<select>` already has correct keyboard, touch and screen-reader behavior on every platform. `Combobox` follows the ARIA 1.2 combobox pattern directly, since it needs free-text typeahead against server data.
 
+### Companions are inline SVG, stepped with a CSS transform
+
+§9.5 step 11 describes one SVG sprite sheet animated with `steps(n)` on `background-position`. A background image cannot read CSS variables from the page, and the outline must change with the theme to keep 3:1 contrast against the surface (dark outline on light, light outline on dark). `CompanionView` therefore renders the sprite sheet inline and steps a `<g>` with `transform: translateX()` and `steps(n)`: the same frames and timing, with `--companion-outline` and `--accent` resolved by the theme. `renderSpriteSheet()` still produces the standalone sheet with resolved colors for share images.
+
+"Done" returns to idle on a timer equal to the two hops rather than on `animationend`, because with reduced motion the animation never runs and the companion must still come to rest.
+
+Snapshot tests compare against committed files in `packages/ui/src/companion/__snapshots__` with a small helper, because Vitest 5's built-in snapshot client failed to initialize in this workspace.
+
 ### Components not in this task
 
-`CompanionView` and `SpeechBubble` arrive with the companion engine (P1-T09). `ScoreDial`, `LanguageBar`, `RhythmStrip`, `Heatmap`, `BarList` and `Timeline` are charts and arrive with the features that use them in Phase 2. `DeckCard` arrives with Discover (P4-T04).
+`ScoreDial`, `LanguageBar`, `RhythmStrip`, `Heatmap`, `BarList` and `Timeline` are charts and arrive with the features that use them in Phase 2. `DeckCard` arrives with Discover (P4-T04).
 
 ## Alternatives considered
 

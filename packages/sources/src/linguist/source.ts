@@ -2,7 +2,7 @@ import { createHash } from 'node:crypto';
 
 import { schema } from '@commitmates/db';
 import { SERVER_IDENTITY, githubFor } from '@commitmates/github';
-import { and, eq, inArray } from 'drizzle-orm';
+import { eq, inArray } from 'drizzle-orm';
 import { z } from 'zod';
 
 import type { SourceContext, SourceModule, SyncCounts } from '../contract';
@@ -37,13 +37,14 @@ async function syncLanguages(items: LanguageItem[], ctx: SourceContext): Promise
   const counts: SyncCounts = { inserted: 0, updated: 0, deleted: 0, skipped: 0 };
   const syncedAt = ctx.now();
   const existing = new Map((await ctx.db.select().from(languages)).map((row) => [row.name, row]));
+  const added: (typeof languages.$inferInsert)[] = [];
 
   for (const item of items) {
     const row = existing.get(item.name);
     existing.delete(item.name);
     const values = { color: item.color, extensions: item.extensions, aliases: item.aliases, syncedAt };
     if (!row) {
-      await ctx.db.insert(languages).values({ name: item.name, ...values });
+      added.push({ name: item.name, ...values });
       counts.inserted += 1;
     } else if (row.color !== item.color || !sameList(row.extensions, item.extensions) || !sameList(row.aliases, item.aliases)) {
       await ctx.db.update(languages).set(values).where(eq(languages.name, item.name));
@@ -52,6 +53,8 @@ async function syncLanguages(items: LanguageItem[], ctx: SourceContext): Promise
       counts.skipped += 1;
     }
   }
+  // One statement for all new rows: a first sync inserts several hundred.
+  if (added.length > 0) await ctx.db.insert(languages).values(added);
   const removed = [...existing.keys()];
   if (removed.length > 0) {
     await ctx.db.delete(languages).where(inArray(languages.name, removed));
@@ -65,14 +68,13 @@ async function syncPatterns(items: PatternItem[], ctx: SourceContext): Promise<S
   const syncedAt = ctx.now();
   const key = (kind: string, pattern: string) => `${kind}\u0000${pattern}`;
   const existing = new Map((await ctx.db.select().from(pathPatterns)).map((row) => [key(row.kind, row.pattern), row]));
+  const added: (typeof pathPatterns.$inferInsert)[] = [];
 
   for (const item of items) {
     const row = existing.get(key(item.patternKind, item.pattern));
     existing.delete(key(item.patternKind, item.pattern));
     if (!row) {
-      await ctx.db
-        .insert(pathPatterns)
-        .values({ kind: item.patternKind, pattern: item.pattern, compiledOk: item.compiledOk, syncedAt });
+      added.push({ kind: item.patternKind, pattern: item.pattern, compiledOk: item.compiledOk, syncedAt });
       counts.inserted += 1;
     } else if (row.compiledOk !== item.compiledOk) {
       await ctx.db.update(pathPatterns).set({ compiledOk: item.compiledOk, syncedAt }).where(eq(pathPatterns.id, row.id));
@@ -81,9 +83,11 @@ async function syncPatterns(items: PatternItem[], ctx: SourceContext): Promise<S
       counts.skipped += 1;
     }
   }
-  for (const row of existing.values()) {
-    await ctx.db.delete(pathPatterns).where(and(eq(pathPatterns.id, row.id)));
-    counts.deleted += 1;
+  if (added.length > 0) await ctx.db.insert(pathPatterns).values(added);
+  const removed = [...existing.values()].map((row) => row.id);
+  if (removed.length > 0) {
+    await ctx.db.delete(pathPatterns).where(inArray(pathPatterns.id, removed));
+    counts.deleted = removed.length;
   }
   return counts;
 }

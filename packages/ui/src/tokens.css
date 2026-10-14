@@ -21,6 +21,7 @@
   --state-done: #4ADE80;
   --state-error: #FF6B6B;
   --focus: var(--accent);
+  --companion-outline: #C9D2E3;
 }
 
 :root[data-theme="light"] {
@@ -40,4 +41,5 @@
   --state-done: #136F35;
   --state-error: #C42B2B;
   --focus: var(--accent);
+  --companion-outline: #1B1F2A;
 }

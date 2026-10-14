@@ -1,5 +1,6 @@
 import type { HTMLAttributes, ReactNode } from 'react';
 
+import type { CompanionState } from '../companion/generate';
 import { Icon, type IconName } from '../icons/Icon';
 import { cn } from '../lib/cn';
 
@@ -19,9 +20,6 @@ export function Chip({ className, children, ...rest }: ChipProps) {
     </span>
   );
 }
-
-/** The five states every job and companion can be in (CLAUDE.md §5.14). */
-export type CompanionState = 'idle' | 'working' | 'waiting' | 'done' | 'error';
 
 const stateStyle: Record<CompanionState, { icon: IconName; color: string }> = {
   idle: { icon: 'schedule', color: 'text-state-idle border-state-idle' },

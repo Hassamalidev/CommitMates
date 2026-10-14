@@ -125,4 +125,10 @@ export const CONTRAST_RULES: readonly ContrastRule[] = [
   ),
   ...SURFACES.map((background) => ({ foreground: '--accent', background, min: AA_TEXT, use: 'links and accent text' })),
   ...SURFACES.map((background) => ({ foreground: '--focus', background, min: AA_UI, use: 'focus ring' })),
+  ...SURFACES.map((background) => ({
+    foreground: '--companion-outline',
+    background,
+    min: AA_UI,
+    use: 'companion outline',
+  })),
 ];
