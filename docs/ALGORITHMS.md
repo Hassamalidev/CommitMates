@@ -186,6 +186,21 @@ All algorithms live in `packages/algorithms` and are pure: no I/O, no clock, no 
 - Tests: `packages/algorithms/src/graveyard/graveyard.test.ts`, `packages/core/src/graveyard/graveyard.test.ts`
 - Spec: CLAUDE.md §8 F7
 
+## Gap Finder
+
+### Facets, peers and prevalence
+
+- Code: `packages/algorithms/src/gap/gap.ts`; facets and the job in `packages/core/src/gap/` (job `gap_analysis`)
+- Formula:
+  - facets of a repository: every root entry as `dir:<name>` or `file:<name>` (lowercased), `dir:.github/workflows` when it has files, `tag:<t>` for each derived tag of its dependencies, and `meta:license`, `meta:homepage`, `meta:releases`, `meta:topics`, `meta:description`; stored in `repo_paths` and `repo_dependencies`, cached per repository for `cache.gapTtlHours`
+  - peers: GitHub searches for the repository's topics (widened with the taxonomy of the first) and up to three dependency tags as topics, each with `stars:>=gap.minPeerStars`, pushed within a year, not a fork, and the same primary language; a repository without topics or tags is compared by its name; up to `gap.peerSampleSize`, never the repository itself
+  - p(f) = share of peers with facet f; expected when p(f) ≥ `gap.minPrevalence`; gaps = expected facets the repository lacks, by p(f), top `gap.maxGaps`, each with three example peers by stars; shared = expected facets it already has
+  - labels: a path shows itself, plus the GitHub topic whose slug or alias matches its name without extension (`dockerfile` → Docker); tags show the topic's display name
+  - low confidence when fewer than a third of `gap.peerSampleSize` peers were found
+- Settings: `gap.peerSampleSize` (30), `gap.minPrevalence` (0.5), `gap.maxGaps` (8), `gap.minPeerStars` (10), `cache.gapTtlHours` (24), `unlock.gapCampus.minMembers` (10, campus panel)
+- Tests: `packages/algorithms/src/gap/gap.test.ts`, `packages/core/src/gap/gap.test.ts`
+- Spec: CLAUDE.md §8 F5
+
 ## Information retrieval
 
 No entries yet. YAKE and BM25 arrive in P2-T17; TF-IDF in P4-T02.

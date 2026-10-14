@@ -84,3 +84,32 @@ export async function fetchReadme(
     throw error;
   }
 }
+
+/** Lists one directory of a repository. A missing directory lists as empty. */
+export async function listDirectory(
+  client: GitHubClient,
+  owner: string,
+  repo: string,
+  path: string,
+  options: RequestOptions = {},
+): Promise<RootEntry[]> {
+  try {
+    const entries = await client.get(
+      // {+path}: reserved expansion keeps the slashes of a nested path unencoded.
+      'GET /repos/{owner}/{repo}/contents/{+path}',
+      { owner, repo, path },
+      z.array(entrySchema),
+      { ...options, what: `${owner}/${repo}/${path}` },
+    );
+    return entries.map((entry) => ({
+      name: entry.name,
+      path: entry.path,
+      type: entry.type === 'file' || entry.type === 'dir' ? entry.type : 'other',
+      sha: entry.sha,
+      size: entry.size ?? 0,
+    }));
+  } catch (error) {
+    if (error instanceof GitHubNotFoundError) return [];
+    throw error;
+  }
+}

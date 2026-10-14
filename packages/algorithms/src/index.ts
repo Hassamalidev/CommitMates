@@ -121,3 +121,4 @@ export {
   type RevivalInput,
   type RevivalScore,
 } from './graveyard/graveyard';
+export { facetPrevalence, findGaps, sharedFacets, type FacetPrevalence } from './gap/gap';

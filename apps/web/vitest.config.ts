@@ -3,6 +3,7 @@ import { fileURLToPath } from 'node:url';
 import { definePackageConfig } from '@commitmates/config/vitest';
 
 export default definePackageConfig({
+  setupFiles: ['./src/test/setup.ts'],
   overrides: {
     resolve: {
       alias: {

@@ -2,6 +2,7 @@ import { registerHandler, type JobHandler } from '@commitmates/jobs';
 
 import { compatCheckJob } from './compat/jobs';
 import { fairnessReportJob } from './fairness/jobs';
+import { gapAnalysisJob } from './gap/jobs';
 import { geocodePendingJob } from './geocoding/jobs';
 import { graveyardSearchJob } from './graveyard/jobs';
 import { analyzeProfileJob } from './persona/jobs';
@@ -39,6 +40,7 @@ export const jobHandlers: readonly Registration[] = [
   define(fairnessReportJob),
   define(taxonomyExpandJob),
   define(graveyardSearchJob),
+  define(gapAnalysisJob),
 ];
 
 /** Registers every handler. Safe to call on each request: re-registering is a no-op. */

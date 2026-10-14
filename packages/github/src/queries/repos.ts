@@ -12,7 +12,23 @@ const repositorySchema = z.object({
   size: z.number(),
   default_branch: z.string(),
   parent: z.object({ full_name: z.string(), size: z.number() }).nullish(),
+  name: z.string().nullish(),
+  owner: z.object({ id: z.number() }).nullish(),
+  description: z.string().nullish(),
+  homepage: z.string().nullish(),
+  topics: z.array(z.string()).nullish(),
+  language: z.string().nullish(),
+  stargazers_count: z.number().nullish(),
+  forks_count: z.number().nullish(),
+  open_issues_count: z.number().nullish(),
+  archived: z.boolean().nullish(),
+  license: z.object({ spdx_id: z.string().nullish() }).nullish(),
+  created_at: z.string().nullish(),
+  pushed_at: z.string().nullish(),
 });
+
+// GitHub reports "no license detected" as this pseudo identifier.
+const NO_LICENSE = 'NOASSERTION';
 
 export type Repository = {
   githubId: number;
@@ -22,6 +38,19 @@ export type Repository = {
   sizeKb: number;
   defaultBranch: string;
   parent: { fullName: string; sizeKb: number } | null;
+  name: string;
+  ownerGithubId: number | null;
+  description: string | null;
+  homepage: string | null;
+  topics: string[];
+  language: string | null;
+  stars: number;
+  forks: number;
+  openIssues: number;
+  isArchived: boolean;
+  licenseSpdx: string | null;
+  createdAt: string | null;
+  pushedAt: string | null;
 };
 
 /** One repository's metadata. Throws `GitHubNotFoundError` for a missing or private repository. */
@@ -35,6 +64,19 @@ export async function fetchRepository(client: GitHubClient, owner: string, repo:
     sizeKb: data.size,
     defaultBranch: data.default_branch,
     parent: data.parent ? { fullName: data.parent.full_name, sizeKb: data.parent.size } : null,
+    name: data.name ?? data.full_name.split('/')[1] ?? data.full_name,
+    ownerGithubId: data.owner?.id ?? null,
+    description: data.description ?? null,
+    homepage: data.homepage === '' ? null : (data.homepage ?? null),
+    topics: data.topics ?? [],
+    language: data.language ?? null,
+    stars: data.stargazers_count ?? 0,
+    forks: data.forks_count ?? 0,
+    openIssues: data.open_issues_count ?? 0,
+    isArchived: data.archived ?? false,
+    licenseSpdx: data.license?.spdx_id && data.license.spdx_id !== NO_LICENSE ? data.license.spdx_id : null,
+    createdAt: data.created_at ?? null,
+    pushedAt: data.pushed_at ?? null,
   };
 }
 

@@ -62,3 +62,18 @@ export const fairnessReports = pgTable(
   },
   (table) => [index('fairness_reports_computed_idx').on(table.computedAt)],
 ).enableRLS();
+
+/** One Gap Finder run (CLAUDE.md §7.4): the repository, its peers and the facets compared. Public data only. */
+export const gapReports = pgTable(
+  'gap_reports',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    repoGithubId: bigint('repo_github_id', { mode: 'number' }).notNull(),
+    peerRepoIds: bigint('peer_repo_ids', { mode: 'number' }).array().notNull(),
+    facets: jsonb('facets').notNull(),
+    gaps: jsonb('gaps').notNull(),
+    computedAt: timestamptz('computed_at').notNull(),
+    createdAt: createdAt(),
+  },
+  (table) => [index('gap_reports_repo_idx').on(table.repoGithubId), index('gap_reports_computed_idx').on(table.computedAt)],
+).enableRLS();

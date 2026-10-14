@@ -76,7 +76,8 @@ describe('salts and hashing', () => {
   it('hashes an IP the same way within a day and differently the next day', async () => {
     const first = await hashIp('203.0.113.7', DAY_1);
     expect(first).toMatch(/^[0-9a-f]{64}$/);
-    expect(first).not.toContain('203');
+    // The address itself never appears; a hex digest cannot contain its dots.
+    expect(first).not.toContain('203.0.113.7');
     expect(await hashIp('203.0.113.7', DAY_1)).toBe(first);
     expect(await hashIp('203.0.113.8', DAY_1)).not.toBe(first);
     expect(await hashIp('203.0.113.7', DAY_2)).not.toBe(first);

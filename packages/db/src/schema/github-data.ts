@@ -159,3 +159,19 @@ export const analysisCache = pgTable(
     index('analysis_cache_expires_idx').on(table.expiresAt),
   ],
 ).enableRLS();
+
+/**
+ * Top-level structure features of a repository for the Gap Finder (CLAUDE.md §7.3, §8 F5):
+ * `dir:<name>`, `file:<name>` (lowercased) and `dir:.github/workflows`. Deleted with the repository row.
+ */
+export const repoPaths = pgTable(
+  'repo_paths',
+  {
+    repoGithubId: bigint('repo_github_id', { mode: 'number' })
+      .notNull()
+      .references(() => ghRepos.githubId, { onDelete: 'cascade' }),
+    pathFeature: text('path_feature').notNull(),
+    createdAt: createdAt(),
+  },
+  (table) => [primaryKey({ columns: [table.repoGithubId, table.pathFeature] })],
+).enableRLS();

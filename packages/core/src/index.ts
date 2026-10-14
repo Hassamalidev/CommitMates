@@ -74,3 +74,5 @@ export { computeExpansion, getCachedExpansion, type Expansion, type ExpansionRun
 export { requestExpansion } from './taxonomy/jobs';
 export { GRAVEYARD_STEPS, graveyardTool } from './graveyard/jobs';
 export { GRAVEYARD_SCOPES, graveyardInputSchema, graveyardResultSchema, type GraveyardItem, type GraveyardResult } from './graveyard/schemas';
+export { GAP_STEPS, gapTool } from './gap/jobs';
+export { gapInputSchema, gapResultSchema, type GapFacet, type GapInput, type GapResult } from './gap/schemas';
