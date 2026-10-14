@@ -343,14 +343,24 @@ function drawFrame(input: CompanionInput, layout: Layout, options: FrameOptions)
 
 const BOTH: Feet = { left: true, right: true };
 
+/** Loop length and repeat count per state (CLAUDE.md §9.5 step 10); `null` loops forever. */
+export const STATE_TIMING: Readonly<Record<CompanionState, { durationMs: number; iterations: number | null }>> = {
+  idle: { durationMs: 1200, iterations: null },
+  working: { durationMs: 600, iterations: null },
+  waiting: { durationMs: 800, iterations: null },
+  done: { durationMs: 450, iterations: 2 },
+  error: { durationMs: 0, iterations: 1 },
+};
+
 /** Step 10: the frames of one state, left to right on the sprite sheet. */
 export function generateFrames(input: CompanionInput, state: CompanionState): CompanionFrames {
   const layout = layoutFor(input);
   const frame = (dy: number, feet: Feet = BOTH, flatEyes = false) => drawFrame(input, layout, { dy, feet, flatEyes });
+  const timing = STATE_TIMING[state];
 
   switch (state) {
     case 'idle':
-      return { frames: [frame(0), frame(1)], durationMs: 1200, iterations: null };
+      return { frames: [frame(0), frame(1)], ...timing };
     case 'working':
       return {
         frames: [
@@ -359,14 +369,13 @@ export function generateFrames(input: CompanionInput, state: CompanionState): Co
           frame(0, { left: false, right: true }),
           frame(0),
         ],
-        durationMs: 600,
-        iterations: null,
+        ...timing,
       };
     case 'waiting':
-      return { frames: [frame(0), frame(0, { left: true, right: false })], durationMs: 800, iterations: null };
+      return { frames: [frame(0), frame(0, { left: true, right: false })], ...timing };
     case 'done':
-      return { frames: [frame(-2), frame(-3), frame(0)], durationMs: 450, iterations: 2 };
+      return { frames: [frame(-2), frame(-3), frame(0)], ...timing };
     case 'error':
-      return { frames: [frame(1, BOTH, true)], durationMs: 0, iterations: 1 };
+      return { frames: [frame(1, BOTH, true)], ...timing };
   }
 }

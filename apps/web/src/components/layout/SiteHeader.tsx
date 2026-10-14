@@ -1,4 +1,4 @@
-import { CompanionView, ThemeToggle } from '@commitmates/ui';
+import { CompanionSprite, ThemeToggle } from '@commitmates/ui';
 import Link from 'next/link';
 
 import { AuthStatus } from '@/components/auth/AuthStatus';
@@ -14,7 +14,7 @@ export function SiteHeader() {
     <header className="border-b border-line bg-surface">
       <div className="mx-auto flex max-w-content flex-wrap items-center gap-x-4 gap-y-1 px-4 py-2">
         <Link href="/" aria-label={navCopy.homeLabel(siteName)} className="inline-flex min-h-11 items-center gap-2">
-          <CompanionView companion={brandCompanion} state="idle" size={64} className="size-8" />
+          <CompanionSprite companion={brandCompanion} state="idle" size={64} className="size-8" />
           <span className="type-h3 font-display">{siteName}</span>
         </Link>
         <nav aria-label={navCopy.mainLabel} className="flex flex-wrap items-center gap-x-1">

@@ -1,6 +1,8 @@
+import { publicSiteName } from '@commitmates/env/public';
 import { hashSeed, speciesFor, type CompanionInput } from '@commitmates/ui';
 
-import { siteName } from './site';
+// Read without zod: this module is in every client bundle that shows the mascot.
+const siteName = publicSiteName();
 
 /** The site's own mascot, generated from the site name like any other companion (CLAUDE.md §9.5). */
 export const brandCompanion: CompanionInput = {

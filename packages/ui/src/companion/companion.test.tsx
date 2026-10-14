@@ -5,6 +5,7 @@ import { findA11yViolations } from '@commitmates/config/testing/axe';
 import { act, render, screen } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 
+import { CompanionSprite } from './CompanionSprite';
 import { CompanionView } from './CompanionView';
 import { SpeechBubble } from './SpeechBubble';
 import { contrastRatio, derivePalette, hexToOklch, oklchToHex, outlineFor } from './color';
@@ -20,7 +21,7 @@ import {
   type CompanionInput,
   type CompanionState,
 } from './generate';
-import { frameToRuns, renderSpriteSheet, renderStill, roleColors } from './render';
+import { frameToRuns, renderSpriteSheet, renderStill, roleColors, runsToPaths } from './render';
 
 const STATES: CompanionState[] = ['idle', 'working', 'waiting', 'done', 'error'];
 const DARK_SURFACE = '#151923';
@@ -353,6 +354,34 @@ describe('CompanionView', () => {
       expect(screen.getByRole('img')).toHaveAttribute('data-state', 'done');
     } finally {
       vi.useRealTimers();
+    }
+  });
+});
+
+describe('CompanionSprite', () => {
+  it('draws each color as one path covering exactly the runs of that color', () => {
+    const runs = [
+      { x: 0, y: 0, width: 2, fill: 'a' },
+      { x: 3, y: 0, width: 1, fill: 'b' },
+      { x: 1, y: 1, width: 3, fill: 'a' },
+    ];
+    expect(runsToPaths(runs)).toEqual([
+      { fill: 'a', d: 'M0 0h2v1h-2zM1 1h3v1h-3z' },
+      { fill: 'b', d: 'M3 0h1v1h-1z' },
+    ]);
+    const { container } = render(<CompanionSprite companion={companion()} state="working" label="A" />);
+    const fills = generateFrames(companion(), 'working').frames.flatMap((frame) => frameToRuns(frame, roleColors(companion())).map((run) => run.fill));
+    expect(container.querySelectorAll('path')).toHaveLength(new Set(fills).size);
+    expect(container.querySelectorAll('rect')).toHaveLength(0);
+  });
+
+  it('draws exactly what CompanionView draws, with no state of its own', () => {
+    for (const state of ['idle', 'working', 'waiting', 'done', 'error'] as const) {
+      const sprite = render(<CompanionSprite companion={companion()} state={state} label="A" />);
+      const view = render(<CompanionView companion={companion()} state={state} label="A" />);
+      expect(sprite.container.innerHTML).toBe(view.container.innerHTML);
+      sprite.unmount();
+      view.unmount();
     }
   });
 });
