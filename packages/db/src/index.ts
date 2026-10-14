@@ -3,6 +3,7 @@ export * as schema from './schema';
 export * from './errors';
 export { generateOtp, hashOtp, verifyOtp } from './otp';
 export * from './queries/admin';
+export * from './queries/analysis';
 export * from './queries/github-data';
 export * from './queries/security';
 export * from './settings';

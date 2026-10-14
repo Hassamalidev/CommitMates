@@ -30,3 +30,21 @@ export { jobIdSchema, scheduleToggleSchema, settingOverrideSchema, type Alert, t
 export { ConflictError, hashUserId } from '@commitmates/db';
 export { ingestProfile, type IngestOptions, type ProfileSnapshot, type RepoDependency } from './profiles/ingest';
 export { requestEnrichment } from './sources/jobs';
+export {
+  cacheKeyFor,
+  dayBucket,
+  getTool,
+  hashParams,
+  hourBucket,
+  loadToolResult,
+  parseToolInput,
+  recordToolSession,
+  registerTool,
+  registeredToolSlugs,
+  startToolRun,
+  storeToolResult,
+  type ToolDefinition,
+  type ToolResultRef,
+  type ToolRun,
+} from './tools/service';
+export { registerAllTools, toolDefinitions } from './tools/definitions';
