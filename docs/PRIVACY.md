@@ -64,11 +64,11 @@ Feedback text with the page it was sent from. `user_id` is set to null when the 
 
 ### `tool_sessions` (class D)
 
-One row per day-one tool run: the tool name and `ip_hash_day = sha256(ip + daily_salt)`. No raw IP address is stored, and the salt is deleted when it rotates, so the hash cannot be reversed or linked across days. `user_id` and `converted_user_id` are set to null on account deletion.
+One row per day-one tool run: the tool name and `ip_hash_day = sha256(ip + daily_salt)`. No raw IP address is stored, and the salt is deleted when it rotates, so the hash cannot be reversed or linked across days. `user_id` and `converted_user_id` are set to null on account deletion. When someone signs up for the first time, `converted_user_id` is set on anonymous runs from the previous 24 hours that carry the same daily hash (the tool-conversion metric); it is computed from the sign-in request's address and today's salt, and nothing else about the runs is linked.
 
 ### `metric_samples`, `salts` (class D)
 
-Anonymous numbers that tune thresholds: a metric key, a value, a salted subject hash and the salt period. Keys so far: `oss.responseHours` (per project, hashed by repository id), `persona.nightShare`, `persona.morningShare`, `persona.weekendShare`, `persona.cv`, `persona.activeDayShare`, `contrib.total365` (written by the Dev Card). The hash is `sha256(github_id + current aggregate salt)` and exists only so one person counts once per metric and period; the salt is rotated every `privacy.aggregateSaltRotationDays` and old salts are deleted, so a hash cannot be linked back to an account. Kept indefinitely.
+Anonymous numbers that tune thresholds: a metric key, a value, a salted subject hash and the salt period. Keys so far: `oss.responseHours` (per project, hashed by repository id), `recruiter.readmeChars` (README length of a well-starred showcased repository, hashed by repository id), `companion.activityScore` (written by the Dev Card), `persona.nightShare`, `persona.morningShare`, `persona.weekendShare`, `persona.cv`, `persona.activeDayShare`, `contrib.total365` (written by the Dev Card). The hash is `sha256(github_id + current aggregate salt)` and exists only so one person counts once per metric and period; the salt is rotated every `privacy.aggregateSaltRotationDays` and old salts are deleted, so a hash cannot be linked back to an account. Kept indefinitely.
 
 ### `audit_log`
 

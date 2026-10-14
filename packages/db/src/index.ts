@@ -6,6 +6,7 @@ export * from './queries/admin';
 export * from './queries/analysis';
 export * from './queries/gap';
 export * from './queries/github-data';
+export * from './queries/metrics';
 export * from './queries/persona';
 export * from './queries/recruiter';
 export * from './queries/taxonomy';

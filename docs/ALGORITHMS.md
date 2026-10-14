@@ -258,6 +258,30 @@ All algorithms live in `packages/algorithms` and are pure: no I/O, no clock, no 
 
 TF-IDF arrives in P4-T02.
 
+## Computed settings
+
+### Nightly recompute
+
+- Code: `packages/core/src/settings/recompute.ts` (registrations), `packages/db/src/settings/recompute.ts` (`metricPercentile`, `metricQuantiles`); job `recompute_settings`
+- Formula: each key below is written as `computed_value` with its sample count; it takes effect once the count reaches the key's `min_sample` (200), and a history row is written when it moves by more than `settings.historyMinDelta`
+  - `persona.nightOwl.share`, `persona.earlyBird.share`, `persona.weekendWarrior.share`, `persona.sprinter.cv`, `persona.marathoner.activeDayShare` = the `persona.percentile` (0.8) of `persona.nightShare`, `persona.morningShare`, `persona.weekendShare`, `persona.cv`, `persona.activeDayShare`
+  - `companion.stageCuts` = quantiles of `companion.activityScore` at the seeded default cuts (0.25, 0.5, 0.75, 0.9), so each stage keeps the share of people the defaults describe
+  - `oss.maxResponseHours` = p60 of `oss.responseHours` (one sample per project)
+  - `recruiter.readme.minChars` = p40 of `recruiter.readmeChars`, rounded; a sample is the README length of a showcased repository with at least `recruiter.readme.sampleMinStars` stars, one per repository
+  - not yet: `graveyard.idleMonths.<category>` (push-gap samples arrive with the country index, P6), `matching.weights` and `streaks.companionStageDays` (P4)
+- Settings: `persona.percentile`, `recruiter.readme.sampleMinStars` (10), `settings.historyMinDelta`
+- Tests: `packages/core/src/settings/recompute.test.ts`
+- Spec: CLAUDE.md §5.5, §5.5.1
+
+## Metrics
+
+### Tool usage and conversion
+
+- Code: `packages/db/src/queries/metrics.ts`, `packages/core/src/metrics/service.ts`; page `/admin/metrics`
+- Formula: runs per tool in the last 7 and 30 days; conversion = anonymous runs 1–30 days old whose `converted_user_id` is set ÷ all such runs; a new member's first sign-in sets `converted_user_id` on anonymous runs of the previous 24 hours with the same daily IP hash; fairness reports per ISO week (Monday, UTC) for 8 weeks
+- Tests: `packages/core/src/metrics/metrics.test.ts`
+- Spec: CLAUDE.md §1.7
+
 ## Clustering, graphs and assignment
 
 No entries yet. k-means with silhouette selection arrives in P6-T06; cycle search in P5-T06.

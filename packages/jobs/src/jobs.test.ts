@@ -285,9 +285,28 @@ describe('runTick scheduling', () => {
 
   it('never processes a job twice with two workers', async () => {
     const runs = new Map<number, number>();
+    // A worker runs its claimed jobs one after another, so two jobs running at once are on
+    // different workers. The first job waits for that overlap, so both workers take part
+    // however fast or slow the machine is, instead of one draining the queue alone.
+    let active = 0;
+    let releaseFirst: (() => void) | undefined;
+    const overlap = new Promise<undefined>((resolve) => {
+      releaseFirst = () => {
+        resolve(undefined);
+      };
+    });
+    let first = true;
     handler('contended', async (payload) => {
       runs.set(payload.n, (runs.get(payload.n) ?? 0) + 1);
-      await new Promise((resolve) => setTimeout(resolve, 5));
+      active += 1;
+      if (active > 1) releaseFirst?.();
+      if (first) {
+        first = false;
+        await Promise.race([overlap, new Promise((resolve) => setTimeout(resolve, BUDGET_MS / 2))]);
+      } else {
+        await new Promise((resolve) => setTimeout(resolve, 5));
+      }
+      active -= 1;
       return { kind: 'done' };
     });
     const total = 40;

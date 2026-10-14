@@ -2,7 +2,7 @@ import type { AlertKey } from '@commitmates/core';
 
 export const adminCopy = {
   navLabel: 'Admin',
-  nav: { health: 'Health', jobs: 'Jobs', settings: 'Settings' },
+  nav: { health: 'Health', jobs: 'Jobs', settings: 'Settings', metrics: 'Metrics' },
   none: 'None',
   never: 'Never',
   alerts: {
@@ -70,6 +70,29 @@ export const adminCopy = {
     columns: { type: 'Type', attempts: 'Attempts', runAt: 'Run at (UTC)', updated: 'Updated (UTC)', error: 'Last error', action: 'Action' },
     retry: 'Retry',
     retried: 'Queued again.',
+  },
+  metrics: {
+    metaTitle: 'Metrics',
+    title: 'Metrics',
+    intro: 'Success metrics computed from our own tables (CLAUDE.md §1.7). No personal data is shown.',
+    usage: {
+      title: 'Tool usage',
+      caption: 'Runs per day-one tool',
+      columns: { tool: 'Tool', recent: (days: number) => `Last ${days} days`, total: (days: number) => `Last ${days} days` },
+    },
+    conversion: {
+      title: 'Tool conversion',
+      line: (days: number) => `Anonymous tool runs from the last ${days} days that led to a sign-up within a day.`,
+      value: (converted: number, sessions: number, percent: string) => `${percent} (${converted} of ${sessions} runs)`,
+      none: 'No anonymous run has had a full day to convert yet.',
+      note: 'Runs are matched to a sign-up by the daily salted address hash only, so runs from before midnight and shared networks make this an estimate.',
+    },
+    fairness: {
+      title: 'Fairness reports per week',
+      caption: 'Fairness reports generated per week',
+      columns: { week: 'Week starting (UTC)', reports: 'Reports' },
+    },
+    later: 'Activation, match quality, streak retention, revivals, review quality and alumni responsiveness appear here as those features ship.',
   },
   settings: {
     metaTitle: 'Settings',

@@ -62,6 +62,7 @@ export const SettingKeys = {
   'recruiter.pinned.min': 'integer',
   'recruiter.pinned.max': 'integer',
   'recruiter.readme.minChars': 'integer',
+  'recruiter.readme.sampleMinStars': 'integer',
   'recruiter.profileReadme.minChars': 'integer',
   'fairness.leastShareThreshold': 'number',
   'fairness.lateWindowPct': 'number',

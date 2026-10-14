@@ -41,6 +41,7 @@ export const PERSONA_SAMPLE_KEYS = {
   cv: 'persona.cv',
   activeDayShare: 'persona.activeDayShare',
   total365: 'contrib.total365',
+  activityScore: 'companion.activityScore',
 } as const;
 
 export type ResolvedTimezone = { timezone: string; source: DevCard['timezoneSource'] };
@@ -166,7 +167,10 @@ export async function buildDevCard(snapshot: ProfileSnapshot): Promise<DevCard> 
  */
 export async function recordPersonaSamples(card: DevCard, now: Date): Promise<number> {
   const minEvents = await getSetting('persona.minEvents');
-  const samples: Record<string, number> = { [PERSONA_SAMPLE_KEYS.total365]: card.metrics.total365 };
+  const samples: Record<string, number> = {
+    [PERSONA_SAMPLE_KEYS.total365]: card.metrics.total365,
+    [PERSONA_SAMPLE_KEYS.activityScore]: card.activityScore,
+  };
   if (card.metrics.events >= minEvents) {
     samples[PERSONA_SAMPLE_KEYS.nightShare] = card.metrics.nightShare;
     samples[PERSONA_SAMPLE_KEYS.morningShare] = card.metrics.morningShare;

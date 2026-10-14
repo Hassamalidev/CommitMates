@@ -278,12 +278,13 @@ describe('buildDevCard', () => {
 });
 
 describe('recordPersonaSamples', () => {
-  it('records six anonymous samples once per person', async () => {
+  it('records seven anonymous samples once per person', async () => {
     const card = await buildDevCard(snapshotOf());
-    expect(await recordPersonaSamples(card, NOW)).toBe(6);
+    expect(await recordPersonaSamples(card, NOW)).toBe(7);
     expect(await recordPersonaSamples(card, NOW)).toBe(0);
     const rows = await database.sql`select metric_key, value, subject_hash from metric_samples order by metric_key`;
     expect(rows.map((row) => row.metric_key)).toEqual([
+      'companion.activityScore',
       'contrib.total365',
       'persona.activeDayShare',
       'persona.cv',
@@ -291,15 +292,16 @@ describe('recordPersonaSamples', () => {
       'persona.nightShare',
       'persona.weekendShare',
     ]);
-    expect(rows[0]!.value).toBe(99);
+    expect(rows[0]!.value).toBe(card.activityScore);
+    expect(rows[1]!.value).toBe(99);
     // The hash is salted: neither the id nor the login appears in it.
     expect(JSON.stringify(rows)).not.toContain('fixture-user-1');
     expect(new Set(rows.map((row) => row.subject_hash)).size).toBe(1);
   });
 
-  it('records only the yearly total when there is too little activity to measure a rhythm', async () => {
+  it('records only the yearly total and activity score when there is too little activity to measure a rhythm', async () => {
     const card = await buildDevCard(snapshotOf({ events: eveningEvents(3) }));
-    expect(await recordPersonaSamples(card, NOW)).toBe(1);
+    expect(await recordPersonaSamples(card, NOW)).toBe(2);
   });
 });
 
@@ -347,7 +349,7 @@ describe('analyze_profile job', () => {
     const [cached] = await database.sql`select kind, subject_key, is_member_subject, expires_at, computed_at from analysis_cache`;
     expect(cached).toMatchObject({ kind: 'dev_card', subject_key: 'fixture-user-1', is_member_subject: false });
     expect(cached!.expires_at.getTime() - cached!.computed_at.getTime()).toBe(12 * HOUR);
-    expect(await database.sql`select 1 from metric_samples`).toHaveLength(6);
+    expect(await database.sql`select 1 from metric_samples`).toHaveLength(7);
 
     // The next request is answered from the cache, whatever the spelling.
     expect(await startToolRun('dev-card', { login: 'FIXTURE-user-1' })).toMatchObject({ status: 'done', result: { githubId: 4242 } });

@@ -2,6 +2,8 @@ import { recomputeSettings } from '@commitmates/db';
 import { PRIORITY, type JobHandler } from '@commitmates/jobs';
 import { z } from 'zod';
 
+import { registerAllRecomputes } from './recompute';
+
 const payloadSchema = z.object({});
 
 /** Nightly: recompute every settings key that has a registered function (CLAUDE.md §5.5). */
@@ -10,6 +12,7 @@ export const recomputeSettingsJob: JobHandler<z.infer<typeof payloadSchema>> = {
   schema: payloadSchema,
   priority: PRIORITY.MAINTENANCE,
   async run(_payload, ctx) {
+    registerAllRecomputes();
     const report = await recomputeSettings();
     for (const failure of report.failed) {
       ctx.log.error({ key: failure.key, err: failure.error }, 'settings recompute failed for a key');

@@ -12,6 +12,9 @@ import { hourBucket, storeToolResult, type ToolDefinition } from '../tools/servi
 
 import { ossInputSchema, ossPayloadSchema, ossResultSchema, type OssInput, type OssIssue, type OssPayload } from './schemas';
 
+/** Anonymous per-project response times, for the computed `oss.maxResponseHours`. */
+export const OSS_RESPONSE_SAMPLE = 'oss.responseHours';
+
 /** The steps `oss_search` reports, in order. */
 export const OSS_STEPS = { profile: 'profile', searching: 'searching', projects: 'projects', ranking: 'ranking' } as const;
 
@@ -78,7 +81,7 @@ async function repoInfo(fullName: string, labelTerms: readonly string[], ctx: Jo
   ];
   const responseHours = medianResponseHours(sample, now);
   // Each project's median feeds the computed `oss.maxResponseHours` (p60), counted once per project.
-  if (responseHours !== null) await recordMetricSamples(repository.githubId, { 'oss.responseHours': responseHours }, now);
+  if (responseHours !== null) await recordMetricSamples(repository.githubId, { [OSS_RESPONSE_SAMPLE]: responseHours }, now);
   const info: RepoInfo = {
     githubId: repository.githubId,
     language: repository.language,

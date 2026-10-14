@@ -4,7 +4,7 @@ import { expectNoSeriousA11yViolations } from './helpers/axe';
 import { grantAdmin, withAppDatabase } from './helpers/db';
 import { signInTestMember } from './helpers/session';
 
-const ADMIN_PATHS = ['/admin/health', '/admin/jobs', '/admin/settings', '/admin/settings/gap.maxGaps'];
+const ADMIN_PATHS = ['/admin/health', '/admin/jobs', '/admin/settings', '/admin/settings/gap.maxGaps', '/admin/metrics'];
 
 // These tests change shared rows (a schedule, a setting), so they must not interleave.
 // Tests tagged with SHARED_STATE run in the desktop project only (see playwright.config.ts):
@@ -45,6 +45,21 @@ test.describe('admin pages', () => {
       await expect(page.getByRole('progressbar', { name: 'Database size' })).toBeVisible();
       await expect(page.getByText(/MB used of a 450 MB budget/)).toBeVisible();
       await expect(page.getByText(/Dead jobs in the last 24 hours: \d+/)).toBeVisible();
+      await expectNoSeriousA11yViolations(page);
+    } finally {
+      await member.cleanup();
+    }
+  });
+
+  test('metrics show tool usage and conversion and are accessible', async ({ page, context, baseURL }) => {
+    const member = await signInTestMember(context, baseURL ?? '');
+    try {
+      await grantAdmin(member.userId);
+      await page.goto('/admin/health');
+      await page.getByRole('navigation', { name: 'Admin' }).getByRole('link', { name: 'Metrics' }).click();
+      await expect(page.getByRole('heading', { level: 1, name: 'Metrics' })).toBeVisible();
+      await expect(page.getByRole('heading', { level: 2, name: 'Tool usage' })).toBeVisible();
+      await expect(page.getByTestId('tool-conversion')).toHaveText(/%|No anonymous run/);
       await expectNoSeriousA11yViolations(page);
     } finally {
       await member.cleanup();

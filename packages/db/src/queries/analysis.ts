@@ -1,4 +1,4 @@
-import { and, eq, gt } from 'drizzle-orm';
+import { and, eq, gt, gte, isNull } from 'drizzle-orm';
 
 import { getDb, type DbOrTx } from '../client';
 import { analysisCache, toolSessions } from '../schema';
@@ -52,4 +52,28 @@ export async function recordToolSession(
   db: DbOrTx = getDb(),
 ): Promise<void> {
   await db.insert(toolSessions).values({ tool: session.tool, ipHashDay: session.ipHashDay, userId: session.userId ?? null });
+}
+
+/** The window in which a sign-up counts as a tool conversion (CLAUDE.md §1.7). */
+const CONVERSION_WINDOW_MS = 24 * 60 * 60 * 1000; // allowed-literal: "within 24 hours" (§1.7)
+
+/**
+ * Credits a new member's sign-up to the anonymous tool runs from the same daily IP hash
+ * in the previous 24 hours (the tool-conversion metric, CLAUDE.md §1.7). Only today's
+ * salt still exists, so runs before midnight cannot be matched; the metric errs low.
+ */
+export async function markToolConversions(userId: string, ipHashDay: string, now: Date, db: DbOrTx = getDb()): Promise<number> {
+  const rows = await db
+    .update(toolSessions)
+    .set({ convertedUserId: userId })
+    .where(
+      and(
+        eq(toolSessions.ipHashDay, ipHashDay),
+        isNull(toolSessions.userId),
+        isNull(toolSessions.convertedUserId),
+        gte(toolSessions.createdAt, new Date(now.getTime() - CONVERSION_WINDOW_MS)),
+      ),
+    )
+    .returning({ id: toolSessions.id });
+  return rows.length;
 }

@@ -63,7 +63,7 @@ export const recruiterReportJob: JobHandler<RecruiterPayload> = {
     const client = githubFor(identity, { now: ctx.now });
 
     await ctx.progress({ step: RECRUITER_STEPS.readmes });
-    const { facts, usedTop } = await gatherRecruiterFacts(snapshot, card, payload.resumeSkills ?? [], { client, deadline: ctx.deadline });
+    const { facts, usedTop } = await gatherRecruiterFacts(snapshot, card, payload.resumeSkills ?? [], { client, deadline: ctx.deadline, now: ctx.now() });
     const { score, rules } = await scoreRecruiterFacts(facts);
 
     const scan = payload.scanSecrets === true && payload.requestedBy !== undefined && (await isOwner(payload));

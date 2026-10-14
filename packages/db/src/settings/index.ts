@@ -8,6 +8,7 @@ export {
   resolveSetting,
   setComputed,
   setOverride,
+  settingDefault,
   type CategorySettingPrefix,
   type SettingRow,
   type SettingSource,
@@ -15,6 +16,7 @@ export {
 export {
   clearRecomputeRegistry,
   metricPercentile,
+  metricQuantiles,
   recomputeSettings,
   registerRecompute,
   registeredRecomputeKeys,

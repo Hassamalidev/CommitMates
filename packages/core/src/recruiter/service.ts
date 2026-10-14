@@ -12,13 +12,23 @@ import {
   type RuleResult,
   type ShowcaseRepo,
 } from '@commitmates/algorithms';
-import { countGenericMessages, getDb, getSetting, latestSecretScan, topGenericMessages, type LatestSecretScan } from '@commitmates/db';
+import {
+  countGenericMessages,
+  getDb,
+  getSetting,
+  latestSecretScan,
+  recordMetricSamples,
+  topGenericMessages,
+  type LatestSecretScan,
+} from '@commitmates/db';
 import { fetchReadme, type GitHubClient, type ProfileRepo } from '@commitmates/github';
 import { loadAliasMap, normalizeTag, type AliasMap } from '@commitmates/sources';
 
 import type { ProfileSnapshot } from '../profiles/ingest';
 import type { DevCard } from '../persona/schemas';
 
+/** Anonymous README lengths of well-starred repositories, for the computed `recruiter.readme.minChars`. */
+export const README_CHARS_SAMPLE = 'recruiter.readmeChars';
 
 /** The repositories a recruiter sees first: pinned ones the person owns, else the top ones by stars. */
 export function showcaseRepos(snapshot: ProfileSnapshot, limit: number): { repos: ProfileRepo[]; usedTop: boolean } {
@@ -34,7 +44,7 @@ const toSkill = (raw: string, aliases: AliasMap): string | null => {
   return tag === null ? null : (aliases.get(tag) ?? tag);
 };
 
-export type RecruiterContext = { client: GitHubClient; deadline?: number };
+export type RecruiterContext = { client: GitHubClient; deadline?: number; now?: Date };
 
 /**
  * Reads what the rules need beyond the profile (CLAUDE.md §8 F3 "Data"): the profile README,
@@ -48,11 +58,12 @@ export async function gatherRecruiterFacts(
 ): Promise<{ facts: RecruiterFacts; usedTop: boolean }> {
   const { profile } = snapshot;
   const request = context.deadline === undefined ? {} : { deadline: context.deadline };
-  const [pinnedMax, topK, minTokens, unfinishedTerms] = await Promise.all([
+  const [pinnedMax, topK, minTokens, unfinishedTerms, sampleMinStars] = await Promise.all([
     getSetting('recruiter.pinned.max'),
     getSetting('recruiter.genericMessageTopK'),
     getSetting('recruiter.minMessageTokens'),
     getSetting('graveyard.unfinishedTerms'),
+    getSetting('recruiter.readme.sampleMinStars'),
   ]);
   const terms = termMatcher(unfinishedTerms);
 
@@ -63,7 +74,12 @@ export async function gatherRecruiterFacts(
   const unfinishedScores: (number | null)[] = [];
   for (const repo of repos) {
     const [owner, name] = repo.fullName.split('/');
-    const readme = owner && name ? ((await fetchReadme(context.client, owner, name, request)) ?? '') : '';
+    const fetched = owner && name ? await fetchReadme(context.client, owner, name, request) : null;
+    const readme = fetched ?? '';
+    // Each well-starred repository counts once per salt period, whoever's profile showed it.
+    if (fetched !== null && repo.stars >= sampleMinStars && context.now) {
+      await recordMetricSamples(repo.githubId, { [README_CHARS_SAMPLE]: fetched.length }, context.now);
+    }
     showcase.push({
       readmeChars: readme.length,
       hasDemo: Boolean(repo.homepage) || hasExternalLink(readme),
