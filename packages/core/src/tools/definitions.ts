@@ -1,5 +1,6 @@
 import { compatTool } from '../compat/jobs';
 import { fairnessTool } from '../fairness/jobs';
+import { graveyardTool } from '../graveyard/jobs';
 import { devCardTool } from '../persona/jobs';
 import { recruiterTool } from '../recruiter/jobs';
 
@@ -16,7 +17,7 @@ export const defineTool = <I>(tool: ToolDefinition<I>): Registration => ({
 });
 
 /** Every day-one tool behind `/api/tools/<slug>`. A tool adds itself here when its job lands. */
-export const toolDefinitions: readonly Registration[] = [defineTool(devCardTool), defineTool(compatTool), defineTool(recruiterTool), defineTool(fairnessTool)];
+export const toolDefinitions: readonly Registration[] = [defineTool(devCardTool), defineTool(compatTool), defineTool(recruiterTool), defineTool(fairnessTool), defineTool(graveyardTool)];
 
 /** Registers every tool. Safe to call on each request: re-registering replaces the same definition. */
 export function registerAllTools(): void {

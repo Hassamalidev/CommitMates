@@ -2,11 +2,13 @@ export { SettingKeys, type SettingKey, type SettingValueType } from './keys';
 export { isSettingKey, jsonSettingSchemas, schemaForSetting, type JsonSettingKey, type SettingValue } from './schemas';
 export {
   clearSettingsCache,
+  getCategoryNumber,
   getSetting,
   relativeChange,
   resolveSetting,
   setComputed,
   setOverride,
+  type CategorySettingPrefix,
   type SettingRow,
   type SettingSource,
 } from './get';

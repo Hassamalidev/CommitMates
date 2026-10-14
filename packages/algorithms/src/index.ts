@@ -112,3 +112,12 @@ export {
   type ExpansionItem,
   type TaxonomyCandidate,
 } from './taxonomy/taxonomy';
+export {
+  adjustedUnfinished,
+  monthsBetween,
+  scoreRevivals,
+  type FinishedSignals,
+  type GraveyardWeights,
+  type RevivalInput,
+  type RevivalScore,
+} from './graveyard/graveyard';

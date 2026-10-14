@@ -167,6 +167,25 @@ All algorithms live in `packages/algorithms` and are pure: no I/O, no clock, no 
 - Tests: `packages/algorithms/src/taxonomy/taxonomy.test.ts`, `packages/core/src/taxonomy/taxonomy.test.ts`
 - Spec: CLAUDE.md §8 F6
 
+## Project Graveyard
+
+### Unfinished score, revivability and difficulty
+
+- Code: `packages/algorithms/src/graveyard/graveyard.ts` (with the text signals in `recruiter/text.ts`); pipeline in `packages/core/src/graveyard/` (job `graveyard_search`)
+- Formula:
+  - candidates (global scope): up to three GitHub searches — the term in name, description and README, the term's own topic, and the next expansion topic — each with `fork:false pushed:<cutoff` (cutoff = today − `graveyard.idleMonths.default` months), up to 100 repositories; relevance falls from 1 by search order
+  - category = the first expansion topic the repository carries, else the term's slug; idle threshold = `graveyard.idleMonths.<category>` once the recompute job has created it, else the default
+  - filters: not a fork, has a README, commit estimate (contributors list including anonymous authors) at least `graveyard.minCommits`, idle at least the category threshold
+  - unfinished u = mean of: README unfinished term or unchecked task (0/1); share of the latest 10 open issues nobody has answered; share of the latest 10 commit messages with an unfinished term; no releases or tags (0/1); then −0.25 with releases or tags, −0.25 when all of more than 5 issues are closed, −0.15 with a usage or installation heading; clamped to [0, 1]
+  - promise = log10(1 + stars + 2·forks); demand = log10(1 + open issues + stars since the last push, read only for the top `graveyard.deepScoreTopN`); both min–max normalized within the set; freshness 1 within `graveyard.freshMonths`, else 0.5; legal 1 with a license, else `graveyard.noLicenseFactor`
+  - revivability = (wP·promise_n + wD·demand_n + wU·u + wF·freshness) × legal with `graveyard.weights`; rank = relevance × revivability
+  - difficulty: "weekend fix" below the set's median size and open issues with u < 0.5; "needs a maintainer" above the set's 75th percentile of stars and of open issues; "half-built idea" u ≥ 0.5 below median size
+- Repository signals are cached per repository for `cache.searchTtlHours`, so continuations and overlapping searches reuse them.
+- Deviations: the open-issue signal counts issues with no comment at all (certainly none from the owner) instead of reading each issue's comments; push-gap samples for `graveyard.idleMonths.<category>` are recorded from the country index (P6-T03), since the global search only returns inactive repositories.
+- Settings: `graveyard.idleMonths.default` (6), `graveyard.minCommits` (5), `graveyard.freshMonths` (24), `graveyard.noLicenseFactor` (0.3), `graveyard.deepScoreTopN` (50), `graveyard.weights`, `graveyard.unfinishedTerms`, `cache.searchTtlHours` (6)
+- Tests: `packages/algorithms/src/graveyard/graveyard.test.ts`, `packages/core/src/graveyard/graveyard.test.ts`
+- Spec: CLAUDE.md §8 F7
+
 ## Information retrieval
 
 No entries yet. YAKE and BM25 arrive in P2-T17; TF-IDF in P4-T02.

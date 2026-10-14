@@ -43,3 +43,11 @@ export {
   type Repository,
 } from './queries/repos';
 export { countTopicRepositories, searchRepositories, type SearchRepo } from './queries/search';
+export {
+  fetchCommitEstimate,
+  fetchHasReleases,
+  fetchIssueSample,
+  fetchRecentCommits,
+  fetchStarsSince,
+  type IssueSample,
+} from './queries/activity';

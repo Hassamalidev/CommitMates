@@ -190,3 +190,19 @@ export async function setOverride(
   });
   clearSettingsCache();
 }
+
+/** Prefixes of settings that recompute jobs create per category, outside the static key registry (CLAUDE.md §5.5.1). */
+export type CategorySettingPrefix = 'graveyard.idleMonths';
+
+/**
+ * A per-category number such as `graveyard.idleMonths.<category>`, resolved like any setting.
+ * `null` until a recompute job has created the row; callers fall back to the default key.
+ */
+export async function getCategoryNumber(prefix: CategorySettingPrefix, category: string, db: DbOrTx = getDb()): Promise<number | null> {
+  // Reading a registered key refreshes the snapshot when it is older than settings.cacheMs.
+  await getSetting('settings.cacheMs', db);
+  const row = snapshot?.rows.get(`${prefix}.${category}`);
+  if (!row) return null;
+  const { value } = resolveSetting(row);
+  return typeof value === 'number' && Number.isFinite(value) ? value : null;
+}
