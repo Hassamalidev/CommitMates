@@ -10,6 +10,7 @@ import { ossSearchJob } from './oss/jobs';
 import { analyzeProfileJob } from './persona/jobs';
 import { recruiterReportJob } from './recruiter/jobs';
 import { taxonomyExpandJob } from './taxonomy/jobs';
+import { computeSkillVectorJob, refreshSkillVectorsJob } from './matching/vectors';
 import { sendEmailJob } from './notifications/email';
 import { sendOtpJob } from './verification/jobs';
 import { purgeNonUserRawJob } from './privacy/jobs';
@@ -60,6 +61,8 @@ export const jobHandlers: readonly Registration[] = [
   define(fypCheckJob),
   define(sendEmailJob),
   define(sendOtpJob),
+  define(computeSkillVectorJob),
+  define(refreshSkillVectorsJob),
 ];
 
 /** Registers every handler. Safe to call on each request: re-registering is a no-op. */

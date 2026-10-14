@@ -26,6 +26,7 @@ import {
   repoDependencies,
   repoManifests,
   roles,
+  skillVectors,
   threadMembers,
   threads,
   trustScores,
@@ -126,7 +127,7 @@ export async function exportMemberRows(userId: string, db: DbOrTx = getDb()): Pr
   // Social and streak rows (CLAUDE.md §7.6, §7.7): what the member wrote, sent, joined or keeps.
   const ownPairs = await db.select().from(pairs).where(or(eq(pairs.userA, userId), eq(pairs.userB, userId)));
   const pairIds = ownPairs.map((pair) => pair.id);
-  const [suggestions, connectionRows, requestRows, memberships, messageRows, blockRows, reportRows, trust, days, companions] = await Promise.all([
+  const [suggestions, connectionRows, requestRows, memberships, messageRows, blockRows, reportRows, trust, vectors, days, companions] = await Promise.all([
     db.select().from(matchSuggestions).where(eq(matchSuggestions.userId, userId)),
     db.select().from(connections).where(or(eq(connections.userA, userId), eq(connections.userB, userId))),
     db.select().from(messageRequests).where(or(eq(messageRequests.fromUser, userId), eq(messageRequests.toUser, userId))),
@@ -135,6 +136,7 @@ export async function exportMemberRows(userId: string, db: DbOrTx = getDb()): Pr
     db.select().from(blocks).where(eq(blocks.blocker, userId)),
     db.select().from(reports).where(eq(reports.reporter, userId)),
     db.select().from(trustScores).where(eq(trustScores.userId, userId)),
+    db.select().from(skillVectors).where(eq(skillVectors.userId, userId)),
     pairIds.length === 0 ? Promise.resolve([]) : db.select().from(pairDays).where(inArray(pairDays.pairId, pairIds)),
     pairIds.length === 0 ? Promise.resolve([]) : db.select().from(pairCompanions).where(inArray(pairCompanions.pairId, pairIds)),
   ]);
@@ -152,6 +154,7 @@ export async function exportMemberRows(userId: string, db: DbOrTx = getDb()): Pr
     blocks: blockRows,
     reports: reportRows,
     trust_scores: trust,
+    skill_vectors: vectors,
     pairs: ownPairs,
     pair_days: days,
     pair_companions: companions,

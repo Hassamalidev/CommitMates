@@ -77,3 +77,27 @@ export const gapReports = pgTable(
   },
   (table) => [index('gap_reports_repo_idx').on(table.repoGithubId), index('gap_reports_computed_idx').on(table.computedAt)],
 ).enableRLS();
+
+/**
+ * A member's skills for matching (CLAUDE.md §7.4, §8 F11 "Vectors"). `base` holds the term
+ * frequencies from their code (language shares and skill tags); `vector` is the TF-IDF weighting
+ * within their university, recomputed for everyone there when a member's base changes, because
+ * document frequencies move. `interests` are topics of owned and starred repositories.
+ */
+export const skillVectors = pgTable(
+  'skill_vectors',
+  {
+    userId: uuid('user_id')
+      .primaryKey()
+      .references(() => users.id, { onDelete: 'cascade' }),
+    base: jsonb('base').$type<Record<string, number>>().notNull(),
+    vector: jsonb('vector').$type<Record<string, number>>().notNull(),
+    topTags: text('top_tags').array().notNull(),
+    interests: text('interests').array().notNull(),
+    clusterLabel: text('cluster_label'),
+    computedAt: timestamptz('computed_at').notNull(),
+    createdAt: createdAt(),
+    updatedAt: updatedAt(),
+  },
+  (table) => [index('skill_vectors_computed_idx').on(table.computedAt)],
+).enableRLS();

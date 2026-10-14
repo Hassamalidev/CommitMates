@@ -137,3 +137,4 @@ export {
 export { median } from './stats/basic';
 export { levenshteinSimilarity, splitSentences, tokenize, wordTag, yake, type Keyphrase, type YakeOptions } from './ir/yake';
 export { bm25Index, bm25Scores, bm25Tokens, type Bm25Index } from './ir/bm25';
+export { l2Normalize, mergeMax, tfidfVectors, topTags } from './matching/tfidf';

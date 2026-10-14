@@ -106,3 +106,5 @@ export type { NotificationRow, TopicCount } from '@commitmates/db';
 export { DELETE_PHRASE, deletionConfirmation, exportMemberData, prepareAccountDeletion, privacySettingsSchema, updatePrivacySettings } from './privacy/service';
 export { AUDIT_PAGE_SIZE, adminChangeSchema, auditFilterSchema, changeAdmin, listRoles, moderationScope, readAuditLog } from './admin/roles';
 export type { AuditEntryRow, RoleGrant } from '@commitmates/db';
+export { TOP_SKILL_TAGS, baseFromCard, interestsOf, recomputeUniversityVectors, requestSkillVector } from './matching/vectors';
+export { getSkillVector } from '@commitmates/db';

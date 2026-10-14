@@ -92,9 +92,9 @@ Chat (CLAUDE.md §8 F12): first messages waiting for consent, threads and who is
 
 Who a member blocked, and their reports about others: reason, optional details, and the moderation outcome. A report outlives the reporter's account (`reporter` becomes null), because it is evidence for moderation. A report about a member is deleted with that member's account.
 
-### `match_suggestions`, `connections`, `trust_scores` (class B for members)
+### `match_suggestions`, `connections`, `trust_scores`, `skill_vectors` (class B for members)
 
-Daily suggestions with their score components and explanation keys, connections made through features, and the nightly trust score with its components. Recomputed from activity; deleted by cascade.
+Daily suggestions with their score components and explanation keys, connections made through features, the nightly trust score with its components, and the member's skill vector: base weights from their public code (languages and tags), the TF-IDF weighting within their university, and interest topics from their own and starred repositories. Recomputed from activity; deleted by cascade.
 
 ### `pairs`, `pair_days`, `pair_companions` (class A)
 

@@ -945,6 +945,7 @@ Keys that §8 names as "new key" (or that a formula needs), seeded in `0003_sett
 | `profile.maxLearningGoals` | integer | 10 | — | Learning goals a member can pick (F10, P3-T06) |
 | `profile.gradYearMaxAhead` | integer | 8 | — | Latest graduation year accepted, in years from now (F10, P3-T06) |
 | `profile.gradYearMaxBehind` | integer | 60 | — | Earliest graduation year accepted, in years before now (F10, P3-T06) |
+| `matching.vectorRefreshDays` | integer | 7 | — | Age at which the weekly refresh recomputes a member's skill vector (F11, P4-T02) |
 | `admin.deadJobWindowHours` | integer | 24 | — | Window in which a dead job raises an alert (§5.13) |
 | `admin.interactiveQueueAlertSeconds` | integer | 120 | — | An interactive job queued longer than this raises an alert (§5.13) |
 | `admin.budgetAlertPct` | number | 0.9 | — | Share of a budget (database size, daily email) that raises an alert (§5.13) |
@@ -1376,7 +1377,7 @@ The schema is split into nine groups. This section is the contract; the exact de
 | Table | Columns |
 | --- | --- |
 | `analysis_cache` | `kind`, `subject_key`, `params_hash`, `result jsonb`, `is_member_subject boolean`, `computed_at`, `expires_at`; pk `(kind, subject_key, params_hash)`; index on `expires_at` |
-| `skill_vectors` | `user_id pk`, `vector jsonb` ({tag: weight}), `top_tags text[]`, `cluster_label null`, `computed_at` |
+| `skill_vectors` | `user_id pk`, `base jsonb` (term frequencies before weighting), `vector jsonb` ({tag: weight}), `top_tags text[]`, `interests text[]`, `cluster_label null`, `computed_at` |
 | `persona_snapshots` | `id`, `user_id`, `window_start`, `window_end`, `metrics jsonb`, `labels text[]`, `companion jsonb`, `computed_at` |
 | `recruiter_reports` | `id`, `subject_github_id`, `score smallint`, `rules jsonb`, `secret_findings jsonb` (only {rule\_id, repo, path, line} — never the secret), `computed_at` |
 | `fairness_reports` | `id`, `repo_github_id`, `params jsonb`, `result jsonb`, `computed_at` |
@@ -3079,7 +3080,7 @@ Branch `phase/4-campus-social`. Goal: matching, safe realtime chat, notification
 - [x] **P4-T01 Social and streak schema.** Spec: §5.9, §7.6, §7.7.
   - Social and streak tables, RLS policies from §5.9, Realtime publication for `messages`, `thread_members` and `notifications`.
   - Done when: two-user RLS isolation tests pass.
-- [ ] **P4-T02 Skill vectors.** Spec: §8 F11 "Vectors".
+- [x] **P4-T02 Skill vectors.** Spec: §8 F11 "Vectors".
   - `compute_skill_vector` (TF-IDF within the university), interest sets, wants from learning goals; weekly refresh schedule.
   - Done when: TF-IDF weighting is tested against a hand-computed fixture.
 - [ ] **P4-T03 Matching engine.** Spec: §8 F11 "Scoring", "Deck", "Explanations".
@@ -3206,6 +3207,7 @@ Branch `phase/7-launch`. Goal: secure, fast, accessible, documented, deployed.
 
 Newest first, one line per completed task or subtask: `YYYY-MM-DD — <task id> — <what was done>`. A `BLOCKED:` line, when present, is always the first line (§13). Spec fixes made under §0.9 are logged here too.
 
+- 2026-10-14 — P4-T02 — Skill vectors: tfidfVectors (w = tf × ln(1 + N/df), L2-normalized; tested against a hand-computed three-member university), base vectors from Dev Card language shares and skill tags normalized through topic aliases, interest sets from owned and starred repository topics, compute_skill_vector (member's own token when valid; reweights everyone at the university because df moves) queued on verification, sign-in (once a day) and weekly via refresh_skill_vectors for vectors older than the new matching.vectorRefreshDays. Spec fix (§7.4): skill_vectors also stores base (needed to recompute weights as members join) and interests (so matching does not refetch stars). Export and PRIVACY include skill_vectors.
 - 2026-10-14 — P4-T01 — Social and streak schema: match_suggestions, connections (ordered pair), message_requests (one pending per pair), threads, thread_members, messages (author set null on account deletion, for the system note), blocks, reports (outlive the reporter), trust_scores, pairs (ordered, one open pair per two members), pair_days, pair_companions; RLS on all twelve, with policies only where §5.9 says: messages of the member's own threads and their own thread memberships; Realtime publication for messages, thread_members and notifications when supabase_realtime exists. Two-user (and three-user) RLS isolation tests pass. The export now includes every new member table, and PRIVACY.md documents them (the doc-driven export test caught threads).
 - 2026-10-14 — P3-T09 — Moderation base: /admin/roles lists every grant and lets admins grant and remove admins (never themselves, never the last admin, row-locked) and university moderators (moved here from the universities page); /admin/audit shows the audit log newest first with action-prefix and target-type filters and keyset paging; /admin/moderation is open to admins and moderators with their scope, and says plainly that reports arrive once chat opens (P4-T06). Role-scoped access tested in core (admins, moderators, members) and e2e (signed out, member, moderator, admin). E2e stability: local Playwright runs use two workers (one server and one Postgres serve them all), the two heaviest admin tests are marked slow, and the schedule test starts from a known state.
 - 2026-10-14 — P3-T08 — Privacy center: /settings/privacy (any signed-in member) with visibility and ghost mode, a JSON export (GET /api/me/export: every class A and B table PRIVACY.md lists, enforced by a test that reads the doc; no token ciphertext or code hash), and account deletion confirmed by typing the GitHub login: a best-effort confirmation email, one transaction deleting login- and GitHub-id-keyed data (cached analyses, GitHub user and repositories) with a hashed audit entry, then the Supabase auth user (everything else cascades) and sign-out. Deviation recorded: the GitHub OAuth grant is not revoked server-side because the client secret lives only in Supabase Auth; the page links to GitHub's authorized applications instead. Steps for pairs, listings, escrows and messages arrive with those features. E2e flow 8 passes.

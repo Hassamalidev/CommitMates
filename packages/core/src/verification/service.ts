@@ -1,6 +1,7 @@
 import { RateLimitedError, ValidationError, checkVerificationCode, getSetting, startPendingVerification } from '@commitmates/db';
 import { PRIORITY, enqueue } from '@commitmates/jobs';
 
+import { requestSkillVector } from '../matching/vectors';
 import { utcDay } from '../notifications/email';
 import { matchEmailToUniversity } from '../universities/service';
 
@@ -60,6 +61,8 @@ export async function confirmEmailCode(userId: string, raw: unknown, now: Date =
   const field = { field: 'code' };
   switch (result.status) {
     case 'verified':
+      // Matching needs the member's skill vector at their new university.
+      await requestSkillVector(userId, now);
       return { universityId: result.universityId };
     case 'no_pending':
       throw new ValidationError('verify.no_pending', 'Start by entering your university email.', { field: 'email' });
