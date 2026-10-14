@@ -1,5 +1,6 @@
 import { z } from 'zod';
 
+import { CLIENT_FALLBACKS } from './public';
 import { lazyEnv, parseEnv, type EnvSource } from './shared';
 
 export const clientSchema = z.object({
@@ -23,10 +24,7 @@ const readClientSource = (): EnvSource => ({
  * Browser-safe variables. The site name and URL fall back to local values so a build
  * without `.env.local` still compiles; `assertServerEnv()` requires the real ones at startup.
  */
-export const clientEnv = lazyEnv('client', clientSchema, readClientSource, {
-  NEXT_PUBLIC_SITE_NAME: 'CommitMates',
-  NEXT_PUBLIC_SITE_URL: 'http://localhost:3000',
-});
+export const clientEnv = lazyEnv('client', clientSchema, readClientSource, CLIENT_FALLBACKS);
 
 export function parseClientEnv(source: EnvSource = readClientSource()): ClientEnv {
   return parseEnv('client', clientSchema, source);

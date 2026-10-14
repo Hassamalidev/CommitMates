@@ -89,6 +89,14 @@ export async function getSetting<K extends SettingKey>(key: K, db: DbOrTx = getD
   return readFrom(snapshot, key);
 }
 
+/** The seeded default of a setting, ignoring computed values and overrides. */
+export async function settingDefault<K extends SettingKey>(key: K, db: DbOrTx = getDb()): Promise<SettingValue<K>> {
+  if (!isSettingKey(key)) throw new ConfigError('settings.unknown_key', `Unknown settings key "${String(key)}"`);
+  const [row] = await db.select({ defaultValue: settings.defaultValue }).from(settings).where(eq(settings.key, key));
+  if (!row) throw new ConfigError('settings.missing_row', `Setting "${key}" has no row; is the seed migration applied?`);
+  return parseValue(key, row.defaultValue);
+}
+
 /** Largest relative difference between two values; non-numeric changes count as a full change. */
 export function relativeChange(previous: unknown, next: unknown): number {
   if (typeof previous === 'number' && typeof next === 'number') {
@@ -189,4 +197,20 @@ export async function setOverride(
     });
   });
   clearSettingsCache();
+}
+
+/** Prefixes of settings that recompute jobs create per category, outside the static key registry (CLAUDE.md §5.5.1). */
+export type CategorySettingPrefix = 'graveyard.idleMonths';
+
+/**
+ * A per-category number such as `graveyard.idleMonths.<category>`, resolved like any setting.
+ * `null` until a recompute job has created the row; callers fall back to the default key.
+ */
+export async function getCategoryNumber(prefix: CategorySettingPrefix, category: string, db: DbOrTx = getDb()): Promise<number | null> {
+  // Reading a registered key refreshes the snapshot when it is older than settings.cacheMs.
+  await getSetting('settings.cacheMs', db);
+  const row = snapshot?.rows.get(`${prefix}.${category}`);
+  if (!row) return null;
+  const { value } = resolveSetting(row);
+  return typeof value === 'number' && Number.isFinite(value) ? value : null;
 }

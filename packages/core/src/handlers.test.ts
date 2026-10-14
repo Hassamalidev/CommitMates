@@ -38,7 +38,18 @@ describe('recompute_settings job', () => {
     const report = await runTick({ budgetMs: 30_000, onlyJobId: job.id });
     expect(report.done).toBe(1);
     const [row] = await database.sql`select status, result_ref from jobs where id = ${job.id}`;
-    expect(row).toMatchObject({ status: 'done', result_ref: { updated: [], empty: [], failed: [] } });
+    // Without samples every registered key reports "no data yet" and keeps its default.
+    expect(row).toMatchObject({ status: 'done', result_ref: { updated: [], failed: [] } });
+    expect((row?.result_ref as { empty: string[] }).empty).toContain('persona.nightOwl.share');
+  });
+
+  it('source syncs are scheduled weekly by migrations', async () => {
+    const rows = await database.sql`
+      select name, job_type from job_schedules where name in ('sync-linguist', 'sync-explore') order by name`;
+    expect(rows).toEqual([
+      { name: 'sync-explore', job_type: 'sync_explore' },
+      { name: 'sync-linguist', job_type: 'sync_linguist' },
+    ]);
   });
 
   it('is scheduled nightly by a migration', async () => {

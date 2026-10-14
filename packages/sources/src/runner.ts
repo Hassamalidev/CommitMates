@@ -1,6 +1,6 @@
 import { createHash } from 'node:crypto';
 
-import { ExternalServiceError, getDb, getLogger, schema, type Db } from '@commitmates/db';
+import { ExternalServiceError, RateLimitError, getDb, getLogger, schema, type Db } from '@commitmates/db';
 import { eq } from 'drizzle-orm';
 
 import type { SourceContext, SourceModule, SyncCounts } from './contract';
@@ -12,9 +12,9 @@ const MAX_ERROR_CHARS = 1000;
 
 export type SourceSyncResult =
   | { status: 'unchanged'; version: string }
-  | ({ status: 'synced'; version: string; itemCount: number; unusable: number } & SyncCounts);
+  | ({ status: 'synced'; version: string; itemCount: number; unusable: number; more: boolean } & SyncCounts);
 
-export type RunSourceOptions = { db?: Db; now?: () => Date };
+export type RunSourceOptions = { db?: Db; now?: () => Date; deadline?: number };
 
 /**
  * Runs one source end to end and records the outcome in `source_snapshots`.
@@ -28,7 +28,7 @@ export async function runSourceSync<Raw, Normalized>(
   const db = options.db ?? getDb();
   const now = options.now ?? (() => new Date());
   const log = getLogger().child({ source: source.name });
-  const ctx: SourceContext = { db, now, log };
+  const ctx: SourceContext = { db, now, log, deadline: options.deadline };
 
   try {
     const { raw, version } = await source.fetchRaw(ctx);
@@ -41,7 +41,8 @@ export async function runSourceSync<Raw, Normalized>(
     }
 
     const items = source.normalize(raw);
-    if (items.length === 0) throw new Error('source returned no usable items');
+    if (items.length === 0 && source.allowEmpty !== true) throw new Error('source returned no usable items');
+    const more = source.hasMore?.(raw) ?? false;
     const unusable = source.countUnusable?.(items) ?? 0;
     const counts = await db.transaction((tx) => source.sync(items, { ...ctx, db: tx }));
 
@@ -59,8 +60,10 @@ export async function runSourceSync<Raw, Normalized>(
       .onConflictDoUpdate({ target: sourceSnapshots.source, set: values });
 
     log.info({ ...counts, unusable, itemCount: items.length }, 'source synced');
-    return { status: 'synced', version, itemCount: items.length, unusable, ...counts };
+    return { status: 'synced', version, itemCount: items.length, unusable, more, ...counts };
   } catch (error) {
+    // An exhausted GitHub budget is not a source failure: the job waits and tries again.
+    if (error instanceof RateLimitError) throw error;
     const lastError = (error instanceof Error ? `${error.name}: ${error.message}` : String(error)).slice(
       0,
       MAX_ERROR_CHARS,

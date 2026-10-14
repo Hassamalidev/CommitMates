@@ -31,12 +31,14 @@ export { Tooltip, type TooltipProps } from './components/Tooltip';
 export { UnlockCard, type UnlockCardProps } from './components/UnlockCard';
 export { VisuallyHidden } from './components/VisuallyHidden';
 
+export { CompanionSprite, type CompanionSpriteProps } from './companion/CompanionSprite';
 export { CompanionView, type CompanionViewProps } from './companion/CompanionView';
 export { SpeechBubble, type SpeechBubbleProps } from './companion/SpeechBubble';
 export {
   COMPANION_TRAITS,
   MAX_STAGE,
   SPECIES_COUNT,
+  STATE_TIMING,
   generateFrames,
   hashSeed,
   speciesFor,
@@ -45,7 +47,7 @@ export {
   type CompanionState,
   type CompanionTrait,
 } from './companion/generate';
-export { renderSpriteSheet, renderStill, type SpriteSheetOptions } from './companion/render';
+export { renderSpriteSheet, renderStill, runsToPaths, type ColorPath, type SpriteSheetOptions } from './companion/render';
 export { contrastRatio, derivePalette, outlineFor } from './companion/color';
 
 export { ThemeToggle, type ThemeToggleProps } from './theme/ThemeToggle';
@@ -59,3 +61,10 @@ export {
   type ResolvedTheme,
   type ThemePreference,
 } from './theme/theme';
+
+export { Heatmap, heatLevel, type HeatmapDay, type HeatmapProps } from './charts/Heatmap';
+export { LanguageBar, formatSharePercent, type LanguageBarItem, type LanguageBarProps } from './charts/LanguageBar';
+export { RhythmStrip, topHours, type RhythmStripProps } from './charts/RhythmStrip';
+export { ScoreDial, normalizeScore, type ScoreDialProps } from './charts/ScoreDial';
+export { BarList, type BarListItem, type BarListProps } from './charts/BarList';
+export { Timeline, type TimelineProps, type TimelineSeries } from './charts/Timeline';

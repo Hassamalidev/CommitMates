@@ -1,4 +1,4 @@
-import { boolean, pgEnum, pgTable, text, uniqueIndex, uuid } from 'drizzle-orm/pg-core';
+import { boolean, index, integer, jsonb, pgEnum, pgTable, primaryKey, real, smallint, text, uniqueIndex, uuid } from 'drizzle-orm/pg-core';
 
 import { createdAt, timestamptz } from './columns';
 
@@ -27,3 +27,137 @@ export const pathPatterns = pgTable(
   },
   (table) => [uniqueIndex('path_patterns_kind_pattern_key').on(table.kind, table.pattern)],
 ).enableRLS();
+
+/**
+ * GitHub topics from github/explore: display names, aliases and related topics. The
+ * source of every tag normalization and of the taxonomy engine's alias seeds.
+ */
+export const topics = pgTable(
+  'topics',
+  {
+    slug: text('slug').primaryKey(),
+    displayName: text('display_name').notNull(),
+    aliases: text('aliases').array().notNull(),
+    related: text('related').array().notNull(),
+    /** Git blob sha of the topic's source file; only changed files are fetched again. */
+    blobSha: text('blob_sha').notNull(),
+    syncedAt: timestamptz('synced_at').notNull(),
+    createdAt: createdAt(),
+  },
+  (table) => [index('topics_aliases_idx').using('gin', table.aliases)],
+).enableRLS();
+
+/** Registry metadata of a package and the tags derived from it (CLAUDE.md §6.6). No vocabulary is hand-written. */
+export const packageMeta = pgTable(
+  'package_meta',
+  {
+    ecosystem: text('ecosystem').notNull(),
+    name: text('name').notNull(),
+    keywords: text('keywords').array().notNull(),
+    classifiers: text('classifiers').array().notNull(),
+    repoFullName: text('repo_full_name'),
+    ghTopics: text('gh_topics').array().notNull(),
+    derivedTags: text('derived_tags').array().notNull(),
+    fetchedAt: timestamptz('fetched_at').notNull(),
+    expiresAt: timestamptz('expires_at').notNull(),
+    createdAt: createdAt(),
+  },
+  (table) => [
+    primaryKey({ columns: [table.ecosystem, table.name] }),
+    index('package_meta_expires_idx').on(table.expiresAt),
+    index('package_meta_tags_idx').using('gin', table.derivedTags),
+  ],
+).enableRLS();
+
+/** One row per registry; locked `for update` so only one request is in flight and calls are spaced. */
+export const registryPacing = pgTable('registry_pacing', {
+  registry: text('registry').primaryKey(),
+  lastCallAt: timestamptz('last_call_at'),
+  createdAt: createdAt(),
+}).enableRLS();
+
+/** One allowlist of a gitleaks rule: matches it describes are not secrets (CLAUDE.md §6.7). */
+export type SecretAllowlist = {
+  /** `OR` (default): any criterion allows a match; `AND`: all defined criteria must. */
+  condition: 'OR' | 'AND';
+  /** What the regexes are tested against. */
+  regexTarget: 'secret' | 'match' | 'line';
+  regexes: string[];
+  paths: string[];
+  stopwords: string[];
+};
+
+/**
+ * Secret-detection rules from gitleaks' default configuration (CLAUDE.md §6.7). Patterns are
+ * Go regular expressions compiled with RE2; `compiled_ok` is false for any RE2 cannot express.
+ */
+export const secretRules = pgTable('secret_rules', {
+  /** The gitleaks rule id, e.g. `aws-access-token`. */
+  id: text('id').primaryKey(),
+  description: text('description').notNull(),
+  regex: text('regex'),
+  /** Lowercased; a file without any of them is not tested against the rule. */
+  keywords: text('keywords').array().notNull(),
+  entropy: real('entropy'),
+  /** Capture group holding the secret; 0 means the first non-empty group, or the whole match. */
+  secretGroup: smallint('secret_group').notNull().default(0),
+  /** Rules that apply only to matching paths, or that match a path alone. */
+  pathRegex: text('path_regex'),
+  allowlists: jsonb('allowlists').$type<SecretAllowlist[]>().notNull(),
+  compiledOk: boolean('compiled_ok').notNull(),
+  checksum: text('checksum').notNull(),
+  syncedAt: timestamptz('synced_at').notNull(),
+  createdAt: createdAt(),
+}).enableRLS();
+
+/** gitleaks' global allowlist: paths, regexes and stopwords that are never secrets, for every rule. */
+export const secretGlobalAllowlist = pgTable('secret_global_allowlist', {
+  /** Always `global`: a single row, replaced on each sync. */
+  id: text('id').primaryKey(),
+  allowlist: jsonb('allowlist').$type<SecretAllowlist>().notNull(),
+  syncedAt: timestamptz('synced_at').notNull(),
+  createdAt: createdAt(),
+}).enableRLS();
+
+/** How many public repositories carry each topic on GitHub (`topic:<slug>`), cached for `cache.topicCountTtlDays`. */
+export const topicGlobalCounts = pgTable('topic_global_counts', {
+  slug: text('slug').primaryKey(),
+  totalCount: integer('total_count').notNull(),
+  fetchedAt: timestamptz('fetched_at').notNull(),
+  createdAt: createdAt(),
+}).enableRLS();
+
+/** One item learned for a search term (CLAUDE.md §8 F6 "Output"). */
+export type TaxonomyItem = {
+  kind: 'topic' | 'dependency';
+  value: string;
+  score: number;
+  source: 'alias' | 'related' | 'cooccurrence';
+};
+
+/** Topics and dependencies learned for a search term, cached for `cache.taxonomyTtlDays`. */
+export const taxonomyExpansions = pgTable(
+  'taxonomy_expansions',
+  {
+    term: text('term').primaryKey(),
+    slug: text('slug').notNull(),
+    items: jsonb('items').$type<TaxonomyItem[]>().notNull(),
+    sampleSize: integer('sample_size').notNull(),
+    computedAt: timestamptz('computed_at').notNull(),
+    expiresAt: timestamptz('expires_at').notNull(),
+    createdAt: createdAt(),
+  },
+  (table) => [index('taxonomy_expansions_expires_idx').on(table.expiresAt)],
+).enableRLS();
+
+/**
+ * Stopwords per language from stopwords-iso (CLAUDE.md §8 F9 step 1): one row per ISO 639-1
+ * code, used by YAKE and BM25. No list is written by hand.
+ */
+export const stopwords = pgTable('stopwords', {
+  language: text('language').primaryKey(),
+  words: text('words').array().notNull(),
+  checksum: text('checksum').notNull(),
+  syncedAt: timestamptz('synced_at').notNull(),
+  createdAt: createdAt(),
+}).enableRLS();

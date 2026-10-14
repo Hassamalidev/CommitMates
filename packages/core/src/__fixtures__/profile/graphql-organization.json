@@ -1,0 +1,13 @@
+{
+  "data": {
+    "repositoryOwner": {
+      "__typename": "Organization"
+    },
+    "rateLimit": {
+      "limit": 5000,
+      "cost": 1,
+      "remaining": 4979,
+      "resetAt": "2026-10-14T13:00:00Z"
+    }
+  }
+}

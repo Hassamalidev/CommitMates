@@ -13,6 +13,7 @@ const links = [
   { href: '/admin/health', label: adminCopy.nav.health },
   { href: '/admin/jobs', label: adminCopy.nav.jobs },
   { href: '/admin/settings', label: adminCopy.nav.settings },
+  { href: '/admin/metrics', label: adminCopy.nav.metrics },
 ] as const;
 
 /**

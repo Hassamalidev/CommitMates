@@ -1,0 +1,23 @@
+[
+  {
+    "name": "bot.py",
+    "path": "bot.py",
+    "type": "file",
+    "sha": "f2",
+    "size": 5200
+  },
+  {
+    "name": "requirements.txt",
+    "path": "requirements.txt",
+    "type": "file",
+    "sha": "req-v1",
+    "size": 40
+  },
+  {
+    "name": "requirements-dev.txt",
+    "path": "requirements-dev.txt",
+    "type": "file",
+    "sha": "reqdev-v1",
+    "size": 12
+  }
+]

@@ -1,5 +1,5 @@
 import { getDb, schema, type DbOrTx } from '@commitmates/db';
-import { and, eq } from 'drizzle-orm';
+import { and, eq, gt, isNull, or } from 'drizzle-orm';
 
 import { identityKey, type TokenIdentity } from './identity';
 
@@ -8,11 +8,23 @@ const { apiCache } = schema;
 export type CachedResponse = { etag: string | null; lastModified: string | null; body: unknown };
 
 /** Conditional-request cache for REST GETs. ETags are tied to the token, so the key includes the identity. */
-export async function readCache(identity: TokenIdentity, url: string, db: DbOrTx = getDb()): Promise<CachedResponse | null> {
+export async function readCache(
+  identity: TokenIdentity,
+  url: string,
+  now: Date,
+  db: DbOrTx = getDb(),
+): Promise<CachedResponse | null> {
   const [row] = await db
     .select({ etag: apiCache.etag, lastModified: apiCache.lastModified, body: apiCache.body })
     .from(apiCache)
-    .where(and(eq(apiCache.tokenIdentity, identityKey(identity)), eq(apiCache.method, 'GET'), eq(apiCache.url, url)));
+    .where(
+      and(
+        eq(apiCache.tokenIdentity, identityKey(identity)),
+        eq(apiCache.method, 'GET'),
+        eq(apiCache.url, url),
+        or(isNull(apiCache.expiresAt), gt(apiCache.expiresAt, now)),
+      ),
+    );
   if (!row || (row.etag === null && row.lastModified === null)) return null;
   return row;
 }
@@ -20,7 +32,7 @@ export async function readCache(identity: TokenIdentity, url: string, db: DbOrTx
 export async function writeCache(
   identity: TokenIdentity,
   url: string,
-  response: { status: number; etag: string | null; lastModified: string | null; body: unknown },
+  response: { status: number; etag: string | null; lastModified: string | null; body: unknown; expiresAt: Date | null },
   now: Date,
   db: DbOrTx = getDb(),
 ): Promise<void> {
@@ -30,6 +42,7 @@ export async function writeCache(
     status: response.status,
     body: response.body,
     fetchedAt: now,
+    expiresAt: response.expiresAt,
   };
   await db
     .insert(apiCache)

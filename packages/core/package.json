@@ -27,8 +27,9 @@
     "@commitmates/config": "workspace:*",
     "@types/node": "catalog:",
     "eslint": "catalog:",
+    "msw": "^2.11.0",
+    "pino": "^10.4.0",
     "typescript": "catalog:",
-    "vitest": "catalog:",
-    "pino": "^10.4.0"
+    "vitest": "catalog:"
   }
 }

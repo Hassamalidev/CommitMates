@@ -71,6 +71,132 @@
       "when": 1791937644413,
       "tag": "0009_settings_admin",
       "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "7",
+      "when": 1791939315009,
+      "tag": "0010_topics",
+      "breakpoints": true
+    },
+    {
+      "idx": 11,
+      "version": "7",
+      "when": 1791939317603,
+      "tag": "0011_settings_explore",
+      "breakpoints": true
+    },
+    {
+      "idx": 12,
+      "version": "7",
+      "when": 1791940302464,
+      "tag": "0012_package_meta",
+      "breakpoints": true
+    },
+    {
+      "idx": 13,
+      "version": "7",
+      "when": 1791940304437,
+      "tag": "0013_settings_registries",
+      "breakpoints": true
+    },
+    {
+      "idx": 14,
+      "version": "7",
+      "when": 1791941058788,
+      "tag": "0014_text_helpers",
+      "breakpoints": true
+    },
+    {
+      "idx": 15,
+      "version": "7",
+      "when": 1791941060927,
+      "tag": "0015_github_data",
+      "breakpoints": true
+    },
+    {
+      "idx": 16,
+      "version": "7",
+      "when": 1791941329533,
+      "tag": "0016_schedule_purge",
+      "breakpoints": true
+    },
+    {
+      "idx": 17,
+      "version": "7",
+      "when": 1791941331739,
+      "tag": "0017_gh_repos_trgm_index",
+      "breakpoints": true
+    },
+    {
+      "idx": 18,
+      "version": "7",
+      "when": 1791942501849,
+      "tag": "0018_schedule_geocode",
+      "breakpoints": true
+    },
+    {
+      "idx": 19,
+      "version": "7",
+      "when": 1791949080578,
+      "tag": "0019_secret_rules",
+      "breakpoints": true
+    },
+    {
+      "idx": 20,
+      "version": "7",
+      "when": 1791949083115,
+      "tag": "0020_schedule_gitleaks",
+      "breakpoints": true
+    },
+    {
+      "idx": 21,
+      "version": "7",
+      "when": 1791950135767,
+      "tag": "0021_recruiter",
+      "breakpoints": true
+    },
+    {
+      "idx": 22,
+      "version": "7",
+      "when": 1791951950469,
+      "tag": "0022_fairness_reports",
+      "breakpoints": true
+    },
+    {
+      "idx": 23,
+      "version": "7",
+      "when": 1791953660495,
+      "tag": "0023_taxonomy",
+      "breakpoints": true
+    },
+    {
+      "idx": 24,
+      "version": "7",
+      "when": 1791956263501,
+      "tag": "0024_gap_finder",
+      "breakpoints": true
+    },
+    {
+      "idx": 25,
+      "version": "7",
+      "when": 1791959087024,
+      "tag": "0025_stopwords",
+      "breakpoints": true
+    },
+    {
+      "idx": 26,
+      "version": "7",
+      "when": 1791959090059,
+      "tag": "0026_schedule_stopwords",
+      "breakpoints": true
+    },
+    {
+      "idx": 27,
+      "version": "7",
+      "when": 1791963427337,
+      "tag": "0027_settings_recruiter",
+      "breakpoints": true
     }
   ]
 }

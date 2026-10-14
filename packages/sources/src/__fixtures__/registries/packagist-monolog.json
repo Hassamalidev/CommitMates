@@ -1,0 +1,26 @@
+{
+  "minified": "composer/2.0",
+  "packages": {
+    "monolog/monolog": [
+      {
+        "name": "monolog/monolog",
+        "description": "Sends your logs to files, sockets, inboxes, databases and various web services",
+        "keywords": [
+          "log",
+          "logging",
+          "psr-3"
+        ],
+        "homepage": "https://github.com/Seldaek/monolog",
+        "version": "3.12.1",
+        "license": [
+          "MIT"
+        ],
+        "source": {
+          "url": "https://github.com/Seldaek/monolog.git",
+          "type": "git",
+          "reference": "d7059e4c691d05ea1222b5124bed0f961be46e15"
+        }
+      }
+    ]
+  }
+}

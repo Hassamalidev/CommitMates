@@ -62,6 +62,7 @@ export const SettingKeys = {
   'recruiter.pinned.min': 'integer',
   'recruiter.pinned.max': 'integer',
   'recruiter.readme.minChars': 'integer',
+  'recruiter.readme.sampleMinStars': 'integer',
   'recruiter.profileReadme.minChars': 'integer',
   'fairness.leastShareThreshold': 'number',
   'fairness.lateWindowPct': 'number',
@@ -169,6 +170,8 @@ export const SettingKeys = {
   'admin.sourceStaleDays': 'integer',
   'admin.staleComputedDays': 'integer',
   'admin.jobListLimit': 'integer',
+  'sources.explore.batchSize': 'integer',
+  'sources.requestTimeoutMs': 'integer',
 } as const;
 
 export type SettingKey = keyof typeof SettingKeys;

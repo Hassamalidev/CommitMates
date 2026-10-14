@@ -20,3 +20,35 @@ export {
 export { SERVER_IDENTITY, identityKey, type TokenIdentity } from './identity';
 export { LOGIN_PATTERN, parseGitHubUrl, type GitHubRef } from './url';
 export { ensureBudget, parseRateLimitHeaders, type BudgetResource, type RateLimitState } from './budgets';
+export {
+  GitHubOrganizationError,
+  PROFILE_QUERY,
+  fetchProfile,
+  type FetchProfileOptions,
+  type Profile,
+  type ProfileRepo,
+} from './queries/profile';
+export { fetchPublicEvents, type ActivityEvent, type ActivityKind } from './queries/events';
+export { fetchFileText, fetchReadme, listDirectory, listRootEntries, type RootEntry } from './queries/contents';
+export { fetchStarredRepos, type StarredRepo } from './queries/starred';
+export { fetchBlobText, fetchTree, type Tree, type TreeEntry } from './queries/git';
+export {
+  fetchCommitFiles,
+  fetchContributorStats,
+  fetchRepository,
+  listCommits,
+  type CommitFile,
+  type CommitSummary,
+  type ContributorStats,
+  type Repository,
+} from './queries/repos';
+export { countTopicRepositories, searchRepositories, type SearchRepo } from './queries/search';
+export {
+  fetchCommitEstimate,
+  fetchHasReleases,
+  fetchIssueSample,
+  fetchRecentCommits,
+  fetchStarsSince,
+  type IssueSample,
+} from './queries/activity';
+export { fetchIssueResponses, fetchLabels, searchIssues, type FoundIssue, type IssueWithReply } from './queries/issues';

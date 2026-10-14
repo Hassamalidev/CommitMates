@@ -1,0 +1,127 @@
+[
+  {
+    "id": "2124002579",
+    "type": "PushEvent",
+    "actor": {
+      "login": "fixture-user-1"
+    },
+    "repo": {
+      "id": 9000,
+      "name": "fixture-user-1/campus-map"
+    },
+    "payload": {
+      "size": 2,
+      "commits": [
+        {
+          "message": "Add building search with fuzzy matching"
+        },
+        {
+          "message": "fix"
+        }
+      ]
+    },
+    "public": true,
+    "created_at": "2026-10-10T18:30:00Z"
+  },
+  {
+    "id": "2272975587",
+    "type": "WatchEvent",
+    "actor": {
+      "login": "fixture-user-1"
+    },
+    "repo": {
+      "id": 9000,
+      "name": "fixture-user-1/campus-map"
+    },
+    "payload": {
+      "action": "started"
+    },
+    "public": true,
+    "created_at": "2026-10-09T10:00:00Z"
+  },
+  {
+    "id": "1920446157",
+    "type": "PullRequestEvent",
+    "actor": {
+      "login": "fixture-user-1"
+    },
+    "repo": {
+      "id": 9000,
+      "name": "fixture-user-1/campus-map"
+    },
+    "payload": {
+      "action": "opened"
+    },
+    "public": true,
+    "created_at": "2026-10-08T21:05:00Z"
+  },
+  {
+    "id": "7486288530",
+    "type": "PushEvent",
+    "actor": {
+      "login": "fixture-user-1"
+    },
+    "repo": {
+      "id": 9000,
+      "name": "fixture-user-1/grade-bot"
+    },
+    "payload": {
+      "size": 1,
+      "commits": [
+        {
+          "message": "Handle missing grades without crashing"
+        }
+      ]
+    },
+    "public": true,
+    "created_at": "2026-09-28T07:15:00Z"
+  },
+  {
+    "id": "5672722163",
+    "type": "IssuesEvent",
+    "actor": {
+      "login": "fixture-user-1"
+    },
+    "repo": {
+      "id": 9000,
+      "name": "fixture-user-1/grade-bot"
+    },
+    "payload": {
+      "action": "opened"
+    },
+    "public": true,
+    "created_at": "2026-09-27T23:40:00Z"
+  },
+  {
+    "id": "2351924718",
+    "type": "CreateEvent",
+    "actor": {
+      "login": "fixture-user-1"
+    },
+    "repo": {
+      "id": 9000,
+      "name": "fixture-user-1/grade-bot"
+    },
+    "payload": {
+      "ref_type": "branch"
+    },
+    "public": true,
+    "created_at": "2026-09-20T02:10:00Z"
+  },
+  {
+    "id": "8823039425",
+    "type": "PullRequestReviewEvent",
+    "actor": {
+      "login": "fixture-user-1"
+    },
+    "repo": {
+      "id": 9000,
+      "name": "fixture-user-1/campus-map"
+    },
+    "payload": {
+      "action": "created"
+    },
+    "public": true,
+    "created_at": "2026-09-19T15:00:00Z"
+  }
+]

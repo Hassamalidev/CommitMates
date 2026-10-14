@@ -1,7 +1,10 @@
-import { completeSignIn, getLogger } from '@commitmates/core';
+import { completeSignIn, getLogger, recordSignUpConversion } from '@commitmates/core';
+import { after } from 'next/server';
+
 import { safeNextPath } from '@/lib/paths';
 import { createSupabaseServerClient } from '@/lib/supabase/server';
 import { redirectToPath } from '@/server/origin';
+import { requestIpHash } from '@/server/rate';
 import { signInFromSession } from '@/server/sign-in';
 
 export const dynamic = 'force-dynamic';
@@ -32,6 +35,16 @@ export async function GET(request: Request): Promise<Response> {
 
   try {
     const result = await completeSignIn(signIn);
+    if (result.isNewMember) {
+      // Tool conversion (CLAUDE.md §1.7): link this sign-up to today's anonymous tool runs from the same hashed address.
+      after(async () => {
+        try {
+          await recordSignUpConversion(signIn.userId, await requestIpHash(request.headers));
+        } catch (error_) {
+          getLogger().error({ err: error_ }, 'tool conversion not recorded');
+        }
+      });
+    }
     const next = safeNextPath(url.searchParams.get('next'), '/home');
     // New members start with onboarding; the members area sends them there anyway.
     return redirectToPath(result.isNewMember ? '/onboarding' : next);

@@ -198,7 +198,8 @@ async function runJob(job: Job, options: Required<Pick<RunTickOptions, 'now' | '
         priority: job.priority,
         maxAttempts: job.maxAttempts,
         progress: latestProgress,
-        runAt: new Date(now().getTime() + (outcome.delayMs ?? 0)),
+        // Timed by the database's clock, so a child with no delay is claimable at once.
+        ...(outcome.delayMs !== undefined ? { delayMs: outcome.delayMs } : {}),
         db: tx,
       });
     });

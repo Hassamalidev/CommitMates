@@ -1,11 +1,9 @@
 'use client';
 
-import { useEffect, useMemo, useState, type CSSProperties } from 'react';
+import { useEffect, useState } from 'react';
 
-import { cn } from '../lib/cn';
-
-import { GRID, generateFrames, type CompanionInput, type CompanionState } from './generate';
-import { frameToRuns, roleColors } from './render';
+import { CompanionSprite } from './CompanionSprite';
+import { STATE_TIMING, type CompanionInput, type CompanionState } from './generate';
 
 export type CompanionViewProps = {
   companion: CompanionInput;
@@ -20,9 +18,9 @@ export type CompanionViewProps = {
 };
 
 /**
- * Renders a Commitling as an inline SVG sprite sheet and steps through its frames with
- * CSS. Colors that depend on the theme (outline, aura) are CSS variables, so the same
- * markup works in both themes. With reduced motion only the first frame is shown.
+ * A Commitling that reacts to state changes: "done" hops twice, then settles to idle
+ * (CLAUDE.md §9.5). Drawing is `CompanionSprite`; use that directly for a companion whose
+ * state never changes, so server components render it without shipping work to the browser.
  */
 export function CompanionView({ companion, state, size = 96, label, className }: CompanionViewProps) {
   // "Done" plays its hop twice, then the companion settles back to idle (CLAUDE.md §9.5).
@@ -35,15 +33,7 @@ export function CompanionView({ companion, state, size = 96, label, className }:
   }
   const visibleState: CompanionState = state === 'done' && hopFinished ? 'idle' : state;
 
-  const { runsByFrame, durationMs, iterations } = useMemo(() => {
-    const generated = generateFrames(companion, visibleState);
-    const colors = roleColors(companion);
-    return {
-      runsByFrame: generated.frames.map((frame, index) => frameToRuns(frame, colors, index * GRID)),
-      durationMs: generated.durationMs,
-      iterations: generated.iterations,
-    };
-  }, [companion, visibleState]);
+  const { durationMs, iterations } = STATE_TIMING[visibleState];
 
   // A timer, not `animationend`: with reduced motion the animation never runs, and the
   // companion must still come to rest.
@@ -57,36 +47,5 @@ export function CompanionView({ companion, state, size = 96, label, className }:
     };
   }, [state, hopFinished, durationMs, iterations]);
 
-  const frameCount = runsByFrame.length;
-  const animated = frameCount > 1;
-  const style = {
-    '--companion-shift': `${-frameCount * GRID}px`,
-    animationDuration: `${durationMs}ms`,
-    animationTimingFunction: `steps(${frameCount})`,
-    animationIterationCount: iterations === null ? 'infinite' : String(iterations),
-  } as CSSProperties;
-
-  return (
-    <svg
-      {...(label ? { role: 'img', 'aria-label': label } : { 'aria-hidden': true })}
-      data-state={visibleState}
-      data-frames={frameCount}
-      viewBox={`0 0 ${GRID} ${GRID}`}
-      width={size}
-      height={size}
-      shapeRendering="crispEdges"
-      className={cn('shrink-0 overflow-hidden', className)}
-    >
-      <g
-        // Remounting restarts the animation when the state changes.
-        key={visibleState}
-        className={animated ? 'companion-frames' : undefined}
-        style={animated ? style : undefined}
-      >
-        {runsByFrame.flat().map((run) => (
-          <rect key={`${run.x}-${run.y}`} x={run.x} y={run.y} width={run.width} height={1} fill={run.fill} />
-        ))}
-      </g>
-    </svg>
-  );
+  return <CompanionSprite companion={companion} state={visibleState} size={size} label={label} className={className} />;
 }

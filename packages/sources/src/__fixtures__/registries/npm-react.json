@@ -1,0 +1,15 @@
+{
+  "name": "react",
+  "version": "19.3.0",
+  "description": "React is a JavaScript library for building user interfaces.",
+  "keywords": [
+    "react"
+  ],
+  "repository": {
+    "url": "git+https://github.com/react/react.git",
+    "type": "git",
+    "directory": "packages/react"
+  },
+  "license": "MIT",
+  "homepage": "https://react.dev/"
+}

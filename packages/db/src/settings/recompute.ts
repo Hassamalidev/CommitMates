@@ -74,3 +74,23 @@ export async function metricPercentile(
   if (value === null || count === 0) return null;
   return { value, sampleSize: count };
 }
+
+/**
+ * Several percentiles of one anonymous metric in a single pass, in the order of `levels`,
+ * with the sample count. `null` when there are no samples.
+ */
+export async function metricQuantiles(
+  metricKey: string,
+  levels: readonly number[],
+  db: DbOrTx = getDb(),
+): Promise<{ values: number[]; sampleSize: number } | null> {
+  if (levels.length === 0) return null;
+  const rows = await db.execute<{ values: number[] | null; count: number }>(sql`
+    select percentile_cont(array[${sql.join(levels.map((level) => sql`${level}::float8`), sql`, `)}]) within group (order by value) as values,
+      count(*)::int as count
+    from metric_samples where metric_key = ${metricKey}`);
+  const values = rows[0]?.values ?? null;
+  const count = rows[0]?.count ?? 0;
+  if (values === null || count === 0) return null;
+  return { values: values.map(Number), sampleSize: count };
+}

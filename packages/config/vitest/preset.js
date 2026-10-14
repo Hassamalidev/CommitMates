@@ -31,8 +31,12 @@ export function definePackageConfig(options = {}) {
       fsModuleCachePath: 'node_modules/.vitest-cache',
       // Integration tests create a scratch database per file.
       hookTimeout: 60000,
-      // Integration tests share one Postgres with every other package running in parallel.
-      testTimeout: 20000,
+      // Integration tests share one Postgres with every other package running in parallel; under a full
+      // `pnpm verify` a test that takes 2 s alone can take 25 s, so the limit matches the hook timeout.
+      testTimeout: 60000,
+      // Turborepo runs every package's tests at once. A worker per core in each of them
+      // oversubscribes the machine and the shared Postgres, so job deadlines in tests run out.
+      maxWorkers: '25%',
       restoreMocks: true,
       unstubEnvs: true,
       coverage: {

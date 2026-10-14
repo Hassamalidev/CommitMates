@@ -1,6 +1,8 @@
 import { expect, test } from '@playwright/test';
 
 import { expectNoSeriousA11yViolations } from './helpers/axe';
+import { withAppDatabase } from './helpers/db';
+import { cacheCard, uniqueLogin } from './helpers/dev-card';
 
 test.describe('landing page', () => {
   test('shows every section with one H1 and no accessibility violations', async ({ page }) => {
@@ -9,6 +11,7 @@ test.describe('landing page', () => {
     await expect(page.getByRole('heading', { level: 1 })).toHaveCount(1);
     await expect(page.getByRole('heading', { level: 1 })).toHaveText('Find your coding partner. Finish what you start.');
     for (const title of [
+      'Run it on a real profile',
       'It always tells you what is happening',
       'Useful before anyone else joins',
       'Three steps to a real partner',
@@ -19,6 +22,27 @@ test.describe('landing page', () => {
       await expect(page.getByRole('heading', { level: 2, name: title })).toBeVisible();
     }
     await expectNoSeriousA11yViolations(page);
+  });
+
+  test('the live demo runs a real Dev Card and shows the card', async ({ page }) => {
+    const login = uniqueLogin();
+    await cacheCard(login, 4343);
+    try {
+      await page.goto('/');
+      await page.getByRole('link', { name: 'Try it with your GitHub' }).click();
+      await expect(page).toHaveURL(/#demo$/);
+      const demo = page.locator('#demo');
+      await demo.getByLabel('GitHub username').fill(login);
+      await demo.getByRole('button', { name: 'Run' }).click();
+      const log = demo.getByRole('log');
+      await expect(log.getByText(`commitmates card ${login}`)).toBeVisible();
+      await expect(log.getByText('Card ready. It is just below.')).toBeVisible();
+      await expect(demo.getByRole('img', { name: 'The demo companion is done' })).toBeVisible();
+      await expect(demo.getByTestId('dev-card').getByRole('heading', { name: "Fixture User's Dev Card" })).toBeVisible();
+      await expectNoSeriousA11yViolations(page);
+    } finally {
+      await withAppDatabase((sql) => sql`delete from analysis_cache where subject_key = ${login}`);
+    }
   });
 
   test('shows the companion in all five states', async ({ page }) => {
@@ -87,6 +111,17 @@ test.describe('site pages', () => {
     await page.getByRole('link', { name: 'Back to home' }).click();
     await expect(page).toHaveURL(/\/$/);
   });
+});
+
+test('robots and the sitemap list public pages only', async ({ request }) => {
+  const robots = await (await request.get('/robots.txt')).text();
+  expect(robots).toContain('Disallow: /api/');
+  expect(robots).toContain('Disallow: /admin');
+  expect(robots).toMatch(/Sitemap: .+\/sitemap\.xml/);
+  const sitemap = await (await request.get('/sitemap.xml')).text();
+  for (const path of ['/tools/dev-card', '/tools/fyp-check', '/privacy']) expect(sitemap).toContain(`${path}</loc>`);
+  expect(sitemap).not.toContain('/admin');
+  expect(sitemap).not.toContain('/u/');
 });
 
 test('the site icon is the generated companion', async ({ page, request }) => {

@@ -1,7 +1,8 @@
-import { Accordion, Card, CompanionView, Icon, SpeechBubble, StateChip, buttonStyles, cn } from '@commitmates/ui';
+import { Accordion, Card, CompanionSprite, Icon, SpeechBubble, StateChip, buttonStyles, cn } from '@commitmates/ui';
 import type { Metadata } from 'next';
 import Link from 'next/link';
 
+import { LiveDemo } from '@/components/landing/LiveDemo';
 import { Section } from '@/components/layout/Section';
 import { landingCopy } from '@/copy/landing';
 import { siteCopy } from '@/copy/site';
@@ -17,7 +18,7 @@ export function generateMetadata(): Metadata {
 }
 
 export default function LandingPage() {
-  const { hero, states, tools, how, unlocks, privacy, faq } = landingCopy;
+  const { hero, demo, states, tools, how, unlocks, privacy, faq } = landingCopy;
 
   return (
     <>
@@ -28,7 +29,7 @@ export default function LandingPage() {
             <h1 className="type-display mt-2">{hero.title}</h1>
             <p className="type-body mt-4 max-w-reading text-fg-muted">{hero.subline}</p>
             <div className="mt-6 flex flex-wrap gap-3">
-              <Link href="/#tools" className={buttonStyles({ variant: 'primary', size: 'lg' })}>
+              <Link href="/#demo" className={buttonStyles({ variant: 'primary', size: 'lg' })}>
                 {hero.primaryCta}
               </Link>
               <a href="/auth/sign-in" className={buttonStyles({ variant: 'secondary', size: 'lg' })}>
@@ -37,7 +38,7 @@ export default function LandingPage() {
             </div>
           </div>
           <div className="flex items-start gap-3 md:flex-col md:items-center">
-            <CompanionView companion={brandCompanion} state="idle" size={160} label={hero.companionLabel} />
+            <CompanionSprite companion={brandCompanion} state="idle" size={160} label={hero.companionLabel} />
             <SpeechBubble tail="left" className="md:hidden">
               {hero.companionLine}
             </SpeechBubble>
@@ -48,11 +49,15 @@ export default function LandingPage() {
         </div>
       </section>
 
+      <Section id="demo" eyebrow={demo.eyebrow} title={demo.title} intro={demo.intro} className="bg-surface-2">
+        <LiveDemo />
+      </Section>
+
       <Section id="states" eyebrow={states.eyebrow} title={states.title} intro={states.intro}>
         <ul className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-5">
           {states.items.map((item) => (
             <Card as="li" key={item.state} className="flex flex-col items-center gap-3 text-center">
-              <CompanionView
+              <CompanionSprite
                 companion={brandCompanion}
                 state={item.state}
                 size={96}

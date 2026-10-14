@@ -124,7 +124,7 @@ describe('jobs administration', () => {
   it('retries a dead job with fresh attempts and audits it', async () => {
     const [dead] = await database.sql<{ id: string }[]>`
       insert into jobs (type, status, max_attempts, attempts, user_message) values ('b', 'dead', 3, 3, 'x') returning id`;
-    await retryJob(admin, dead!.id, NOW);
+    await retryJob(admin, dead!.id);
     const [row] = await database.sql`select status, attempts, user_message from jobs where id = ${dead!.id}`;
     expect(row).toEqual({ status: 'queued', attempts: 0, user_message: null });
     const audit = await database.sql`select action, actor_user_id, target_id from audit_log`;

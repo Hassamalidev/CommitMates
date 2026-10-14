@@ -64,27 +64,61 @@ Feedback text with the page it was sent from. `user_id` is set to null when the 
 
 ### `tool_sessions` (class D)
 
-One row per day-one tool run: the tool name and `ip_hash_day = sha256(ip + daily_salt)`. No raw IP address is stored, and the salt is deleted when it rotates, so the hash cannot be reversed or linked across days. `user_id` and `converted_user_id` are set to null on account deletion.
+One row per day-one tool run: the tool name and `ip_hash_day = sha256(ip + daily_salt)`. No raw IP address is stored, and the salt is deleted when it rotates, so the hash cannot be reversed or linked across days. `user_id` and `converted_user_id` are set to null on account deletion. When someone signs up for the first time, `converted_user_id` is set on anonymous runs from the previous 24 hours that carry the same daily hash (the tool-conversion metric); it is computed from the sign-in request's address and today's salt, and nothing else about the runs is linked.
 
 ### `metric_samples`, `salts` (class D)
 
-Anonymous numeric samples that feed computed settings. `subject_hash = sha256(github_id + salt)` exists only to stop one person from being counted twice within a salt period; old salts are deleted on rotation.
+Anonymous numbers that tune thresholds: a metric key, a value, a salted subject hash and the salt period. Keys so far: `oss.responseHours` (per project, hashed by repository id), `recruiter.readmeChars` (README length of a well-starred showcased repository, hashed by repository id), `companion.activityScore` (written by the Dev Card), `persona.nightShare`, `persona.morningShare`, `persona.weekendShare`, `persona.cv`, `persona.activeDayShare`, `contrib.total365` (written by the Dev Card). The hash is `sha256(github_id + current aggregate salt)` and exists only so one person counts once per metric and period; the salt is rotated every `privacy.aggregateSaltRotationDays` and old salts are deleted, so a hash cannot be linked back to an account. Kept indefinitely.
 
 ### `audit_log`
 
 Administrative actions. `actor_user_id` has no foreign key so the log survives account deletion; the deletion itself is logged with a hashed id only.
 
+### `gh_users`, `gh_repos`, `repo_manifests`, `repo_dependencies` (class C for non-members, class B for members)
+
+Public GitHub profile fields (login, name, free-text location, company, website, bio, follower counts), public repository metadata, and the dependency names read from manifest files.
+
+| Whose data | Retention | Deletion |
+| --- | --- | --- |
+| Someone who has not signed up | `expires_at = fetched + privacy.nonUserRawTtlHours` (24 hours by default) | `purge_non_user_raw`, hourly; manifests and dependencies cascade from the repository |
+| A member | No expiry; refreshed when they use the tools | With the account |
+| The country index (Phase 6) | Refreshed by the crawler | Opt-out form; removed when GitHub returns 404 |
+
+Recent public events (including commit messages GitHub publishes in them) are read to compute results and are not stored in any table.
+
+### `analysis_cache` (class C for non-members, class B for members)
+
+Computed tool results, keyed by kind, subject and a hash of the parameters. Kinds so far: `fyp` (subject = a truncated SHA-256 of the normalized idea text, never the text itself; keyphrases, public repository names, descriptions, stars and similarity; kept for `cache.searchTtlHours`), `oss` and `oss_repo` (public issues and project responsiveness; subject = the login asked about, or the languages), `gap` and `repo_facets` (subject = `owner/repo`; public repository structure, dependency tags and properties), `graveyard` (subject = scope and query; public repository metadata and signals), `graveyard_signals` (subject = `owner/repo`; README text up to 20,000 characters, commit messages, issue comment counts, release presence; public data, kept no longer than `cache.searchTtlHours`), `fairness` (subject = `owner/repo`; contributor display names, GitHub logins and avatars, commit and line counts per week; people without an account are keyed by a truncated SHA-256 of their email, never the address; always kept no longer than `privacy.nonUserRawTtlHours`), `recruiter` (subject = lowercased login, parameters = the claimed skills and, for an owner's own check, the owner's user id so nobody else can read that entry; rule credits and evidence, never a secret or where one is), `compat` (subject = the two lowercased logins, sorted; scores, components, shared tags and starred repositories; kept for `cache.compatTtlHours` only when both people are members, otherwise no longer than `privacy.nonUserRawTtlHours`), `dev_card` (subject = lowercased GitHub login; the result holds the login, name, avatar URL, GitHub id, language shares, skill tags, hour histogram, 90 days of daily contribution counts and the derived labels — all from public data, plus private contribution counts only when the account owner enabled them on GitHub and analyzed their own account).
+
+Retention: `cache.devCardTtlHours` for members; for people who have not signed up, never longer than `privacy.nonUserRawTtlHours`. Expired rows are deleted hourly by `purge_non_user_raw`. A job's `result_ref` only points at the row; the result is delivered to the browser that holds the unguessable job id.
+
+### `recruiter_reports` (class B)
+
+A member's own Recruiter-Ready check with the secret scan: score, rule results, files scanned, and each finding as rule id, repository, path and line. The secret itself is never stored or shown. Readable only by that member (the server checks the signed-in member owns the row); deleted with the account.
+
+### `generic_message_counts` (class D)
+
+Short normalized commit messages (at most a few words, like "fix" or "update readme") with how many analyses saw them. No person, repository or time is stored with a message. Kept indefinitely.
+
+### `gap_reports`, `repo_paths`
+
+Public repository structure and the comparison of a repository with its peers: ids, facets, gaps. No personal data. `repo_paths` rows are deleted with their `gh_repos` row (which expires like other non-member data).
+
+### `fairness_reports` (class D)
+
+One row per Fairness Report run: repository id, data source, and team-level numbers (people count, Gini, least-share ratio, flag). No names, accounts or emails. Kept for the usage metric.
+
 ### `api_cache` (class C)
 
-Cached GitHub API responses keyed by token identity, method and URL. Rows about non-members expire with `privacy.nonUserRawTtlHours` (purge job in P2-T04).
+Cached GitHub API responses keyed by token identity, method and URL. Responses expire after `privacy.nonUserRawTtlHours` and are deleted hourly. Only public reference data fetched by the source syncs (Linguist, github/explore) is kept without expiry, to make conditional requests possible.
 
 ### `geocode_cache`
 
-Normalized free-text location strings and their coordinates. Not linked to a person.
+Normalized free-text location strings (lowercased, emoji and URLs removed) with their coordinates, city, country code and timezone. The string is sent to the geocoder on its own, without a login or any other profile field. Rows are kept forever and hold no reference to a person; `gh_users.geocode_key` points at a row and is deleted with the `gh_users` row (class C retention for non-members).
 
 ### Tables without personal data
 
-`settings`, `settings_history` (an `actor_user_id` for admin overrides), `jobs` (payloads may name a GitHub login or repository; rows are operational and short-lived), `job_schedules`, `github_budgets`, `rate_limit_buckets` (keys contain hashes, never raw IPs), `geocoder_lock`, `source_snapshots`.
+`languages`, `path_patterns`, `topics`, `package_meta`, `registry_pacing`, `secret_rules`, `secret_global_allowlist`, `topic_global_counts`, `taxonomy_expansions`, `stopwords` (public reference data from open sources and from GitHub search totals), `settings`, `settings_history` (an `actor_user_id` for admin overrides), `jobs` (payloads may name a GitHub login or repository; rows are operational and short-lived), `job_schedules`, `github_budgets`, `rate_limit_buckets` (keys contain hashes, never raw IPs), `geocoder_lock`, `source_snapshots`.
 
 ## Environment and logs
 

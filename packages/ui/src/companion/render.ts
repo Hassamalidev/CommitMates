@@ -53,6 +53,22 @@ export function frameToRuns(frame: Frame, colors: RoleColors, offsetX = 0): Run[
   return runs;
 }
 
+export type ColorPath = { fill: string; d: string };
+
+/**
+ * One path per color, each run a 1-pixel-high rectangle (`M x y h w v 1 h -w z`). The page
+ * then holds about ten elements per companion instead of one per run.
+ */
+export function runsToPaths(runs: readonly Run[]): ColorPath[] {
+  const byFill = new Map<string, string[]>();
+  for (const run of runs) {
+    const parts = byFill.get(run.fill) ?? [];
+    parts.push(`M${run.x} ${run.y}h${run.width}v1h-${run.width}z`);
+    byFill.set(run.fill, parts);
+  }
+  return [...byFill].map(([fill, parts]) => ({ fill, d: parts.join('') }));
+}
+
 export type SpriteSheetOptions = {
   /** The surface the image sits on; decides between the dark and the light outline. */
   surfaceHex: string;

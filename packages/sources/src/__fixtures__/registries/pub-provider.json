@@ -1,0 +1,12 @@
+{
+  "name": "provider",
+  "latest": {
+    "version": "6.1.5+1",
+    "pubspec": {
+      "name": "provider",
+      "description": "A wrapper around InheritedWidget to make them easier to use and more reusable.",
+      "version": "6.1.5+1",
+      "repository": "https://github.com/rrousselGit/provider"
+    }
+  }
+}

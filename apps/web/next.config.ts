@@ -31,6 +31,14 @@ const nextConfig: NextConfig = {
     '@commitmates/sources',
     '@commitmates/ui',
   ],
+  // Share images read these WOFF files at runtime (apps/web/src/server/og-fonts.ts).
+  outputFileTracingIncludes: {
+    '/api/og/[kind]': [
+      './node_modules/@fontsource/pixelify-sans/files/pixelify-sans-latin-500-normal.woff',
+      './node_modules/@fontsource/inter/files/inter-latin-400-normal.woff',
+      './node_modules/@fontsource/inter/files/inter-latin-600-normal.woff',
+    ],
+  },
   images: {
     // No sharp (LGPL libvips, CLAUDE.md §2.2): avatars are requested from GitHub at display size.
     unoptimized: true,

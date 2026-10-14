@@ -1,8 +1,19 @@
 import { registerHandler, type JobHandler } from '@commitmates/jobs';
 
+import { compatCheckJob } from './compat/jobs';
+import { fairnessReportJob } from './fairness/jobs';
+import { fypCheckJob } from './fyp/jobs';
+import { gapAnalysisJob } from './gap/jobs';
+import { geocodePendingJob } from './geocoding/jobs';
+import { graveyardSearchJob } from './graveyard/jobs';
+import { ossSearchJob } from './oss/jobs';
+import { analyzeProfileJob } from './persona/jobs';
+import { recruiterReportJob } from './recruiter/jobs';
+import { taxonomyExpandJob } from './taxonomy/jobs';
+import { purgeNonUserRawJob } from './privacy/jobs';
 import { cleanupRateBucketsJob, rotateSaltsJob } from './security/jobs';
 import { recomputeSettingsJob } from './settings/jobs';
-import { syncLinguistJob } from './sources/jobs';
+import { enrichPackagesJob, syncExploreJob, syncGitleaksJob, syncLinguistJob, syncStopwordsJob } from './sources/jobs';
 
 type Registration = { type: string; register: () => void };
 
@@ -20,6 +31,21 @@ export const jobHandlers: readonly Registration[] = [
   define(cleanupRateBucketsJob),
   define(rotateSaltsJob),
   define(syncLinguistJob),
+  define(syncExploreJob),
+  define(syncGitleaksJob),
+  define(syncStopwordsJob),
+  define(enrichPackagesJob),
+  define(purgeNonUserRawJob),
+  define(geocodePendingJob),
+  define(analyzeProfileJob),
+  define(compatCheckJob),
+  define(recruiterReportJob),
+  define(fairnessReportJob),
+  define(taxonomyExpandJob),
+  define(graveyardSearchJob),
+  define(gapAnalysisJob),
+  define(ossSearchJob),
+  define(fypCheckJob),
 ];
 
 /** Registers every handler. Safe to call on each request: re-registering is a no-op. */

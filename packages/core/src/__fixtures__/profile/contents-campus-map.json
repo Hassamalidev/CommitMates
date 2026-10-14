@@ -1,0 +1,30 @@
+[
+  {
+    "name": ".github",
+    "path": ".github",
+    "type": "dir",
+    "sha": "d1",
+    "size": 0
+  },
+  {
+    "name": "README.md",
+    "path": "README.md",
+    "type": "file",
+    "sha": "f1",
+    "size": 1800
+  },
+  {
+    "name": "package.json",
+    "path": "package.json",
+    "type": "file",
+    "sha": "pkg-v1",
+    "size": 420
+  },
+  {
+    "name": "src",
+    "path": "src",
+    "type": "dir",
+    "sha": "d2",
+    "size": 0
+  }
+]

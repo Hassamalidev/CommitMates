@@ -1,6 +1,7 @@
 import { watchJob } from '@commitmates/core';
 import { z } from 'zod';
 
+import { withResults } from '@/server/job-events';
 import { sseResponse } from '@/server/sse';
 
 export const dynamic = 'force-dynamic';
@@ -13,5 +14,5 @@ const paramsSchema = z.object({ id: z.uuid() });
 export async function GET(request: Request, context: { params: Promise<{ id: string }> }): Promise<Response> {
   const params = paramsSchema.safeParse(await context.params);
   if (!params.success) return Response.json({ error: 'invalid job id' }, { status: 400 });
-  return sseResponse((signal) => watchJob(params.data.id, { signal }), request);
+  return sseResponse((signal) => withResults(watchJob(params.data.id, { signal })), request);
 }

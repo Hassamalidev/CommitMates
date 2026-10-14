@@ -1,4 +1,4 @@
-import { CompanionView, EmptyState, buttonStyles } from '@commitmates/ui';
+import { CompanionSprite, EmptyState, buttonStyles } from '@commitmates/ui';
 import type { Metadata } from 'next';
 import Link from 'next/link';
 
@@ -16,7 +16,7 @@ export default function NotFound() {
     <SiteFrame>
       <EmptyState
         className="py-20"
-        companion={<CompanionView companion={brandCompanion} state="idle" size={160} label={copy.companionLabel} />}
+        companion={<CompanionSprite companion={brandCompanion} state="idle" size={160} label={copy.companionLabel} />}
         title={copy.title}
         description={copy.line}
         action={

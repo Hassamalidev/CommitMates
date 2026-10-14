@@ -13,9 +13,12 @@
     "test": "vitest run"
   },
   "dependencies": {
+    "@commitmates/algorithms": "workspace:*",
     "@commitmates/core": "workspace:*",
     "@commitmates/env": "workspace:*",
     "@commitmates/ui": "workspace:*",
+    "@fontsource/inter": "^5.3.0",
+    "@fontsource/pixelify-sans": "^5.3.0",
     "@next/env": "^16.4.0",
     "@supabase/ssr": "^0.12.7",
     "@supabase/supabase-js": "^2.117.3",
@@ -28,6 +31,7 @@
   "devDependencies": {
     "@commitmates/config": "workspace:*",
     "@tailwindcss/postcss": "^4.3.3",
+    "@testing-library/react": "^16.3.3",
     "@types/node": "catalog:",
     "@types/react": "catalog:",
     "@types/react-dom": "catalog:",

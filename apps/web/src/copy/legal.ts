@@ -112,6 +112,42 @@ export const legalCopy = {
         license: 'MIT',
         href: 'https://github.com/github-linguist/linguist',
       },
+      {
+        name: 'github/explore',
+        use: 'Topic names, aliases and related topics.',
+        license: 'CC BY 4.0, © GitHub, Inc.',
+        href: 'https://github.com/github/explore',
+      },
+      {
+        name: 'npm, PyPI, crates.io, pub.dev and Packagist',
+        use: 'Keywords, classifiers and categories that packages publish about themselves.',
+        license: 'Terms of use of each registry',
+        href: 'https://docs.npmjs.com/policies/open-source-terms',
+      },
+      {
+        name: 'gitleaks',
+        use: 'Secret-detection rules used to warn members about keys left in their own repositories.',
+        license: 'MIT',
+        href: 'https://github.com/gitleaks/gitleaks',
+      },
+      {
+        name: 'stopwords-iso',
+        use: 'Lists of common words left out when finding keyphrases.',
+        license: 'MIT',
+        href: 'https://github.com/stopwords-iso/stopwords-iso',
+      },
+      {
+        name: 'OpenStreetMap Nominatim',
+        use: 'Turning the location text of a public profile into a city, country and timezone.',
+        license: 'Data © OpenStreetMap contributors, ODbL 1.0',
+        href: 'https://www.openstreetmap.org/copyright',
+      },
+      {
+        name: 'tz-lookup and timezone-boundary-builder',
+        use: 'Finding the timezone of a coordinate without a network call.',
+        license: 'CC0 1.0; boundaries derived from OpenStreetMap data, ODbL 1.0',
+        href: 'https://github.com/photostructure/tz-lookup',
+      },
     ],
     assets: [
       { name: 'Inter', use: 'Body text.', license: 'SIL Open Font License 1.1', href: 'https://rsms.me/inter/' },
