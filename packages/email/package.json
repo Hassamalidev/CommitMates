@@ -13,11 +13,13 @@
     "test": "vitest run"
   },
   "dependencies": {
-    "@commitmates/env": "workspace:*"
+    "@commitmates/env": "workspace:*",
+    "nodemailer": "10.0.12"
   },
   "devDependencies": {
     "@commitmates/config": "workspace:*",
     "@types/node": "catalog:",
+    "@types/nodemailer": "8.0.2",
     "eslint": "catalog:",
     "typescript": "catalog:",
     "vitest": "catalog:"

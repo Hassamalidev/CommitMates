@@ -6,6 +6,7 @@ import { ActionForm } from '@/components/forms/ActionForm';
 import { adminCopy } from '@/copy/admin';
 import { formatUtc } from '@/lib/format';
 import { retryJobAction, toggleScheduleAction } from '@/server/actions/admin';
+import { requireAdminPage } from '@/server/guards';
 
 export function generateMetadata(): Metadata {
   return { title: adminCopy.jobs.metaTitle, robots: { index: false } };
@@ -33,6 +34,7 @@ const retryColumn: Column<JobRow> = {
 };
 
 export default async function AdminJobsPage() {
+  await requireAdminPage();
   const overview = await getJobsOverview();
 
   return (

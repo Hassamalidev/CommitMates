@@ -137,6 +137,18 @@ export const legalCopy = {
         href: 'https://github.com/stopwords-iso/stopwords-iso',
       },
       {
+        name: 'Hipo university-domains-list',
+        use: 'The list of universities and their email domains used to verify members.',
+        license: 'MIT',
+        href: 'https://github.com/Hipo/university-domains-list',
+      },
+      {
+        name: 'disposable-email-domains',
+        use: 'Throwaway email domains that cannot be used to verify a university.',
+        license: 'CC0 1.0',
+        href: 'https://github.com/disposable-email-domains/disposable-email-domains',
+      },
+      {
         name: 'OpenStreetMap Nominatim',
         use: 'Turning the location text of a public profile into a city, country and timezone.',
         license: 'Data © OpenStreetMap contributors, ODbL 1.0',

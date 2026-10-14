@@ -13,7 +13,7 @@ export {
   type SignInResult,
 } from './profiles/service';
 export { signInSchema, type Member, type MemberRole, type SignInInput } from './profiles/schemas';
-export { AppError, ForbiddenError, NotFoundError, RateLimitedError, ValidationError } from '@commitmates/db';
+export { AppError, ExternalServiceError, ForbiddenError, NotFoundError, RateLimitedError, ValidationError } from '@commitmates/db';
 export {
   getHealth,
   getJobsOverview,
@@ -82,3 +82,27 @@ export { listLanguages as listLanguageNames } from '@commitmates/db';
 export { FYP_STEPS, fypTool } from './fyp/jobs';
 export { FYP_DESCRIPTION_MAX, FYP_DESCRIPTION_MIN, FYP_TITLE_MAX, fypInputSchema, fypResultSchema, type FypInput, type FypResult } from './fyp/schemas';
 export { METRIC_WINDOWS, getToolMetrics, recordSignUpConversion, type ToolMetrics } from './metrics/service';
+export { matchEmailToUniversity, type EmailUniversityCheck } from './universities/service';
+export { EmailQuotaError, deliverEmail, nextUtcMidnight, sendEmailPayloadSchema, utcDay, type SendEmailPayload } from './notifications/email';
+export { confirmEmailCode, startEmailVerification } from './verification/service';
+export { CODE_DIGITS, confirmCodeSchema, startVerificationSchema, type StartVerificationResult } from './verification/schemas';
+export { getPendingVerification, getProfileDetails, getUniversity, getUniversityBySlug, type PendingVerification, type UniversitySummary } from '@commitmates/db';
+export {
+  changeModerator,
+  listModeratorGrants,
+  listReviewableRequests,
+  requestUniversity,
+  reviewRequest,
+  moderatorChangeSchema,
+  requestReviewSchema,
+  universityRequestSchema,
+} from './universities/requests';
+export { latestUniversityRequest, listCountries, type Country, type ModeratorRow, type PendingRequest } from '@commitmates/db';
+export { hasVouched } from '@commitmates/db';
+export { canVouchFor, chooseUniversityForVouching, findUniversities, getVouchingStatus, vouchForMember, type VouchingStatus } from './verification/vouching';
+export { getOnboardingOptions, onboardingDetailsSchema, resolveDepartment, saveOnboardingDetails } from './profiles/onboarding';
+export { campusUnlocks, creditInvite, getCampus, inviteFor, recentNotifications, type Campus, type Unlock, type UnlockKey } from './universities/campus';
+export type { NotificationRow, TopicCount } from '@commitmates/db';
+export { DELETE_PHRASE, deletionConfirmation, exportMemberData, prepareAccountDeletion, privacySettingsSchema, updatePrivacySettings } from './privacy/service';
+export { AUDIT_PAGE_SIZE, adminChangeSchema, auditFilterSchema, changeAdmin, listRoles, moderationScope, readAuditLog } from './admin/roles';
+export type { AuditEntryRow, RoleGrant } from '@commitmates/db';

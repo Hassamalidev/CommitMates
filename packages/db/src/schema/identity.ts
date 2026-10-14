@@ -2,6 +2,7 @@ import { sql } from 'drizzle-orm';
 import { bigint, boolean, index, pgEnum, pgTable, smallint, text, uniqueIndex, uuid } from 'drizzle-orm/pg-core';
 
 import { citext, createdAt, timestamptz, updatedAt } from './columns';
+import { universities } from './universities';
 
 export const userStatus = pgEnum('user_status', ['active', 'suspended', 'hidden_pending_review']);
 export const profileRole = pgEnum('profile_role', ['student', 'alumni', 'supervisor_pending', 'supervisor']);
@@ -35,21 +36,24 @@ export const githubIdentities = pgTable('github_identities', {
   updatedAt: updatedAt(),
 }).enableRLS();
 
-/** `university_id` and `department_id` get their foreign keys with those tables in Phase 3. */
 export const profiles = pgTable(
   'profiles',
   {
     userId: uuid('user_id')
       .primaryKey()
       .references(() => users.id, { onDelete: 'cascade' }),
-    universityId: uuid('university_id'),
+    // A university with members is never deleted (§6.4), so no delete rule is needed.
+    universityId: uuid('university_id').references(() => universities.id),
     role: profileRole('role').notNull().default('student'),
     gradYear: smallint('grad_year'),
+    // References `departments` (set null on delete); the constraint is added in SQL, as the tables import each other.
     departmentId: uuid('department_id'),
     timezone: text('timezone').notNull(),
     visibility: profileVisibility('visibility').notNull().default('university'),
     ghostMode: boolean('ghost_mode').notNull().default(false),
     learningGoals: text('learning_goals').array().notNull().default(sql`'{}'::text[]`),
+    /** Whether streak partners see if this member has coded today (CLAUDE.md §8 F13 "UI"). */
+    shareTodayStatus: boolean('share_today_status').notNull().default(true),
     bio: text('bio'),
     onboardedAt: timestamptz('onboarded_at'),
     verifiedAt: timestamptz('verified_at'),
@@ -71,7 +75,7 @@ export const roles = pgTable(
       .notNull()
       .references(() => users.id, { onDelete: 'cascade' }),
     role: roleKind('role').notNull(),
-    universityId: uuid('university_id'),
+    universityId: uuid('university_id').references(() => universities.id, { onDelete: 'cascade' }),
     grantedBy: uuid('granted_by'),
     grantedAt: timestamptz('granted_at').notNull().defaultNow(),
     createdAt: createdAt(),

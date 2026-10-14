@@ -10,10 +10,20 @@ import { ossSearchJob } from './oss/jobs';
 import { analyzeProfileJob } from './persona/jobs';
 import { recruiterReportJob } from './recruiter/jobs';
 import { taxonomyExpandJob } from './taxonomy/jobs';
+import { sendEmailJob } from './notifications/email';
+import { sendOtpJob } from './verification/jobs';
 import { purgeNonUserRawJob } from './privacy/jobs';
 import { cleanupRateBucketsJob, rotateSaltsJob } from './security/jobs';
 import { recomputeSettingsJob } from './settings/jobs';
-import { enrichPackagesJob, syncExploreJob, syncGitleaksJob, syncLinguistJob, syncStopwordsJob } from './sources/jobs';
+import {
+  enrichPackagesJob,
+  syncDisposableEmailsJob,
+  syncExploreJob,
+  syncGitleaksJob,
+  syncHipoJob,
+  syncLinguistJob,
+  syncStopwordsJob,
+} from './sources/jobs';
 
 type Registration = { type: string; register: () => void };
 
@@ -34,6 +44,8 @@ export const jobHandlers: readonly Registration[] = [
   define(syncExploreJob),
   define(syncGitleaksJob),
   define(syncStopwordsJob),
+  define(syncHipoJob),
+  define(syncDisposableEmailsJob),
   define(enrichPackagesJob),
   define(purgeNonUserRawJob),
   define(geocodePendingJob),
@@ -46,6 +58,8 @@ export const jobHandlers: readonly Registration[] = [
   define(gapAnalysisJob),
   define(ossSearchJob),
   define(fypCheckJob),
+  define(sendEmailJob),
+  define(sendOtpJob),
 ];
 
 /** Registers every handler. Safe to call on each request: re-registering is a no-op. */

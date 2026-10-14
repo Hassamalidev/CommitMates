@@ -20,6 +20,17 @@ Every personal-data field the app stores: why it exists, how long it is kept, an
 | D: anonymous aggregates | `metric_samples` | Kept | Not linkable to a person |
 | E: country index | Minimal public metadata for search | Refreshed; removed when GitHub returns 404 | Opt-out form by GitHub login |
 
+## Export and deletion (as implemented)
+
+- **Export:** `/settings/privacy` links to `GET /api/me/export`, a JSON download of every class A and B row about the member, grouped by table: every table listed below as class A, or class B for members. A test reads this file and fails if the export misses one. Secrets are left out: the encrypted GitHub token and a verification code's hash.
+- **Deletion:** the member types their GitHub login (or `delete my account` without one).
+  1. A confirmation email goes out first, best effort and within the daily cap; afterwards there is no address to send it to.
+  2. One transaction deletes what no foreign key cascades from: analyses cached about the member (by login), their GitHub user row and their repositories with manifests, dependencies and paths. It also writes an `audit_log` entry whose target is `hashUserId(id)`.
+  3. The Supabase auth user is deleted, and every class A and B table cascades from it.
+  4. The session ends.
+- **Not yet applicable:** §5.12 step 3 (ending pairs, withdrawing listings, refunding escrows, cancelling questions) and replacing a member's chat messages arrive with those features in Phases 4–6.
+- **Deviation from §5.12 step 1:** the GitHub OAuth grant is not revoked by the server. Revoking a grant needs the OAuth app's client secret, which only Supabase Auth holds. The page links to GitHub's authorized-applications settings instead, where the member can revoke it.
+
 ## Field inventory
 
 Row Level Security is enabled on every table. Only `notifications` has a policy (a member reads their own rows); every other table is unreadable by the browser roles and is accessed only by server code.
@@ -48,11 +59,30 @@ Row Level Security is enabled on every table. Only `notifications` has a policy 
 | `timezone` | Member-facing day boundaries (streaks, digests) | Until account deletion | Cascade |
 | `visibility`, `ghost_mode` | The member's privacy choices | Until account deletion | Cascade |
 | `learning_goals`, `bio` | Shown on the profile; goals drive matching | Until account deletion | Cascade |
+| `share_today_status` | Whether streak partners see if the member coded today (on by default, changeable) | Until account deletion | Cascade |
 | `onboarded_at`, `verified_at`, `verified_via` | Verification state | Until account deletion | Cascade |
 
 ### `roles` (class A)
 
 Admin and university-moderator grants with who granted them. Deleted by cascade from `users`.
+
+### `email_verifications` (class A)
+
+A member's university email verification: the address, its domain, the university, a SHA-256 hash of the code (peppered; the code itself is never stored or logged), its expiry, wrong-guess and daily-send counters. The address is kept only while verification is pending; on success it is set to null, together with the code hash, and only the domain remains. Deleted by cascade from `users`.
+
+### `university_requests` (class A)
+
+A member's request to add a university domain: the domain, the proposed name and country, its review status, the reviewer and an optional note to the member. No email address is kept. Deleted by cascade from `users`; a reviewer who deletes their account leaves `reviewed_by` empty.
+
+### `vouches` (class A)
+
+Who vouched for whom, and at which university. Visible to nobody else: a member sees only their own vouch count. Deleted by cascade when either member deletes their account; a vouch already used for verification does not undo it.
+
+### `invites` (class A)
+
+One random code per member and university, and how many invitees verified there after following it. Nothing about the invitees is stored with it. Deleted by cascade when the member deletes their account.
+
+The invite link's university slug and code are kept in a session cookie (`cm_invite`, HTTP-only) until the invitee finishes onboarding; the cookie is then removed. It holds no personal data.
 
 ### `notifications`, `notification_prefs` (class A)
 
@@ -61,6 +91,14 @@ In-app notifications and the member's email preferences. Deleted by cascade from
 ### `feedback` (class A)
 
 Feedback text with the page it was sent from. `user_id` is set to null when the account is deleted, so the text stays without a link to the person.
+
+### `email_daily_counts` (class D)
+
+One row per UTC day with the number of emails sent, for the daily cap. No recipient, subject or content is stored.
+
+### Email delivery
+
+Member emails go to the address in Supabase Auth, read at send time. The `send_email` job stores only the member id and the template data (digest lines or an account-notice kind), never the address. Verification codes are never stored in a job or anywhere else: only their hash is kept (§5.10). Email bodies and addresses are not logged.
 
 ### `tool_sessions` (class D)
 
@@ -118,7 +156,7 @@ Normalized free-text location strings (lowercased, emoji and URLs removed) with 
 
 ### Tables without personal data
 
-`languages`, `path_patterns`, `topics`, `package_meta`, `registry_pacing`, `secret_rules`, `secret_global_allowlist`, `topic_global_counts`, `taxonomy_expansions`, `stopwords` (public reference data from open sources and from GitHub search totals), `settings`, `settings_history` (an `actor_user_id` for admin overrides), `jobs` (payloads may name a GitHub login or repository; rows are operational and short-lived), `job_schedules`, `github_budgets`, `rate_limit_buckets` (keys contain hashes, never raw IPs), `geocoder_lock`, `source_snapshots`.
+`languages`, `path_patterns`, `topics`, `package_meta`, `registry_pacing`, `secret_rules`, `secret_global_allowlist`, `topic_global_counts`, `taxonomy_expansions`, `stopwords`, `universities`, `university_domains`, `disposable_domains`, `departments` (department names typed by members; `created_by` is set to null when that member deletes their account) (public reference data from open sources and from GitHub search totals), `settings`, `settings_history` (an `actor_user_id` for admin overrides), `jobs` (payloads may name a GitHub login or repository; rows are operational and short-lived), `job_schedules`, `github_budgets`, `rate_limit_buckets` (keys contain hashes, never raw IPs), `geocoder_lock`, `source_snapshots`.
 
 ## Environment and logs
 

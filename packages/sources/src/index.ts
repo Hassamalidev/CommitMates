@@ -33,3 +33,5 @@ export {
 export { normalizeGitleaks, type GitleaksItem, type GlobalAllowlistItem, type SecretRuleItem } from './gitleaks/normalize';
 export { gitleaksSource } from './gitleaks/source';
 export { loadStopwords, normalizeStopwords, stopwordsSource, type StopwordItem } from './stopwords/source';
+export { hipoSource, kebab, normalizeUniversities, type UniversityItem } from './hipo/source';
+export { disposableEmailsSource, normalizeDisposableDomains } from './disposable-emails/source';

@@ -1,6 +1,7 @@
 import 'server-only';
 
 import { AppError, ForbiddenError, hasRole, type Member, type RoleRequirement } from '@commitmates/core';
+import { notFound } from 'next/navigation';
 
 import { authCopy } from '@/copy/auth';
 
@@ -32,5 +33,20 @@ export async function requireVerified(): Promise<Member> {
 export async function requireRole(requirement: RoleRequirement): Promise<Member> {
   const member = await requireUser();
   if (!hasRole(member, requirement)) throw new ForbiddenError('auth.forbidden', authCopy.errors.notAllowed);
+  return member;
+}
+
+/** Moderators of at least one university, and admins: who may open the admin area at all. */
+export function canReview(member: Pick<Member, 'roles'>): boolean {
+  return member.roles.length > 0;
+}
+
+/**
+ * For admin-only pages inside the admin area, which moderators may also enter. Anyone else gets
+ * a 404, so the page's existence is not advertised.
+ */
+export async function requireAdminPage(): Promise<Member> {
+  const member = await getCurrentMember();
+  if (member?.status !== 'active' || !hasRole(member, 'admin')) notFound();
   return member;
 }

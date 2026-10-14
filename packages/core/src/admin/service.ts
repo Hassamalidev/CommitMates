@@ -4,6 +4,7 @@ import {
   ValidationError,
   countDeadJobsSince,
   databaseSizeMb,
+  emailsSentOn,
   getSetting,
   isSettingKey,
   listBudgets,
@@ -21,6 +22,8 @@ import {
   writeAudit,
 } from '@commitmates/db';
 import { PRIORITY, setScheduleEnabled } from '@commitmates/jobs';
+
+import { utcDay } from '../notifications/email';
 
 import type { Alert } from './schemas';
 
@@ -41,8 +44,9 @@ export async function getHealth(now: Date = new Date()) {
       getSetting('admin.staleComputedDays'),
       getSetting('storage.dbBudgetMb'),
     ]);
+  const emailCap = await getSetting('email.maxPerDay');
 
-  const [depth, oldest, deadJobs, budgets, sources, dbSizeMb, settingRows] = await Promise.all([
+  const [depth, oldest, deadJobs, budgets, sources, dbSizeMb, settingRows, emailsToday] = await Promise.all([
     queueDepth(),
     oldestQueuedByPriority(now),
     countDeadJobsSince(new Date(now.getTime() - deadWindowHours * MS_PER_HOUR)),
@@ -50,6 +54,7 @@ export async function getHealth(now: Date = new Date()) {
     listSourceSnapshots(),
     databaseSizeMb(),
     listSettingRows(),
+    emailsSentOn(utcDay(now)),
   ]);
 
   const staleCutoff = now.getTime() - staleComputedDays * MS_PER_DAY;
@@ -70,6 +75,9 @@ export async function getHealth(now: Date = new Date()) {
   if (dbSizeMb > dbBudgetMb * budgetAlertPct) {
     alerts.push({ key: 'database_size', values: { mb: Math.round(dbSizeMb), budgetMb: dbBudgetMb } });
   }
+  if (emailsToday > emailCap * budgetAlertPct) {
+    alerts.push({ key: 'email_quota', values: { sent: emailsToday, cap: emailCap } });
+  }
   const sourceCutoff = now.getTime() - sourceStaleDays * MS_PER_DAY;
   for (const source of sources) {
     if (source.lastError !== null) alerts.push({ key: 'source_error', values: { source: source.source } });
@@ -84,6 +92,7 @@ export async function getHealth(now: Date = new Date()) {
     budgets,
     sources,
     database: { sizeMb: dbSizeMb, budgetMb: dbBudgetMb },
+    email: { sentToday: emailsToday, cap: emailCap },
     staleSettings,
     alerts,
   };
