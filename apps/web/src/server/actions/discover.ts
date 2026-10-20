@@ -12,24 +12,21 @@ const field = (formData: FormData, name: string) => {
   return typeof value === 'string' ? value : '';
 };
 
-/** Like a suggestion (CLAUDE.md §8 F11 "UI"): the card leaves the deck and joins today's liked list. */
-export const likeSuggestionAction = async (_previous: ActionResult<null> | null, formData: FormData) =>
-  withAction('discover.like', async (): Promise<null> => {
-    const member = await requireVerified();
-    await guardWriteRate(member.id);
-    await answerSuggestion(member, 'liked', { suggestionId: field(formData, 'suggestionId') });
-    revalidatePath('/discover');
-    return null;
-  })();
+export type AnswerResult = { action: 'liked' | 'skipped'; login: string };
 
-/** Skip a suggestion: the card leaves the deck for today. */
-export const skipSuggestionAction = async (_previous: ActionResult<null> | null, formData: FormData) =>
-  withAction('discover.skip', async (): Promise<null> => {
+/**
+ * Like or Skip a suggestion (CLAUDE.md §8 F11 "UI"); the form's pressed button says which. A liked
+ * card joins today's liked list; either way it leaves the deck. The login is echoed back only to
+ * announce what happened.
+ */
+export const answerSuggestionAction = async (_previous: ActionResult<AnswerResult> | null, formData: FormData) =>
+  withAction('discover.answer', async (): Promise<AnswerResult> => {
     const member = await requireVerified();
     await guardWriteRate(member.id);
-    await answerSuggestion(member, 'skipped', { suggestionId: field(formData, 'suggestionId') });
+    const action = field(formData, 'intent') === 'like' ? 'liked' : 'skipped';
+    await answerSuggestion(member, action, { suggestionId: field(formData, 'suggestionId') });
     revalidatePath('/discover');
-    return null;
+    return { action, login: field(formData, 'login') };
   })();
 
 /** Request chat from a suggestion, with a first message (CLAUDE.md §8 F12 "Message requests"). */

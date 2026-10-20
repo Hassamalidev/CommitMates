@@ -9,6 +9,7 @@ export { Card, type CardProps } from './components/Card';
 export { ChecklistRule, type ChecklistRuleProps, type RuleStatus } from './components/ChecklistRule';
 export { Chip, StateChip, type ChipProps, type StateChipProps } from './components/Chip';
 export { Combobox, type ComboboxOption, type ComboboxProps } from './components/Combobox';
+export { DECK_SHORTCUTS, DeckCard, shortcutFor, type DeckAction, type DeckCardProps } from './components/DeckCard';
 export { Dialog, type DialogProps } from './components/Dialog';
 export { DropdownMenu, type DropdownMenuItem, type DropdownMenuProps } from './components/DropdownMenu';
 export { EmptyState, type EmptyStateProps } from './components/EmptyState';

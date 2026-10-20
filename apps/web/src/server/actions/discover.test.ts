@@ -33,7 +33,7 @@ const revalidatePath = vi.fn();
 vi.mock('next/cache', () => ({ revalidatePath }));
 vi.mock('next/navigation', () => ({ unstable_rethrow: vi.fn() }));
 
-const { likeSuggestionAction, requestFromSuggestionAction, saveLearningGoalsAction, skipSuggestionAction } = await import('./discover');
+const { answerSuggestionAction, requestFromSuggestionAction, saveLearningGoalsAction } = await import('./discover');
 
 const form = (values: Record<string, string>) => {
   const data = new FormData();
@@ -49,8 +49,14 @@ beforeEach(() => {
 
 describe('discover actions', () => {
   it('records Like and Skip for the signed-in member, rate-limited, and refreshes the deck', async () => {
-    expect(await likeSuggestionAction(null, form({ suggestionId: 's-1' }))).toEqual({ ok: true, data: null });
-    expect(await skipSuggestionAction(null, form({ suggestionId: 's-2' }))).toEqual({ ok: true, data: null });
+    expect(await answerSuggestionAction(null, form({ suggestionId: 's-1', intent: 'like', login: 'sam' }))).toEqual({
+      ok: true,
+      data: { action: 'liked', login: 'sam' },
+    });
+    expect(await answerSuggestionAction(null, form({ suggestionId: 's-2', intent: 'skip', login: 'kim' }))).toEqual({
+      ok: true,
+      data: { action: 'skipped', login: 'kim' },
+    });
     expect(answerSuggestion).toHaveBeenNthCalledWith(1, member, 'liked', { suggestionId: 's-1' });
     expect(answerSuggestion).toHaveBeenNthCalledWith(2, member, 'skipped', { suggestionId: 's-2' });
     expect(guardWriteRate).toHaveBeenCalledWith('member-1');
@@ -77,7 +83,7 @@ describe('discover actions', () => {
 
   it('refuses members who are not verified before touching anything', async () => {
     requireVerified.mockRejectedValue(new UnverifiedError('auth.verify', 'Verify your university first.'));
-    const result = await likeSuggestionAction(null, form({ suggestionId: 's-1' }));
+    const result = await answerSuggestionAction(null, form({ suggestionId: 's-1', intent: 'like' }));
     expect(result).toMatchObject({ ok: false, error: { code: 'auth.verify' } });
     expect(answerSuggestion).not.toHaveBeenCalled();
     expect(guardWriteRate).not.toHaveBeenCalled();

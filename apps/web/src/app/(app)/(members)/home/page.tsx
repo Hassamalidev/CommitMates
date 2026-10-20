@@ -17,7 +17,7 @@ const isRecord = (value: unknown): value is Record<string, unknown> => typeof va
 
 /**
  * The member's home (CLAUDE.md §9.6): their university and its unlock progress, recent updates and
- * the tools. The today panel (streaks, suggestions, messages, reviews) joins as those features ship.
+ * Discover, and the tools. The today panel (streaks, suggestions, messages, reviews) joins as those features ship.
  */
 export default async function HomePage() {
   const member = await getCurrentMember();
@@ -29,6 +29,7 @@ export default async function HomePage() {
   ]);
   const copy = homeCopy;
   const open = progress.unlocks.filter((unlock) => unlock.unlocked).length;
+  const matching = progress.unlocks.find((unlock) => unlock.key === 'matching');
   const next = progress.unlocks
     .filter((unlock) => !unlock.unlocked && unlock.metric === 'members')
     .sort((a, b) => a.required - b.required)[0];
@@ -56,6 +57,14 @@ export default async function HomePage() {
             ) : null}
             <Link href={`/uni/${university.slug}`} className={buttonStyles({ variant: 'secondary', size: 'md', className: 'self-start' })}>
               {copy.universityLink}
+            </Link>
+          </Card>
+        ) : null}
+        {matching ? (
+          <Card title={copy.discoverTitle} className="flex flex-col gap-3">
+            <p className="type-body">{matching.unlocked ? copy.discoverOpen : copy.discoverLocked(matching.current, matching.required)}</p>
+            <Link href="/discover" className={buttonStyles({ variant: matching.unlocked ? 'primary' : 'secondary', size: 'md', className: 'self-start' })}>
+              {copy.discoverLink}
             </Link>
           </Card>
         ) : null}
