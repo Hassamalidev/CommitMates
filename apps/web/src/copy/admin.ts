@@ -199,7 +199,20 @@ export const adminCopy = {
       caption: 'Fairness reports generated per week',
       columns: { week: 'Week starting (UTC)', reports: 'Reports' },
     },
-    later: 'Activation, match quality, streak retention, revivals, review quality and alumni responsiveness appear here as those features ship.',
+    matchQuality: {
+      title: 'Match quality',
+      line: (days: number, messages: number, window: number) =>
+        `Accepted message requests from the last ${days} days where both sides sent at least ${messages} messages within ${window} days.`,
+      value: (successful: number, accepted: number, percent: string) => `${percent} (${successful} of ${accepted} accepted requests)`,
+      none: 'No accepted message requests yet.',
+    },
+    streakRetention: {
+      title: 'Streak retention',
+      line: 'Median age of active shared streaks.',
+      value: (days: number, pairs: number) => `${days.toFixed(1)} days across ${pairs === 1 ? '1 active pair' : `${pairs} active pairs`}`,
+      none: 'No active shared streaks yet.',
+    },
+    later: 'Activation, revivals, review quality and alumni responsiveness appear here as those features ship.',
   },
   settings: {
     metaTitle: 'Settings',

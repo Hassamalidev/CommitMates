@@ -365,6 +365,13 @@
       "when": 1792534285318,
       "tag": "0051_settings_streak_status",
       "breakpoints": true
+    },
+    {
+      "idx": 52,
+      "version": "7",
+      "when": 1792535733147,
+      "tag": "0052_settings_match_tuning",
+      "breakpoints": true
     }
   ]
 }

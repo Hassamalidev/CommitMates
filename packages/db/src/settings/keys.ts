@@ -123,6 +123,8 @@ export const SettingKeys = {
   'matching.successMessages': 'integer',
   'matching.weightStep': 'number',
   'matching.tuneMinSuccesses': 'integer',
+  'matching.successWindowDays': 'integer',
+  'matching.tuneWindowDays': 'integer',
   'matching.weights': 'json',
   'chat.newThreadsPerDay.base': 'integer',
   'chat.minFirstMessageChars': 'integer',

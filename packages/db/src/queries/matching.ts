@@ -337,3 +337,57 @@ export async function getPersonaSnapshot(userId: string, db: DbOrTx = getDb()) {
   const hist = row.metrics.hourHistUtc;
   return { ...row, hourHistUtc: isHourHistogram(hist) ? hist : null };
 }
+
+/**
+ * Whether an accepted request `r` became a successful match (CLAUDE.md §8 F11 "Weight tuning" step 1):
+ * in the direct thread the two share, each side sent at least `messages` messages by `days` after it
+ * was accepted.
+ */
+const reachedConversation = (messages: number, days: number) => sql`
+  exists (
+    select 1 from threads t
+    join thread_members ma on ma.thread_id = t.id and ma.user_id = r.from_user
+    join thread_members mb on mb.thread_id = t.id and mb.user_id = r.to_user
+    where t.kind = 'direct'
+      and (select count(*) from messages m
+           where m.thread_id = t.id and m.author_user_id = r.from_user and m.created_at <= r.responded_at + make_interval(days => ${days})) >= ${messages}
+      and (select count(*) from messages m
+           where m.thread_id = t.id and m.author_user_id = r.to_user and m.created_at <= r.responded_at + make_interval(days => ${days})) >= ${messages})`;
+
+export type TuningSample = { mode: string; components: { sim: number; int: number; comp: number }; success: boolean };
+
+/** Suggestions acted on since `since`, with their components and whether they led to a successful match. */
+export async function tuningSamples(since: Date, messages: number, days: number, db: DbOrTx = getDb()): Promise<TuningSample[]> {
+  const rows = await db.execute<{ mode: string; components: unknown; success: boolean }>(sql`
+    select s.mode, s.components,
+      exists (
+        select 1 from message_requests r
+        where r.context_kind = 'discover' and r.context_id = s.id::text and r.status = 'accepted'
+          and ${reachedConversation(messages, days)}) as success
+    from match_suggestions s
+    where s.action is not null and s.acted_at >= ${since.toISOString()}::timestamptz`);
+  const isComponents = (value: unknown): value is TuningSample['components'] =>
+    typeof value === 'object' &&
+    value !== null &&
+    ['sim', 'int', 'comp'].every((key) => typeof (value as Record<string, unknown>)[key] === 'number'); // allowed-literal: the three score components
+  return rows.flatMap((row) => (isComponents(row.components) ? [{ mode: row.mode, components: row.components, success: row.success }] : []));
+}
+
+/** Accepted message requests answered since `since`, and how many became successful matches (§1.7 match quality). */
+export async function matchQualityCounts(since: Date, messages: number, days: number, db: DbOrTx = getDb()): Promise<{ accepted: number; successful: number }> {
+  const rows = await db.execute<{ accepted: number; successful: number }>(sql`
+    select count(*)::int as accepted, count(*) filter (where ${reachedConversation(messages, days)})::int as successful
+    from message_requests r
+    where r.status = 'accepted' and r.responded_at >= ${since.toISOString()}::timestamptz`);
+  return { accepted: rows[0]?.accepted ?? 0, successful: rows[0]?.successful ?? 0 };
+}
+
+/** Active pairs and the median number of days they have lasted (§1.7 streak retention). */
+export async function streakRetention(now: Date, db: DbOrTx = getDb()): Promise<{ activePairs: number; medianDays: number | null }> {
+  const rows = await db.execute<{ active: number; median: string | null }>(sql`
+    select count(*)::int as active,
+      percentile_cont(0.5) within group (order by extract(epoch from (${now.toISOString()}::timestamptz - created_at)) / 86400) as median
+    from pairs where status = 'active'`);
+  const median = rows[0]?.median ?? null;
+  return { activePairs: rows[0]?.active ?? 0, medianDays: median === null ? null : Number(median) };
+}

@@ -171,3 +171,4 @@ export {
   type StreakParams,
   type StreakState,
 } from './streaks/judge';
+export { componentMeans, evenLevels, stageDaysFrom, tuneModeWeights } from './matching/tune';

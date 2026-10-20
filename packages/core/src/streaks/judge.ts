@@ -6,6 +6,7 @@ import {
   getSetting,
   insertNotification,
   insertPairDay,
+  recordMetricSamples,
   lockPair,
   updatePairState,
   upsertPairCompanion,
@@ -15,6 +16,9 @@ import { PRIORITY, enqueue, type JobHandler } from '@commitmates/jobs';
 import { z } from 'zod';
 
 import { getMember } from '../profiles/service';
+
+/** Anonymous sample of the length a streak reached before a missed day ended it. */
+export const ENDED_STREAK_SAMPLE = 'streaks.endedLength';
 
 /** Length of `YYYY-MM-DD`. */
 const ISO_DATE_LENGTH = 10;
@@ -99,7 +103,7 @@ export const streakCheckJob: JobHandler<StreakPayload> = {
 
     const result = await getDb().transaction(async (tx) => {
       const locked = await lockPair(pair.id, tx);
-      if (locked?.status !== 'active' || nextPairDay(locked) !== payload.day) return { judged: 0, paused: false };
+      if (locked?.status !== 'active' || nextPairDay(locked) !== payload.day) return { judged: 0, paused: false, ended: [] as number[] };
       let state: StreakState = {
         currentStreak: locked.currentStreak,
         longestStreak: locked.longestStreak,
@@ -107,11 +111,14 @@ export const streakCheckJob: JobHandler<StreakPayload> = {
         missedInRow: locked.missedInRow,
       };
       let mood: 'happy' | 'neutral' | 'sad' | null = null;
+      const ended: number[] = [];
       let paused = false;
       for (const day of days) {
         if (countsA !== null && countsB !== null) {
           const counts = { a: countsA.get(day) ?? 0, b: countsB.get(day) ?? 0 };
           const judged = judgeDay(state, counts, params.judge);
+          // A streak that ends feeds the stage thresholds (`streaks.companionStageDays`, §5.5.1).
+          if (judged.outcome === 'missed' && state.currentStreak > 0) ended.push(state.currentStreak);
           await insertPairDay({ pairId: pair.id, day, aCount: counts.a, bCount: counts.b, outcome: judged.outcome }, tx);
           state = judged.state;
           mood = moodAfter(judged.outcome);
@@ -143,8 +150,14 @@ export const streakCheckJob: JobHandler<StreakPayload> = {
       ] as const) {
         if (counts === null) await insertNotification(userId, 'github_reconnect', {}, tx);
       }
-      return { judged: days.length, paused };
+      return { judged: days.length, paused, ended };
     });
-    return { kind: 'done', resultRef: result };
+    // One anonymous sample per pair and salt period, under the first member's salted hash (§5.12).
+    const endedLength = result.ended.at(-1);
+    if (endedLength !== undefined) {
+      const first = await getMember(pair.userA);
+      if (first && first.githubId !== null) await recordMetricSamples(first.githubId, { [ENDED_STREAK_SAMPLE]: endedLength }, now);
+    }
+    return { kind: 'done', resultRef: { judged: result.judged, paused: result.paused } };
   },
 };

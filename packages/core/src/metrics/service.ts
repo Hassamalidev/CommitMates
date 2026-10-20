@@ -1,4 +1,14 @@
-import { fairnessReportsPerWeek, markToolConversions, toolConversion, toolUsage, type ToolUsageRow, type WeeklyCount } from '@commitmates/db';
+import {
+  fairnessReportsPerWeek,
+  getSetting,
+  markToolConversions,
+  matchQualityCounts,
+  streakRetention,
+  toolConversion,
+  toolUsage,
+  type ToolUsageRow,
+  type WeeklyCount,
+} from '@commitmates/db';
 
 /** Display windows of the admin metrics page; they change what is shown, not how anything behaves. */
 export const METRIC_WINDOWS = {
@@ -33,6 +43,30 @@ export async function getToolMetrics(now: Date = new Date()): Promise<ToolMetric
     usage,
     conversion: { ...conversion, rate: conversion.sessions === 0 ? null : conversion.converted / conversion.sessions },
     fairnessWeekly,
+  };
+}
+
+const MS_PER_DAY = 24 * 60 * 60 * 1000; // allowed-literal: unit conversion
+
+export type SocialMetrics = {
+  matchQuality: { accepted: number; successful: number; rate: number | null; messages: number; days: number };
+  streaks: { activePairs: number; medianDays: number | null };
+};
+
+/**
+ * The Phase 4 success metrics (CLAUDE.md §1.7): match quality, the share of accepted requests from the
+ * last `METRIC_WINDOWS.totalDays` where both sides sent `matching.successMessages` messages within
+ * `matching.successWindowDays`; and streak retention, the median age of active pairs.
+ */
+export async function getSocialMetrics(now: Date = new Date()): Promise<SocialMetrics> {
+  const [messages, days] = await Promise.all([getSetting('matching.successMessages'), getSetting('matching.successWindowDays')]);
+  const [quality, streaks] = await Promise.all([
+    matchQualityCounts(new Date(now.getTime() - METRIC_WINDOWS.totalDays * MS_PER_DAY), messages, days),
+    streakRetention(now),
+  ]);
+  return {
+    matchQuality: { ...quality, rate: quality.accepted === 0 ? null : quality.successful / quality.accepted, messages, days },
+    streaks,
   };
 }
 

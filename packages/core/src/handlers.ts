@@ -11,6 +11,7 @@ import { analyzeProfileJob } from './persona/jobs';
 import { recruiterReportJob } from './recruiter/jobs';
 import { taxonomyExpandJob } from './taxonomy/jobs';
 import { matchDailyJob } from './matching/daily';
+import { tuneMatchWeightsJob } from './matching/tune';
 import { computeTrustJob } from './safety/trust';
 import { streakCheckJob } from './streaks/judge';
 import { liftSuspensionsJob } from './admin/moderation';
@@ -69,6 +70,7 @@ export const jobHandlers: readonly Registration[] = [
   define(computeSkillVectorJob),
   define(refreshSkillVectorsJob),
   define(matchDailyJob),
+  define(tuneMatchWeightsJob),
   define(computeTrustJob),
   define(streakCheckJob),
   define(digestEmailJob),

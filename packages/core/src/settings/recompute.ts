@@ -1,3 +1,4 @@
+import { evenLevels, stageDaysFrom } from '@commitmates/algorithms';
 import {
   getSetting,
   metricPercentile,
@@ -13,6 +14,7 @@ import {
 import { OSS_RESPONSE_SAMPLE } from '../oss/jobs';
 import { PERSONA_SAMPLE_KEYS } from '../persona/service';
 import { README_CHARS_SAMPLE } from '../recruiter/service';
+import { ENDED_STREAK_SAMPLE } from '../streaks/judge';
 
 /** `oss.maxResponseHours` = p60 of observed maintainer response times (CLAUDE.md §5.5.1). */
 const OSS_RESPONSE_PERCENTILE = 0.6;
@@ -35,6 +37,16 @@ const stageCuts: RecomputeFn = async (db) => {
   return result === null ? null : { value: result.values, sampleSize: result.sampleSize };
 };
 
+/**
+ * Pair companion stages: quantiles of ended-streak lengths, spread evenly over as many thresholds as
+ * the seeded default has (§5.5.1), as whole, increasing days.
+ */
+const companionStageDays: RecomputeFn = async (db) => {
+  const seeded = await settingDefault('streaks.companionStageDays', db);
+  const result = await metricQuantiles(ENDED_STREAK_SAMPLE, evenLevels(seeded.length), db);
+  return result === null ? null : { value: stageDaysFrom(result.values), sampleSize: result.sampleSize };
+};
+
 const readmeTarget: RecomputeFn = async (db) => {
   const result = await metricPercentile(README_CHARS_SAMPLE, README_PERCENTILE, db);
   return result === null ? null : { value: Math.round(Number(result.value)), sampleSize: result.sampleSize };
@@ -42,7 +54,7 @@ const readmeTarget: RecomputeFn = async (db) => {
 
 /**
  * Every computed key that Phase 2 feeds. `graveyard.idleMonths.<category>` waits for push-gap
- * samples (P6); `matching.weights` and `streaks.companionStageDays` arrive with Phase 4.
+ * samples (P6); `matching.weights` is tuned by its own nightly job (`tune_match_weights`).
  */
 const RECOMPUTES: readonly [SettingKey, RecomputeFn][] = [
   ['persona.nightOwl.share', personaThreshold(PERSONA_SAMPLE_KEYS.nightShare)],
@@ -53,6 +65,7 @@ const RECOMPUTES: readonly [SettingKey, RecomputeFn][] = [
   ['companion.stageCuts', stageCuts],
   ['oss.maxResponseHours', (db) => metricPercentile(OSS_RESPONSE_SAMPLE, OSS_RESPONSE_PERCENTILE, db)],
   ['recruiter.readme.minChars', readmeTarget],
+  ['streaks.companionStageDays', companionStageDays],
 ];
 
 /** Registers how each computed key is derived. Safe to call more than once. */

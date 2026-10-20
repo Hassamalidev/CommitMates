@@ -314,6 +314,17 @@ TF-IDF arrives in P4-T02.
 - Tests: `packages/algorithms/src/matching/match.test.ts`, `packages/algorithms/src/stats/random.test.ts`, `packages/core/src/matching/daily.test.ts`
 - Spec: CLAUDE.md §8 F11 "Scoring", "Deck", "Explanations"
 
+### Weight tuning and social metrics
+
+- Code: `packages/algorithms/src/matching/tune.ts`; job `tune_match_weights` in `packages/core/src/matching/tune.ts` (nightly 02:00 UTC, before the decks); metrics in `packages/core/src/metrics/service.ts`
+- Success: a suggestion that was requested, whose Discover request was accepted, and in whose direct thread each side sent at least `matching.successMessages` messages within `matching.successWindowDays` of acceptance
+- Tuning, per mode, over suggestions acted on in the last `matching.tuneWindowDays`: only with at least `matching.tuneMinSuccesses` successes and some unsuccessful ones; diff = mean components of successes − of the rest; target = weights + step·diff/max|diff| (no negatives), renormalized; the move is scaled so no weight changes by more than `matching.weightStep`. Tuned weights are written as the computed value of `matching.weights` with the smallest success count among tuned modes as the sample size, so they apply once that reaches the key's min_sample.
+- Stage thresholds: each streak that a missed day ends records an anonymous `streaks.endedLength` sample (one per pair and salt period); `streaks.companionStageDays` = quantiles of those lengths at k/(n+1) for its n thresholds, rounded, at least 1 and increasing, once min_sample is reached
+- Metrics: match quality = successful ÷ accepted requests answered in the last 30 days; streak retention = median age in days of active pairs
+- Settings: `matching.weights`, `matching.weightStep` (0.05), `matching.tuneMinSuccesses` (30), `matching.successMessages` (4), `matching.successWindowDays` (14), `matching.tuneWindowDays` (30), `streaks.companionStageDays`
+- Tests: `packages/algorithms/src/matching/tune.test.ts`, `packages/core/src/matching/tune.test.ts`
+- Spec: CLAUDE.md §8 F11 "Weight tuning", §1.7, §5.5.1
+
 ### Discover deck and message requests
 
 - Code: `packages/core/src/matching/discover.ts`, `packages/core/src/chat/service.ts`, `packages/core/src/chat/threads.ts`, `packages/core/src/chat/icebreakers.ts`, `packages/algorithms/src/text/links.ts`
