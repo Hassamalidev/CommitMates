@@ -42,6 +42,18 @@ const describers: Readonly<Record<string, (data: Record<string, unknown>) => Not
     // Only a thread id ever goes into the link.
     path: isUuid(text(data.threadId)) ? `/inbox/${text(data.threadId)}` : '/inbox',
   }),
+  pair_paused: (data) => ({
+    title: 'Your streak is paused',
+    line: text(data.login)
+      ? `Your shared streak with @${text(data.login)} is paused after a few missed days. Check in with them, or start one with someone new.`
+      : 'Your shared streak is paused after a few missed days. Check in with your partner, or start one with someone new.',
+    path: '/streaks',
+  }),
+  github_reconnect: () => ({
+    title: 'Sign in with GitHub again',
+    line: 'Your GitHub sign-in has expired, so a streak day was skipped instead of counted. Sign in again to keep it going.',
+    path: '/auth/sign-in?next=/streaks',
+  }),
   account_hidden: () => ({
     title: 'Your account is hidden for now',
     line: 'Your account is hidden from others while moderators review reports about it. You can tell them your side.',
@@ -73,4 +85,5 @@ export function describeNotification(kind: string, data: unknown): NotificationT
 export const MUTABLE_NOTIFICATIONS: Readonly<Record<string, string>> = {
   chat_request: 'New message requests',
   chat_request_accepted: 'Accepted message requests',
+  pair_paused: 'Paused streaks',
 };

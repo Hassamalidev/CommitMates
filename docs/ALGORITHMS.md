@@ -367,6 +367,18 @@ TF-IDF arrives in P4-T02.
 - Tests: `packages/core/src/notifications/center.test.ts`, `packages/email/src/notifications.test.ts`
 - Spec: CLAUDE.md §7.5, §5.4 `digest_email`
 
+### Shared streaks
+
+- Code: `packages/algorithms/src/streaks/judge.ts`; job `streak_check` in `packages/core/src/streaks/judge.ts` (hourly at :15)
+- Day boundaries: a pair's first day is the UTC date it was created; day D is judged once both members' local D+1 has begun in their profile timezones (computed with the runtime's timezone data, so daylight-saving changes, including skipped midnights, are handled) plus `streaks.graceHours`
+- Dispatch: one per-pair run per ready day (idempotency key `streak:<pairId>:<day>`); the run judges every ready day in order with one contribution-calendar read per member over the range
+- Outcome: both counts ≥ `streaks.minDailyContributions` → counted (streak + 1, longest updated, a freeze every `streaks.freezeEveryDays` counted days up to `streaks.maxFreezes`, misses in a row reset); else a held freeze → frozen (streak kept); else missed (streak 0, misses in a row + 1); `streaks.pauseAfterMissedDays` misses in a row pause the pair and notify both. Counts are recorded as GitHub's calendar reports them.
+- Invalid token: a member whose stored token is missing or rejected makes the days skipped (no record, streak unchanged) and gets a sign-in-again notification
+- Companion: stage = thresholds of `streaks.companionStageDays` reached by the current streak; mood happy / neutral / sad after counted / frozen / missed; seed = FNV-1a of the pair id
+- Settings: `streaks.minDailyContributions` (1), `streaks.graceHours` (6), `streaks.freezeEveryDays` (7), `streaks.maxFreezes` (2), `streaks.pauseAfterMissedDays` (3), `streaks.companionStageDays`
+- Tests: `packages/algorithms/src/streaks/judge.test.ts`, `packages/core/src/streaks/judge.test.ts`
+- Spec: CLAUDE.md §8 F13 "Daily judgement", "Edge cases"
+
 ## Clustering, graphs and assignment
 
 No entries yet. k-means with silhouette selection arrives in P6-T06; cycle search in P5-T06.

@@ -158,3 +158,16 @@ export {
   type ModeWeights,
 } from './matching/match';
 export { trustComponents, trustMultiplier, trustScore, type TrustComponents, type TrustInputs, type TrustParams, type TrustWeights } from './safety/trust';
+export {
+  addDays,
+  judgeDay,
+  judgeableAt,
+  localDate,
+  moodAfter,
+  pairCompanionStage,
+  startOfLocalDay,
+  type CompanionMood,
+  type DayOutcome,
+  type StreakParams,
+  type StreakState,
+} from './streaks/judge';
