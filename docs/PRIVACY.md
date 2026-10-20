@@ -96,6 +96,10 @@ Who a member blocked, and their reports about others: reason, optional details, 
 
 Daily suggestions with their score components and explanation keys, connections made through features, the nightly trust score with its components, and the member's skill vector: base weights from their public code (languages and tags), the TF-IDF weighting within their university, and interest topics from their own and starred repositories. Recomputed from activity; deleted by cascade.
 
+### `persona_snapshots` (class B)
+
+The persona part of a member's latest Dev Card: the events window, rhythm metrics, up to three labels and the companion's inputs (seed, species key, palette, stage, traits). One row per member, replaced when their skill vector is recomputed, so Discover can show other members' companions and labels without rebuilding expired cards. In the member's export; deleted by cascade.
+
 ### `pairs`, `pair_days`, `pair_companions` (class A)
 
 Shared streaks between two members: daily contribution counts as GitHub reports them, outcomes, freezes and the pair companion. Deleted by cascade when either member deletes their account.

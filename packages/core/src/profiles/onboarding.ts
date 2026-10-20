@@ -10,6 +10,7 @@ import {
   listDepartments,
   popularTags,
   saveProfileDetails,
+  setLearningGoals,
   schema,
   type Department,
 } from '@commitmates/db';
@@ -64,6 +65,25 @@ export async function resolveDepartment(universityId: string, typed: string, cre
   return similar ?? insertDepartment({ universityId, name: typed.trim().replace(/\s+/g, ' '), normalizedName: normalized, createdBy });
 }
 
+/**
+ * Comma-separated learning goals, normalized and checked against the tag vocabulary (§8 F10 step 7):
+ * at most `maxGoals`, each a tag we know from topics or package metadata.
+ */
+async function validateLearningGoals(raw: string, maxGoals: number): Promise<string[]> {
+  const goals = [...new Set(raw.split(',').flatMap((goal) => normalizeTag(goal) ?? []))];
+  if (goals.length > maxGoals) {
+    throw new ValidationError('onboarding.too_many_goals', `Pick at most ${maxGoals} learning goals.`, { field: 'learningGoals' });
+  }
+  const known = await knownTags(goals);
+  const unknown = goals.filter((goal) => !known.has(goal));
+  if (unknown.length > 0) {
+    throw new ValidationError('onboarding.unknown_goals', `We don't know these tags yet: ${unknown.join(', ')}. Pick from the suggestions.`, {
+      field: 'learningGoals',
+    });
+  }
+  return goals;
+}
+
 /** Saves the onboarding details (§8 F10 step 7) for a verified member and marks them onboarded. */
 export async function saveOnboardingDetails(member: Pick<Member, 'id' | 'verified' | 'universityId'>, raw: unknown, now: Date = new Date()): Promise<void> {
   if (!member.verified || member.universityId === null) {
@@ -82,17 +102,7 @@ export async function saveOnboardingDetails(member: Pick<Member, 'id' | 'verifie
   }
   if (!isTimezone(input.timezone)) throw new ValidationError('onboarding.timezone', 'Pick a valid timezone.', { field: 'timezone' });
 
-  const goals = [...new Set(input.learningGoals.split(',').flatMap((goal) => normalizeTag(goal) ?? []))];
-  if (goals.length > maxGoals) {
-    throw new ValidationError('onboarding.too_many_goals', `Pick at most ${maxGoals} learning goals.`, { field: 'learningGoals' });
-  }
-  const known = await knownTags(goals);
-  const unknown = goals.filter((goal) => !known.has(goal));
-  if (unknown.length > 0) {
-    throw new ValidationError('onboarding.unknown_goals', `We don't know these tags yet: ${unknown.join(', ')}. Pick from the suggestions.`, {
-      field: 'learningGoals',
-    });
-  }
+  const goals = await validateLearningGoals(input.learningGoals, maxGoals);
 
   let departmentId: string | null = null;
   if (input.department !== '') {
@@ -129,4 +139,15 @@ export async function getOnboardingOptions(member: Pick<Member, 'id' | 'universi
   ]);
   const year = now.getUTCFullYear();
   return { departments, suggestions, details, years: { min: year - maxBehind, max: year + maxAhead }, maxGoals };
+}
+
+export const learningGoalsSchema = z.object({ learningGoals: z.string() });
+
+/** Replaces a verified member's learning goals, for example from Discover's prompt (§8 F11 "Edge cases"). */
+export async function updateLearningGoals(member: Pick<Member, 'id' | 'verified'>, raw: unknown): Promise<string[]> {
+  if (!member.verified) throw new ValidationError('onboarding.verify_first', 'Verify your university first.');
+  const input = learningGoalsSchema.parse(raw);
+  const goals = await validateLearningGoals(input.learningGoals, await getSetting('profile.maxLearningGoals'));
+  await setLearningGoals(member.id, goals);
+  return goals;
 }

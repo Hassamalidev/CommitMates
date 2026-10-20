@@ -109,3 +109,21 @@ export type { AuditEntryRow, RoleGrant } from '@commitmates/db';
 export { TOP_SKILL_TAGS, baseFromCard, interestsOf, recomputeUniversityVectors, requestSkillVector } from './matching/vectors';
 export { getSkillVector } from '@commitmates/db';
 export { buildUniversityDecks } from './matching/daily';
+export {
+  answerSuggestion,
+  developersLikeYou,
+  getDiscover,
+  parseDiscoverQuery,
+  requestFromSuggestion,
+  suggestionActionSchema,
+  suggestionRequestSchema,
+  type DeckCard,
+  type DevelopersLikeYou,
+  type DiscoverQuery,
+  type DiscoverView,
+} from './matching/discover';
+export { snapshotFromCard } from './matching/vectors';
+export { createRequest } from './chat/service';
+export { REQUEST_CONTEXTS, messageRequestSchema, type MessageRequestInput, type RequestContext } from './chat/schemas';
+export { learningGoalsSchema, updateLearningGoals } from './profiles/onboarding';
+export type { SnapshotCompanion } from '@commitmates/db';

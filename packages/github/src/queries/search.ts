@@ -98,3 +98,23 @@ export async function countTopicRepositories(client: GitHubClient, slug: string,
   const { totalCount } = await searchRepositories(client, `topic:${slug}`, { ...options, perPage: 1 });
   return totalCount;
 }
+
+const searchUserSchema = z.object({ id: z.number(), login: z.string(), avatar_url: z.string(), html_url: z.string(), type: z.string() });
+const userSearchSchema = z.object({ total_count: z.number(), incomplete_results: z.boolean(), items: z.array(searchUserSchema) });
+
+export type SearchUser = { githubId: number; login: string; avatarUrl: string; htmlUrl: string };
+
+/**
+ * One page of a user search (people only), paced and charged to the search budget (CLAUDE.md §5.6).
+ * Used for view-only lists such as Discover's cold start; nothing about these people is stored.
+ */
+export async function searchUsers(
+  client: GitHubClient,
+  query: string,
+  options: RequestOptions & { perPage: number },
+): Promise<SearchUser[]> {
+  const result = await client.search('GET /search/users', { q: `${query} type:user`, per_page: options.perPage }, userSearchSchema, options);
+  return result.items
+    .filter((item) => item.type === 'User')
+    .map((item) => ({ githubId: item.id, login: item.login, avatarUrl: item.avatar_url, htmlUrl: item.html_url }));
+}

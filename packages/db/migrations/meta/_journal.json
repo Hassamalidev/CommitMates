@@ -288,6 +288,20 @@
       "when": 1791987608544,
       "tag": "0040_schedule_match_daily",
       "breakpoints": true
+    },
+    {
+      "idx": 41,
+      "version": "7",
+      "when": 1792520643029,
+      "tag": "0041_persona_snapshots",
+      "breakpoints": true
+    },
+    {
+      "idx": 42,
+      "version": "7",
+      "when": 1792520667463,
+      "tag": "0042_settings_discover",
+      "breakpoints": true
     }
   ]
 }

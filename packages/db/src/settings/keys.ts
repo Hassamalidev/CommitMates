@@ -115,6 +115,7 @@ export const SettingKeys = {
   'unlock.fypBoard.minMembers': 'integer',
   'matching.starCap': 'integer',
   'matching.vectorRefreshDays': 'integer',
+  'matching.coldStartListSize': 'integer',
   'matching.deckSize': 'integer',
   'matching.maxDailyImpressions': 'integer',
   'matching.successMessages': 'integer',

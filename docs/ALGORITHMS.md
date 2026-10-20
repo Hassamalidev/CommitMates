@@ -309,10 +309,21 @@ TF-IDF arrives in P4-T02.
   - decks (nightly, per university with at least `unlock.matching.minMembers` verified members): members are served in a seeded random order (mulberry32 seeded by FNV-1a of `day:university`); the three modes take turns picking their best remaining candidate up to `matching.deckSize` each; a candidate appears once per member per day and at most `matching.maxDailyImpressions` times across all decks
   - excluded: blocks either way, existing connections, ghost mode or hidden profiles (as candidates), suspended or hidden-pending-review accounts, unverified members
   - explanations: up to 3 shared top tags, up to 3 goals the candidate covers, the number of shared interests
-- Not yet: the rhythm-overlap explanation needs both members' hour histograms, which are not stored per member; it arrives with Discover (P4-T04) if the Dev Card is cached
+- Rhythm overlap: computed when Discover shows a card, from both members' persona snapshots (below), not stored with the suggestion
 - Settings: `matching.weights`, `matching.deckSize` (15), `matching.maxDailyImpressions` (20), `unlock.matching.minMembers` (10)
 - Tests: `packages/algorithms/src/matching/match.test.ts`, `packages/algorithms/src/stats/random.test.ts`, `packages/core/src/matching/daily.test.ts`
 - Spec: CLAUDE.md §8 F11 "Scoring", "Deck", "Explanations"
+
+### Discover deck and message requests
+
+- Code: `packages/core/src/matching/discover.ts`, `packages/core/src/chat/service.ts`, `packages/algorithms/src/text/links.ts`
+- Deck: today's (UTC) unanswered suggestions for the chosen mode, best score first, narrowed by department, graduation year range and tag (one of the candidate's top tags); people blocked since the deck was built, now in ghost mode or hidden, or no longer active are left out. Members without skill tags start in Explore.
+- Card: up to 6 top tags, up to 3 Dev Card labels and the companion from the candidate's persona snapshot (`persona_snapshots`, written by `compute_skill_vector` from their latest Dev Card); without a snapshot the companion is seeded by their GitHub id with the species from their top tag, stage 0. Shared hours = `sharedActiveWindow` of both members' UTC hour histograms (the F2 rule), shown in the viewer's timezone.
+- Request rules: both members verified, active and at the same university; neither blocked the other; recipient not in ghost mode; one pending request per direction; first message between `chat.minFirstMessageChars` and `chat.maxMessageChars` characters; accounts younger than `chat.newAccountDays` may include at most `chat.maxLinksNewAccount` links (an `http(s)://` URL or a `www.` host up to whitespace); at most `round(chat.newThreadsPerDay.base × trust multiplier)` requests in the last 24 hours, with a multiplier of 1 before the member's first trust score. The sender's user row is locked so concurrent requests are counted in turn; a request from a suggestion marks it `requested` in the same transaction.
+- Cold start: GitHub user search `language:"<member's most common own-repo language>" location:"<university country>" type:user`, `matching.coldStartListSize` people, the member left out; view-only.
+- Settings: `chat.*` above, `matching.coldStartListSize` (10)
+- Tests: `packages/core/src/matching/discover.test.ts`, `packages/core/src/chat/service.test.ts`, `packages/algorithms/src/text/links.test.ts`
+- Spec: CLAUDE.md §8 F11 "UI", "Edge cases"; §8 F12 "Message requests"
 
 ## Clustering, graphs and assignment
 

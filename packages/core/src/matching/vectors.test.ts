@@ -128,7 +128,16 @@ describe('compute_skill_vector job', () => {
   it('builds a member’s vector from their card and stars, and skips unverified members', async () => {
     const someone = await member();
     await database.sql`insert into analysis_cache (kind, subject_key, params_hash, result, is_member_subject, computed_at, expires_at)
-                       values ('dev_card', ${someone.login}, 'default', ${database.sql.json(card(someone.login, someone.githubId))}, true, now(), now() + interval '1 hour')`;
+                       values ('dev_card', ${someone.login}, 'default', ${database.sql.json(
+                         card(someone.login, someone.githubId, {
+                           labels: [
+                             { key: 'night-owl', strength: 1.2 },
+                             { key: 'sprinter', strength: 2 },
+                             { key: 'early-bird', strength: 1.1 },
+                             { key: 'marathoner', strength: 1.5 },
+                           ],
+                         }),
+                       )}, true, now(), now() + interval '1 hour')`;
     const reset = Math.floor(Date.now() / 1000) + 3600;
     server.use(
       http.get(`${API}/rate_limit`, () => HttpResponse.json({ resources: { core: { limit: 5000, remaining: 4990, reset } } })),
@@ -143,6 +152,14 @@ describe('compute_skill_vector job', () => {
     const [row] = await database.sql`select base, interests, top_tags from skill_vectors where user_id = ${someone.id}`;
     expect(row).toMatchObject({ base: { typescript: 0.8, react: 1 }, interests: ['machine-learning', 'react', 'web'] });
     expect((row?.top_tags as string[]).length).toBeGreaterThan(0);
+    // The persona snapshot keeps the three strongest labels, the companion and the UTC hours.
+    const [persona] = await database.sql`select labels, companion, metrics, window_start from persona_snapshots where user_id = ${someone.id}`;
+    expect(persona).toMatchObject({
+      labels: ['sprinter', 'marathoner', 'night-owl'],
+      companion: { seed: someone.githubId, speciesKey: 'react' },
+      metrics: { hourHistUtc: expect.any(Array), total365: 0 },
+      window_start: new Date('2026-07-16T12:00:00.000Z'),
+    });
 
     const unverified = await member(false);
     const skipped = await enqueue('compute_skill_vector', { userId: unverified.id });

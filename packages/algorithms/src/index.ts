@@ -69,6 +69,7 @@ export {
 export { domainSuffixes, emailDomain, normalizeDomain } from './text/domain';
 export { normalizeName } from './text/names';
 export { shannonEntropy } from './text/entropy';
+export { countLinks, findLinks } from './text/links';
 export {
   commitUnfinishedSignal,
   hasExternalLink,

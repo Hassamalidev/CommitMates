@@ -1,5 +1,14 @@
 import { mergeMax, tfidfVectors, topTags } from '@commitmates/algorithms';
-import { getDb, getSetting, membersWithStaleVectors, saveWeightedVectors, universityBases, upsertSkillBase } from '@commitmates/db';
+import {
+  getDb,
+  getSetting,
+  membersWithStaleVectors,
+  saveWeightedVectors,
+  universityBases,
+  upsertPersonaSnapshot,
+  upsertSkillBase,
+  type PersonaSnapshotInput,
+} from '@commitmates/db';
 import { SERVER_IDENTITY, fetchStarredRepos, githubFor, type TokenIdentity } from '@commitmates/github';
 import { PRIORITY, enqueue, type JobHandler } from '@commitmates/jobs';
 import { loadAliasMap, normalizeTag, type AliasMap } from '@commitmates/sources';
@@ -36,6 +45,31 @@ export function baseFromCard(card: Pick<DevCard, 'languages' | 'tags'>, aliases:
     }),
   ];
   return mergeMax(entries);
+}
+
+/** Labels kept on a snapshot, strongest first (CLAUDE.md §8 F1 step 7). */
+const SNAPSHOT_LABELS = 3;
+
+const dateOrNull = (value: string): Date | null => {
+  const date = new Date(value);
+  return Number.isNaN(date.getTime()) ? null : date;
+};
+
+/**
+ * The persona part of a member's Dev Card (§7.4 `persona_snapshots`): what other members see on a
+ * Discover card, plus the UTC hour histogram for the shared-hours line.
+ */
+export function snapshotFromCard(card: Pick<DevCard, 'window' | 'metrics' | 'hourHistUtc' | 'labels' | 'companion'>): PersonaSnapshotInput {
+  return {
+    windowStart: dateOrNull(card.window.eventsFrom),
+    windowEnd: dateOrNull(card.window.eventsTo),
+    metrics: { ...card.metrics, hourHistUtc: card.hourHistUtc },
+    labels: [...card.labels]
+      .sort((a, b) => b.strength - a.strength)
+      .slice(0, SNAPSHOT_LABELS)
+      .map((label) => label.key),
+    companion: card.companion,
+  };
 }
 
 /** Topics of owned and starred repositories, normalized (§8 F11 step 4). */
@@ -75,6 +109,7 @@ export const computeSkillVectorJob: JobHandler<z.infer<typeof payloadSchema>> = 
     const aliases = await loadAliasMap(getDb());
     const interests = interestsOf([...card.topics, ...starred.flatMap((repo) => repo.topics)], aliases);
     await upsertSkillBase(member.id, baseFromCard(card, aliases), interests, ctx.now());
+    await upsertPersonaSnapshot(member.id, snapshotFromCard(card), ctx.now());
     const members = await recomputeUniversityVectors(member.universityId);
     ctx.log.info({ members }, 'skill vectors reweighted');
     return { kind: 'done', resultRef: { members } };
