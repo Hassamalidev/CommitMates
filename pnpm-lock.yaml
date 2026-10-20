@@ -208,6 +208,15 @@ importers:
       '@commitmates/config':
         specifier: workspace:*
         version: link:packages/config
+      '@commitmates/core':
+        specifier: workspace:*
+        version: link:packages/core
+      '@commitmates/db':
+        specifier: workspace:*
+        version: link:packages/db
+      '@commitmates/jobs':
+        specifier: workspace:*
+        version: link:packages/jobs
       '@playwright/test':
         specifier: ^1.64.0
         version: 1.64.0

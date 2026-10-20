@@ -42,6 +42,21 @@ const describers: Readonly<Record<string, (data: Record<string, unknown>) => Not
     // Only a thread id ever goes into the link.
     path: isUuid(text(data.threadId)) ? `/inbox/${text(data.threadId)}` : '/inbox',
   }),
+  pair_invite: (data) => ({
+    title: 'Streak invitation',
+    line: text(data.login) ? `@${text(data.login)} invited you to keep a shared coding streak.` : 'You were invited to keep a shared coding streak.',
+    path: '/streaks',
+  }),
+  pair_accepted: (data) => ({
+    title: 'Streak started',
+    line: text(data.login) ? `@${text(data.login)} accepted. Your shared streak starts today.` : 'Your shared streak starts today.',
+    path: '/streaks',
+  }),
+  pair_ended: (data) => ({
+    title: 'A shared streak ended',
+    line: text(data.login) ? `Your shared streak with @${text(data.login)} has ended.` : 'One of your shared streaks has ended because your partner left.',
+    path: '/streaks',
+  }),
   pair_paused: (data) => ({
     title: 'Your streak is paused',
     line: text(data.login)
@@ -85,5 +100,8 @@ export function describeNotification(kind: string, data: unknown): NotificationT
 export const MUTABLE_NOTIFICATIONS: Readonly<Record<string, string>> = {
   chat_request: 'New message requests',
   chat_request_accepted: 'Accepted message requests',
+  pair_invite: 'Streak invitations',
+  pair_accepted: 'Accepted streak invitations',
+  pair_ended: 'Ended streaks',
   pair_paused: 'Paused streaks',
 };

@@ -351,6 +351,13 @@
       "when": 1792531641227,
       "tag": "0049_schedule_streak_check",
       "breakpoints": true
+    },
+    {
+      "idx": 50,
+      "version": "7",
+      "when": 1792532429456,
+      "tag": "0050_pair_invites",
+      "breakpoints": true
     }
   ]
 }

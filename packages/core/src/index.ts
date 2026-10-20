@@ -173,3 +173,14 @@ export {
   type CenterItem,
 } from './notifications/center';
 export { MUTABLE_NOTIFICATIONS, describeNotification, type NotificationText } from '@commitmates/email';
+export {
+  STRIP_DAYS,
+  cancelPairInvite,
+  endPair,
+  getStreaks,
+  invitePair,
+  respondToPairInvite,
+  resumePair,
+  streakStatusInThread,
+  type StreakCard,
+} from './streaks/service';

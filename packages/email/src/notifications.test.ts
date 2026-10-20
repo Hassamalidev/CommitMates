@@ -25,7 +25,7 @@ describe('notification words', () => {
   });
 
   it('lets members mute only social kinds, not account notices', () => {
-    expect(Object.keys(MUTABLE_NOTIFICATIONS)).toEqual(['chat_request', 'chat_request_accepted', 'pair_paused']);
+    expect(Object.keys(MUTABLE_NOTIFICATIONS)).toEqual(['chat_request', 'chat_request_accepted', 'pair_invite', 'pair_accepted', 'pair_ended', 'pair_paused']);
     expect(Object.keys(MUTABLE_NOTIFICATIONS)).not.toContain('account_hidden');
     expect(Object.keys(MUTABLE_NOTIFICATIONS)).not.toContain('github_reconnect');
     expect(describeNotification('pair_paused', { login: 'sam' })?.path).toBe('/streaks');

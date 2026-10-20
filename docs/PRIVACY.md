@@ -101,9 +101,9 @@ Daily suggestions with their score components and explanation keys, connections 
 
 The persona part of a member's latest Dev Card: the events window, rhythm metrics, up to three labels and the companion's inputs (seed, species key, palette, stage, traits). One row per member, replaced when their skill vector is recomputed, so Discover can show other members' companions and labels without rebuilding expired cards. In the member's export; deleted by cascade.
 
-### `pairs`, `pair_days`, `pair_companions` (class A)
+### `pairs`, `pair_days`, `pair_companions`, `pair_invites` (class A)
 
-Shared streaks between two members: daily contribution counts as GitHub reports them, outcomes, freezes and the pair companion. Deleted by cascade when either member deletes their account.
+Shared streaks between two members: invitations sent from a conversation, daily contribution counts as GitHub reports them (only the per-day numbers), outcomes, freezes and the pair companion. Deleted by cascade when either member deletes their account; the partner is told the streak ended.
 
 ### `notifications`, `notification_prefs` (class A)
 

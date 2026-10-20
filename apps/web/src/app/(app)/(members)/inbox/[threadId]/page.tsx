@@ -1,4 +1,10 @@
-import { NotFoundError, getConversation, getSetting, isBlocking } from '@commitmates/core';
+import {
+  NotFoundError,
+  getConversation,
+  getSetting,
+  isBlocking,
+  streakStatusInThread,
+} from '@commitmates/core';
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import { notFound, redirect } from 'next/navigation';
@@ -6,9 +12,12 @@ import { cache } from 'react';
 
 import { ConversationView } from '@/components/chat/ConversationView';
 import { ThreadActions } from '@/components/chat/ThreadActions';
+import { ActionForm } from '@/components/forms/ActionForm';
 import { SafetyActions } from '@/components/safety/SafetyActions';
 import { chatCopy } from '@/copy/chat';
+import { streaksCopy } from '@/copy/streaks';
 import { toChatMessage, type ChatMessage } from '@/lib/chat';
+import { invitePairAction } from '@/server/actions/streaks';
 import { getCurrentMember } from '@/server/auth';
 
 type Props = {
@@ -67,9 +76,10 @@ export default async function ConversationPage({ params, searchParams }: Props) 
   const latest = conversation.latest;
   // In a direct conversation the other person can be blocked or reported from here (§8 F12).
   const partner = conversation.thread.kind === 'direct' && others.length === 1 ? others[0] : undefined;
-  const [blocked, detailsMax] = await Promise.all([
+  const [blocked, detailsMax, streak] = await Promise.all([
     partner ? isBlocking(member, partner.userId) : false,
     getSetting('safety.reportDetailsMaxChars'),
+    partner ? streakStatusInThread(member, threadId) : null,
   ]);
 
   return (
@@ -104,6 +114,25 @@ export default async function ConversationPage({ params, searchParams }: Props) 
           ) : null}
         </div>
       </header>
+      {streak ? (
+        <div className="flex flex-wrap items-center gap-3 rounded-card border border-line bg-surface p-3">
+          {streak.state === 'none' && !blocked ? (
+            <ActionForm
+              action={invitePairAction}
+              values={{ threadId }}
+              submitLabel={streaksCopy.thread.start}
+              successMessage={streaksCopy.thread.invited}
+            />
+          ) : streak.state === 'none' ? null : (
+            <>
+              <p className="type-small">{streaksCopy.thread[streak.state]}</p>
+              <Link href="/streaks" className="type-small underline">
+                {streaksCopy.thread.view}
+              </Link>
+            </>
+          )}
+        </div>
+      ) : null}
       {earlier ? (
         <Link href={earlier} className="type-small self-center underline">
           {copy.earlier}

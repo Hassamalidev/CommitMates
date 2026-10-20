@@ -19,6 +19,7 @@ import {
   notifications,
   pairCompanions,
   pairDays,
+  pairInvites,
   pairs,
   personaSnapshots,
   profiles,
@@ -37,6 +38,8 @@ import {
 } from '../schema';
 
 import { writeAudit } from './admin';
+import { insertNotification } from './chat';
+import { openPairPartners } from './streaks';
 
 /** System message body left in shared threads when a member deletes their account; the page renders it from copy. */
 export const MEMBER_LEFT_NOTE = 'member_left';
@@ -146,6 +149,7 @@ export async function exportMemberRows(userId: string, db: DbOrTx = getDb()): Pr
     pairIds.length === 0 ? Promise.resolve([]) : db.select().from(pairCompanions).where(inArray(pairCompanions.pairId, pairIds)),
   ]);
 
+  const pairInviteRows = await db.select().from(pairInvites).where(or(eq(pairInvites.fromUser, userId), eq(pairInvites.toUser, userId)));
   const threadIds = memberships.map((membership) => membership.threadId);
   const threadRows = threadIds.length === 0 ? [] : await db.select().from(threads).where(inArray(threads.id, threadIds));
 
@@ -164,6 +168,7 @@ export async function exportMemberRows(userId: string, db: DbOrTx = getDb()): Pr
     pairs: ownPairs,
     pair_days: days,
     pair_companions: companions,
+    pair_invites: pairInviteRows,
     users: user,
     github_identities: identityRows,
     profiles: profile,
@@ -212,6 +217,8 @@ export async function deleteMemberData(userId: string, now: Date, db: DbOrTx = g
       await tx.delete(ghRepos).where(eq(ghRepos.ownerGithubId, identity.githubId));
       await tx.delete(ghUsers).where(eq(ghUsers.githubId, identity.githubId));
     }
+    // Pairs end with the account (rows cascade); the partner is told (§8 F13 "Edge cases").
+    for (const partner of await openPairPartners(userId, tx)) await insertNotification(partner, 'pair_ended', {}, tx);
     // Threads shared with others keep going: the member's messages are replaced by one system note
     // (§5.12 step 2). Threads only they were in are deleted with their messages.
     await tx.execute(sql`
