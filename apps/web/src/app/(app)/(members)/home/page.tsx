@@ -1,10 +1,13 @@
-import { campusUnlocks, getUniversity, recentNotifications } from '@commitmates/core';
+import { campusUnlocks, describeNotification, getStreaks, getUniversity, recentNotifications, unreadCount } from '@commitmates/core';
 import { Card, buttonStyles } from '@commitmates/ui';
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import { redirect } from 'next/navigation';
 
-import { campusCopy, homeNotificationsCopy, notificationCopy } from '@/copy/campus';
+import { campusCopy, homeNotificationsCopy } from '@/copy/campus';
+import { chatCopy } from '@/copy/chat';
+import { notificationsCopy } from '@/copy/notifications';
+import { streaksCopy } from '@/copy/streaks';
 import { homeCopy } from '@/copy/onboarding';
 import { formatUtc } from '@/lib/format';
 import { getCurrentMember } from '@/server/auth';
@@ -13,28 +16,30 @@ export function generateMetadata(): Metadata {
   return { title: homeCopy.meta.title, robots: { index: false } };
 }
 
-const isRecord = (value: unknown): value is Record<string, unknown> => typeof value === 'object' && value !== null;
-
 /**
  * The member's home (CLAUDE.md §9.6): their university and its unlock progress, recent updates and
- * the tools. The today panel (streaks, suggestions, messages, reviews) joins as those features ship.
+ * Discover, and the tools. The today panel (streaks, suggestions, messages, reviews) joins as those features ship.
  */
 export default async function HomePage() {
   const member = await getCurrentMember();
   if (!member?.universityId) redirect('/onboarding');
-  const [university, progress, notifications] = await Promise.all([
+  const [university, progress, notifications, unread, streaks] = await Promise.all([
     getUniversity(member.universityId),
     campusUnlocks(member.universityId),
     recentNotifications(member.id),
+    unreadCount(member),
+    getStreaks(member),
   ]);
+  const activePairs = streaks.pairs.filter((pair) => pair.status === 'active');
   const copy = homeCopy;
   const open = progress.unlocks.filter((unlock) => unlock.unlocked).length;
+  const matching = progress.unlocks.find((unlock) => unlock.key === 'matching');
   const next = progress.unlocks
     .filter((unlock) => !unlock.unlocked && unlock.metric === 'members')
     .sort((a, b) => a.required - b.required)[0];
   const shown = notifications.flatMap((notification) => {
-    const line = notificationCopy[notification.kind];
-    return line ? [{ id: notification.id, text: line(isRecord(notification.data) ? notification.data : {}), at: notification.createdAt }] : [];
+    const described = describeNotification(notification.kind, notification.data);
+    return described ? [{ id: notification.id, text: described.line, at: notification.createdAt }] : [];
   });
 
   return (
@@ -59,7 +64,34 @@ export default async function HomePage() {
             </Link>
           </Card>
         ) : null}
+        {matching ? (
+          <Card title={copy.discoverTitle} className="flex flex-col gap-3">
+            <p className="type-body">{matching.unlocked ? copy.discoverOpen : copy.discoverLocked(matching.current, matching.required)}</p>
+            <Link href="/discover" className={buttonStyles({ variant: matching.unlocked ? 'primary' : 'secondary', size: 'md', className: 'self-start' })}>
+              {copy.discoverLink}
+            </Link>
+          </Card>
+        ) : null}
+        <Card title={chatCopy.home.title} className="flex flex-col gap-3">
+          <p className="type-body">{chatCopy.home.unread(unread)}</p>
+          <Link href="/inbox" className={buttonStyles({ variant: unread > 0 ? 'primary' : 'secondary', size: 'md', className: 'self-start' })}>
+            {chatCopy.home.link}
+          </Link>
+        </Card>
+        <Card title={streaksCopy.home.title} className="flex flex-col gap-3">
+          <p className="type-body">
+            {activePairs.length === 0
+              ? streaksCopy.home.none
+              : streaksCopy.home.summary(activePairs.length, Math.max(...activePairs.map((pair) => pair.currentStreak)))}
+          </p>
+          <Link href="/streaks" className={buttonStyles({ variant: 'secondary', size: 'md', className: 'self-start' })}>
+            {streaksCopy.home.link}
+          </Link>
+        </Card>
         <Card title={homeNotificationsCopy.title} className="flex flex-col gap-3">
+          <Link href="/notifications" className="type-small self-start underline">
+            {notificationsCopy.homeLink}
+          </Link>
           {shown.length === 0 ? (
             <p className="type-small text-fg-muted">{homeNotificationsCopy.empty}</p>
           ) : (

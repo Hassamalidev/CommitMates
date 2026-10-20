@@ -3,6 +3,7 @@ import { bigint, check, date, index, integer, pgEnum, pgTable, primaryKey, small
 
 import { createdAt, timestamptz, updatedAt } from './columns';
 import { users } from './identity';
+import { threads } from './social';
 
 export const pairStatus = pgEnum('pair_status', ['active', 'paused', 'ended']);
 export const pairDayOutcome = pgEnum('pair_day_outcome', ['counted', 'frozen', 'missed']);
@@ -64,3 +65,33 @@ export const pairCompanions = pgTable('pair_companions', {
   createdAt: createdAt(),
   updatedAt: updatedAt(),
 }).enableRLS();
+
+export const pairInviteStatus = pgEnum('pair_invite_status', ['pending', 'accepted', 'declined', 'cancelled']);
+
+/**
+ * An invitation to a shared streak, sent from a conversation (CLAUDE.md §8 F13 "Pairing"). One
+ * pending invite per direction; accepting creates the pair.
+ */
+export const pairInvites = pgTable(
+  'pair_invites',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    threadId: uuid('thread_id')
+      .notNull()
+      .references(() => threads.id, { onDelete: 'cascade' }),
+    fromUser: uuid('from_user')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
+    toUser: uuid('to_user')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
+    status: pairInviteStatus('status').notNull().default('pending'),
+    createdAt: createdAt(),
+    respondedAt: timestamptz('responded_at'),
+  },
+  (table) => [
+    uniqueIndex('pair_invites_pending_key').on(table.fromUser, table.toUser).where(sql`${table.status} = 'pending'`),
+    index('pair_invites_to_status_idx').on(table.toUser, table.status),
+    index('pair_invites_thread_idx').on(table.threadId),
+  ],
+).enableRLS();

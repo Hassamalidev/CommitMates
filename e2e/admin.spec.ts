@@ -67,7 +67,7 @@ test.describe('admin pages', () => {
     }
   });
 
-  test('metrics show tool usage and conversion and are accessible', async ({ page, context, baseURL }) => {
+  test('metrics show tool usage, conversion, match quality and streak retention, accessibly', async ({ page, context, baseURL }) => {
     const member = await signInTestMember(context, baseURL ?? '');
     try {
       await grantAdmin(member.userId);
@@ -76,6 +76,9 @@ test.describe('admin pages', () => {
       await expect(page.getByRole('heading', { level: 1, name: 'Metrics' })).toBeVisible();
       await expect(page.getByRole('heading', { level: 2, name: 'Tool usage' })).toBeVisible();
       await expect(page.getByTestId('tool-conversion')).toHaveText(/%|No anonymous run/);
+      // Phase 4 metrics (CLAUDE.md §1.7): match quality and streak retention.
+      await expect(page.getByTestId('match-quality')).toHaveText(/%|No accepted message requests/);
+      await expect(page.getByTestId('streak-retention')).toHaveText(/days across|No active shared streaks/);
       await expectNoSeriousA11yViolations(page);
     } finally {
       await member.cleanup();

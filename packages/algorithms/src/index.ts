@@ -69,6 +69,7 @@ export {
 export { domainSuffixes, emailDomain, normalizeDomain } from './text/domain';
 export { normalizeName } from './text/names';
 export { shannonEntropy } from './text/entropy';
+export { countLinks, findLinks } from './text/links';
 export {
   commitUnfinishedSignal,
   hasExternalLink,
@@ -138,3 +139,36 @@ export { median } from './stats/basic';
 export { levenshteinSimilarity, splitSentences, tokenize, wordTag, yake, type Keyphrase, type YakeOptions } from './ir/yake';
 export { bm25Index, bm25Scores, bm25Tokens, type Bm25Index } from './ir/bm25';
 export { l2Normalize, mergeMax, tfidfVectors, topTags } from './matching/tfidf';
+export { mulberry32, seedFrom, shuffled } from './stats/random';
+export {
+  MATCH_MODES,
+  buildDecks,
+  complementarity,
+  explainMatch,
+  matchComponents,
+  maxNormalize,
+  modeScore,
+  sharesSignal,
+  universityGaps,
+  type DeckEntry,
+  type MatchComponents,
+  type MatchExplanation,
+  type MatchMode,
+  type MatchProfile,
+  type ModeWeights,
+} from './matching/match';
+export { trustComponents, trustMultiplier, trustScore, type TrustComponents, type TrustInputs, type TrustParams, type TrustWeights } from './safety/trust';
+export {
+  addDays,
+  judgeDay,
+  judgeableAt,
+  localDate,
+  moodAfter,
+  pairCompanionStage,
+  startOfLocalDay,
+  type CompanionMood,
+  type DayOutcome,
+  type StreakParams,
+  type StreakState,
+} from './streaks/judge';
+export { componentMeans, evenLevels, stageDaysFrom, tuneModeWeights } from './matching/tune';

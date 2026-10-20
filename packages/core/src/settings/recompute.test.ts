@@ -39,7 +39,7 @@ beforeEach(async () => {
 });
 
 describe('recompute_settings', () => {
-  it('registers every computed key Phase 2 feeds, once', () => {
+  it('registers every computed key fed by samples, once', () => {
     registerAllRecomputes();
     registerAllRecomputes();
     expect(registeredRecomputeKeys().sort()).toEqual([
@@ -51,6 +51,7 @@ describe('recompute_settings', () => {
       'persona.sprinter.cv',
       'persona.weekendWarrior.share',
       'recruiter.readme.minChars',
+      'streaks.companionStageDays',
     ]);
   });
 

@@ -81,7 +81,8 @@ export { ossInputSchema, ossResultSchema, type OssInput, type OssIssue, type Oss
 export { listLanguages as listLanguageNames } from '@commitmates/db';
 export { FYP_STEPS, fypTool } from './fyp/jobs';
 export { FYP_DESCRIPTION_MAX, FYP_DESCRIPTION_MIN, FYP_TITLE_MAX, fypInputSchema, fypResultSchema, type FypInput, type FypResult } from './fyp/schemas';
-export { METRIC_WINDOWS, getToolMetrics, recordSignUpConversion, type ToolMetrics } from './metrics/service';
+export { METRIC_WINDOWS, getSocialMetrics, getToolMetrics, recordSignUpConversion, type SocialMetrics, type ToolMetrics } from './metrics/service';
+export { tuneMatchWeights, type TuningReport } from './matching/tune';
 export { matchEmailToUniversity, type EmailUniversityCheck } from './universities/service';
 export { EmailQuotaError, deliverEmail, nextUtcMidnight, sendEmailPayloadSchema, utcDay, type SendEmailPayload } from './notifications/email';
 export { confirmEmailCode, startEmailVerification } from './verification/service';
@@ -108,3 +109,83 @@ export { AUDIT_PAGE_SIZE, adminChangeSchema, auditFilterSchema, changeAdmin, lis
 export type { AuditEntryRow, RoleGrant } from '@commitmates/db';
 export { TOP_SKILL_TAGS, baseFromCard, interestsOf, recomputeUniversityVectors, requestSkillVector } from './matching/vectors';
 export { getSkillVector } from '@commitmates/db';
+export { buildUniversityDecks } from './matching/daily';
+export {
+  answerSuggestion,
+  developersLikeYou,
+  getDiscover,
+  parseDiscoverQuery,
+  requestFromSuggestion,
+  suggestionActionSchema,
+  suggestionRequestSchema,
+  type DeckCard,
+  type DevelopersLikeYou,
+  type DiscoverQuery,
+  type DiscoverView,
+} from './matching/discover';
+export { snapshotFromCard } from './matching/vectors';
+export { createRequest } from './chat/service';
+export { REQUEST_CONTEXTS, messageRequestSchema, type MessageRequestInput, type RequestContext } from './chat/schemas';
+export { learningGoalsSchema, updateLearningGoals } from './profiles/onboarding';
+export type { SnapshotCompanion } from '@commitmates/db';
+export { ICEBREAKER_KEYS, icebreakerId, icebreakersFor, parseIcebreakerId, type Icebreaker, type IcebreakerKey } from './chat/icebreakers';
+export {
+  SYSTEM_NOTES,
+  deleteMessage,
+  editMessage,
+  getConversation,
+  getInbox,
+  leaveThread,
+  markRead,
+  muteThread,
+  respondToRequest,
+  sendMessage,
+  unreadCount,
+  type Conversation,
+  type Inbox,
+  type OutgoingView,
+} from './chat/threads';
+export { MEMBER_LEFT_NOTE, type IncomingRequest, type MessageRow, type ThreadMember, type ThreadSummary } from '@commitmates/db';
+export {
+  REPORT_REASONS,
+  blockMember,
+  blockedMembers,
+  isBlocking,
+  reportMember,
+  submitFeedback,
+  unblockMember,
+} from './safety/service';
+export {
+  MODERATION_ACTIONS,
+  getModerationQueue,
+  moderate,
+  viewReportContext,
+  type ModerationAction,
+  type ReportContextLine,
+} from './admin/moderation';
+export type { ContextMessage, ReportGroup, ReportRow } from '@commitmates/db';
+export {
+  getNotificationCenter,
+  getNotificationSettings,
+  markAllRead,
+  notificationSettingsSchema,
+  unreadNotificationCount,
+  updateNotificationSettings,
+  type CenterItem,
+} from './notifications/center';
+export { MUTABLE_NOTIFICATIONS, describeNotification, type NotificationText } from '@commitmates/email';
+export {
+  STRIP_DAYS,
+  cancelPairInvite,
+  endPair,
+  getStreakShare,
+  getStreaks,
+  invitePair,
+  partnerTodayStatus,
+  respondToPairInvite,
+  resumePair,
+  streakStatusInThread,
+  type StreakCard,
+  type StreakShare,
+  type TodayStatus,
+} from './streaks/service';

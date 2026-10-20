@@ -21,6 +21,12 @@ function definedEnv(source: Record<string, string | undefined>): Record<string, 
   return result;
 }
 
+// Tests that run a job in the test process (e2e/streaks.spec.ts) need the same environment as the web
+// server below: local defaults, with real variables from the shell, CI or .env.local winning.
+for (const [key, value] of Object.entries(localTestEnv())) {
+  if (value !== undefined && (process.env[key] === undefined || process.env[key] === '')) process.env[key] = value;
+}
+
 export default defineConfig({
   testDir: './e2e',
   testMatch: '**/*.spec.ts',

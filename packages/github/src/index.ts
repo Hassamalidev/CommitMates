@@ -31,6 +31,7 @@ export {
 export { fetchPublicEvents, type ActivityEvent, type ActivityKind } from './queries/events';
 export { fetchFileText, fetchReadme, listDirectory, listRootEntries, type RootEntry } from './queries/contents';
 export { fetchStarredRepos, type StarredRepo } from './queries/starred';
+export { fetchContributionDays } from './queries/contributions';
 export { fetchBlobText, fetchTree, type Tree, type TreeEntry } from './queries/git';
 export {
   fetchCommitFiles,
@@ -42,7 +43,7 @@ export {
   type ContributorStats,
   type Repository,
 } from './queries/repos';
-export { countTopicRepositories, searchRepositories, type SearchRepo } from './queries/search';
+export { countTopicRepositories, searchRepositories, searchUsers, type SearchRepo, type SearchUser } from './queries/search';
 export {
   fetchCommitEstimate,
   fetchHasReleases,

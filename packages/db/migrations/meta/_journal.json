@@ -281,6 +281,97 @@
       "when": 1791986419947,
       "tag": "0039_settings_matching_vectors",
       "breakpoints": true
+    },
+    {
+      "idx": 40,
+      "version": "7",
+      "when": 1791987608544,
+      "tag": "0040_schedule_match_daily",
+      "breakpoints": true
+    },
+    {
+      "idx": 41,
+      "version": "7",
+      "when": 1792520643029,
+      "tag": "0041_persona_snapshots",
+      "breakpoints": true
+    },
+    {
+      "idx": 42,
+      "version": "7",
+      "when": 1792520667463,
+      "tag": "0042_settings_discover",
+      "breakpoints": true
+    },
+    {
+      "idx": 43,
+      "version": "7",
+      "when": 1792523669469,
+      "tag": "0043_settings_chat",
+      "breakpoints": true
+    },
+    {
+      "idx": 44,
+      "version": "7",
+      "when": 1792526111070,
+      "tag": "0044_settings_trust",
+      "breakpoints": true
+    },
+    {
+      "idx": 45,
+      "version": "7",
+      "when": 1792526810874,
+      "tag": "0045_settings_safety",
+      "breakpoints": true
+    },
+    {
+      "idx": 46,
+      "version": "7",
+      "when": 1792527728924,
+      "tag": "0046_users_suspended_until",
+      "breakpoints": true
+    },
+    {
+      "idx": 47,
+      "version": "7",
+      "when": 1792527733557,
+      "tag": "0047_settings_moderation",
+      "breakpoints": true
+    },
+    {
+      "idx": 48,
+      "version": "7",
+      "when": 1792529396984,
+      "tag": "0048_settings_notifications",
+      "breakpoints": true
+    },
+    {
+      "idx": 49,
+      "version": "7",
+      "when": 1792531641227,
+      "tag": "0049_schedule_streak_check",
+      "breakpoints": true
+    },
+    {
+      "idx": 50,
+      "version": "7",
+      "when": 1792532429456,
+      "tag": "0050_pair_invites",
+      "breakpoints": true
+    },
+    {
+      "idx": 51,
+      "version": "7",
+      "when": 1792534285318,
+      "tag": "0051_settings_streak_status",
+      "breakpoints": true
+    },
+    {
+      "idx": 52,
+      "version": "7",
+      "when": 1792535733147,
+      "tag": "0052_settings_match_tuning",
+      "breakpoints": true
     }
   ]
 }

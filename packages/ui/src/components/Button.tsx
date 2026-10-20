@@ -1,5 +1,5 @@
 import { cva, type VariantProps } from 'class-variance-authority';
-import type { ButtonHTMLAttributes, ReactNode } from 'react';
+import type { ButtonHTMLAttributes, ReactNode, Ref } from 'react';
 
 import { cn } from '../lib/cn';
 
@@ -30,6 +30,8 @@ export type ButtonProps = ButtonHTMLAttributes<HTMLButtonElement> &
   VariantProps<typeof buttonStyles> & {
     /** Shows the pixel spinner, keeps the width, and blocks further clicks. */
     loading?: boolean;
+    /** React 19 passes refs as props; used to press a button from a keyboard shortcut. */
+    ref?: Ref<HTMLButtonElement>;
     children: ReactNode;
   };
 

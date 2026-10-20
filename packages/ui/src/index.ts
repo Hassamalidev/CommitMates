@@ -9,6 +9,7 @@ export { Card, type CardProps } from './components/Card';
 export { ChecklistRule, type ChecklistRuleProps, type RuleStatus } from './components/ChecklistRule';
 export { Chip, StateChip, type ChipProps, type StateChipProps } from './components/Chip';
 export { Combobox, type ComboboxOption, type ComboboxProps } from './components/Combobox';
+export { DECK_SHORTCUTS, DeckCard, shortcutFor, type DeckAction, type DeckCardProps } from './components/DeckCard';
 export { Dialog, type DialogProps } from './components/Dialog';
 export { DropdownMenu, type DropdownMenuItem, type DropdownMenuProps } from './components/DropdownMenu';
 export { EmptyState, type EmptyStateProps } from './components/EmptyState';
@@ -34,6 +35,7 @@ export { VisuallyHidden } from './components/VisuallyHidden';
 export { CompanionSprite, type CompanionSpriteProps } from './companion/CompanionSprite';
 export { CompanionView, type CompanionViewProps } from './companion/CompanionView';
 export { SpeechBubble, type SpeechBubbleProps } from './companion/SpeechBubble';
+export { pairCompanion, pairCompanionState, type PairCompanionSource, type PairMood } from './companion/pair';
 export {
   COMPANION_TRAITS,
   MAX_STAGE,
@@ -68,3 +70,4 @@ export { RhythmStrip, topHours, type RhythmStripProps } from './charts/RhythmStr
 export { ScoreDial, normalizeScore, type ScoreDialProps } from './charts/ScoreDial';
 export { BarList, type BarListItem, type BarListProps } from './charts/BarList';
 export { Timeline, type TimelineProps, type TimelineSeries } from './charts/Timeline';
+export { StreakStrip, type StreakDayOutcome, type StreakStripDay, type StreakStripProps } from './charts/StreakStrip';

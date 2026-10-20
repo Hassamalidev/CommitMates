@@ -101,3 +101,30 @@ export const skillVectors = pgTable(
   },
   (table) => [index('skill_vectors_computed_idx').on(table.computedAt)],
 ).enableRLS();
+
+/** What a deck card shows of a member's Dev Card: their companion and up to three labels. */
+export type SnapshotCompanion = { seed: number; speciesKey: string; paletteHex: string | null; stage: number; traits: string[] };
+
+/**
+ * A member's persona as of their latest Dev Card (CLAUDE.md §7.4), kept so pages that show other
+ * members (Discover) need not rebuild cards that expire after `cache.devCardTtlHours`. One row per
+ * member, replaced when their skill vector is recomputed; deleted with the account.
+ */
+export const personaSnapshots = pgTable(
+  'persona_snapshots',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    userId: uuid('user_id')
+      .notNull()
+      .unique()
+      .references(() => users.id, { onDelete: 'cascade' }),
+    windowStart: timestamptz('window_start'),
+    windowEnd: timestamptz('window_end'),
+    metrics: jsonb('metrics').$type<Record<string, unknown>>().notNull(),
+    labels: text('labels').array().notNull(),
+    companion: jsonb('companion').$type<SnapshotCompanion>().notNull(),
+    computedAt: timestamptz('computed_at').notNull(),
+    createdAt: createdAt(),
+    updatedAt: updatedAt(),
+  },
+).enableRLS();

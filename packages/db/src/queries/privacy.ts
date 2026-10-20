@@ -19,7 +19,9 @@ import {
   notifications,
   pairCompanions,
   pairDays,
+  pairInvites,
   pairs,
+  personaSnapshots,
   profiles,
   recruiterReports,
   reports,
@@ -36,6 +38,11 @@ import {
 } from '../schema';
 
 import { writeAudit } from './admin';
+import { insertNotification } from './chat';
+import { openPairPartners } from './streaks';
+
+/** System message body left in shared threads when a member deletes their account; the page renders it from copy. */
+export const MEMBER_LEFT_NOTE = 'member_left';
 
 /** Cache keys that are about a member: their login, `login:<login>`, or a sorted pair containing it. */
 const memberCacheKeys = (login: string) => {
@@ -127,7 +134,7 @@ export async function exportMemberRows(userId: string, db: DbOrTx = getDb()): Pr
   // Social and streak rows (CLAUDE.md §7.6, §7.7): what the member wrote, sent, joined or keeps.
   const ownPairs = await db.select().from(pairs).where(or(eq(pairs.userA, userId), eq(pairs.userB, userId)));
   const pairIds = ownPairs.map((pair) => pair.id);
-  const [suggestions, connectionRows, requestRows, memberships, messageRows, blockRows, reportRows, trust, vectors, days, companions] = await Promise.all([
+  const [suggestions, connectionRows, requestRows, memberships, messageRows, blockRows, reportRows, trust, vectors, snapshots, days, companions] = await Promise.all([
     db.select().from(matchSuggestions).where(eq(matchSuggestions.userId, userId)),
     db.select().from(connections).where(or(eq(connections.userA, userId), eq(connections.userB, userId))),
     db.select().from(messageRequests).where(or(eq(messageRequests.fromUser, userId), eq(messageRequests.toUser, userId))),
@@ -137,10 +144,12 @@ export async function exportMemberRows(userId: string, db: DbOrTx = getDb()): Pr
     db.select().from(reports).where(eq(reports.reporter, userId)),
     db.select().from(trustScores).where(eq(trustScores.userId, userId)),
     db.select().from(skillVectors).where(eq(skillVectors.userId, userId)),
+    db.select().from(personaSnapshots).where(eq(personaSnapshots.userId, userId)),
     pairIds.length === 0 ? Promise.resolve([]) : db.select().from(pairDays).where(inArray(pairDays.pairId, pairIds)),
     pairIds.length === 0 ? Promise.resolve([]) : db.select().from(pairCompanions).where(inArray(pairCompanions.pairId, pairIds)),
   ]);
 
+  const pairInviteRows = await db.select().from(pairInvites).where(or(eq(pairInvites.fromUser, userId), eq(pairInvites.toUser, userId)));
   const threadIds = memberships.map((membership) => membership.threadId);
   const threadRows = threadIds.length === 0 ? [] : await db.select().from(threads).where(inArray(threads.id, threadIds));
 
@@ -155,9 +164,11 @@ export async function exportMemberRows(userId: string, db: DbOrTx = getDb()): Pr
     reports: reportRows,
     trust_scores: trust,
     skill_vectors: vectors,
+    persona_snapshots: snapshots,
     pairs: ownPairs,
     pair_days: days,
     pair_companions: companions,
+    pair_invites: pairInviteRows,
     users: user,
     github_identities: identityRows,
     profiles: profile,
@@ -190,7 +201,8 @@ export async function updatePrivacy(
 /**
  * Deletes what a member's account owns but no foreign key can cascade from: analyses cached about
  * them (by login) and their GitHub user and repository rows (by GitHub id), in one transaction with an
- * audit entry that holds only a hash of the user id (§5.12 steps 2 and 5). Deleting the auth user
+ * audit entry that holds only a hash of the user id (§5.12 steps 2 and 5). The member's messages in
+ * threads shared with others become one system note per thread. Deleting the auth user
  * afterwards removes everything else through `on delete cascade`.
  */
 export async function deleteMemberData(userId: string, now: Date, db: DbOrTx = getDb()): Promise<void> {
@@ -205,6 +217,17 @@ export async function deleteMemberData(userId: string, now: Date, db: DbOrTx = g
       await tx.delete(ghRepos).where(eq(ghRepos.ownerGithubId, identity.githubId));
       await tx.delete(ghUsers).where(eq(ghUsers.githubId, identity.githubId));
     }
+    // Pairs end with the account (rows cascade); the partner is told (§8 F13 "Edge cases").
+    for (const partner of await openPairPartners(userId, tx)) await insertNotification(partner, 'pair_ended', {}, tx);
+    // Threads shared with others keep going: the member's messages are replaced by one system note
+    // (§5.12 step 2). Threads only they were in are deleted with their messages.
+    await tx.execute(sql`
+      with mine as (select thread_id from thread_members where user_id = ${userId}),
+           shared as (select distinct tm.thread_id from thread_members tm join mine using (thread_id) where tm.user_id <> ${userId}),
+           removed as (delete from messages where author_user_id = ${userId} and thread_id in (select thread_id from shared) returning 1),
+           solo as (delete from threads where id in (select thread_id from mine except select thread_id from shared) returning 1)
+      insert into messages (thread_id, author_user_id, kind, body)
+      select thread_id, null, 'system', ${MEMBER_LEFT_NOTE} from shared`);
     await writeAudit(
       { actorUserId: null, action: 'account.deleted', targetType: 'user', targetId: hashUserId(userId), data: { at: now.toISOString() } },
       tx,

@@ -35,17 +35,6 @@ export const campusCopy = {
   },
 } as const;
 
-/** A text field of stored notification data; anything else reads as empty. */
-const text = (value: unknown) => (typeof value === 'string' ? value : '');
-
-/** Lines for the notifications a member can have so far; unknown kinds are not shown. */
-export const notificationCopy: Readonly<Record<string, (data: Record<string, unknown>) => string>> = {
-  university_request_approved: (data) =>
-    `Your request for ${text(data.domain)} was approved${text(data.universityName) ? ` as ${text(data.universityName)}` : ''}.`,
-  university_request_rejected: (data) => `Your request for ${text(data.domain)} was not approved.`,
-  verified_by_vouches: () => 'Members of your university vouched for you. You are verified.',
-};
-
 export const homeNotificationsCopy = {
   title: 'Recent updates',
   empty: 'Nothing new yet.',

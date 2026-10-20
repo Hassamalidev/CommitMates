@@ -14,6 +14,8 @@ export const roleKind = pgEnum('role_kind', ['admin', 'uni_moderator']);
 export const users = pgTable('users', {
   id: uuid('id').primaryKey(),
   status: userStatus('status').notNull().default('active'),
+  /** When a suspension ends; null while suspended means banned (CLAUDE.md §8 F12 "Moderation queue"). */
+  suspendedUntil: timestamptz('suspended_until'),
   lastSeenAt: timestamptz('last_seen_at'),
   createdAt: createdAt(),
   updatedAt: updatedAt(),

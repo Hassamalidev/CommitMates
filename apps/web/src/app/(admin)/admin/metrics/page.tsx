@@ -1,4 +1,4 @@
-import { METRIC_WINDOWS, getToolMetrics, type ToolMetrics } from '@commitmates/core';
+import { METRIC_WINDOWS, getSocialMetrics, getToolMetrics, type ToolMetrics } from '@commitmates/core';
 import { Card } from '@commitmates/ui';
 import type { Metadata } from 'next';
 
@@ -16,8 +16,9 @@ const percent = (share: number) => `${(share * 100).toFixed(1)}%`;
 
 export default async function AdminMetricsPage() {
   await requireAdminPage();
-  const metrics: ToolMetrics = await getToolMetrics();
+  const [metrics, social]: [ToolMetrics, Awaited<ReturnType<typeof getSocialMetrics>>] = await Promise.all([getToolMetrics(), getSocialMetrics()]);
   const { conversion } = metrics;
+  const { matchQuality, streaks } = social;
 
   return (
     <>
@@ -57,6 +58,24 @@ export default async function AdminMetricsPage() {
           { header: copy.fairness.columns.reports, cell: (row) => row.count, numeric: true },
         ]}
       />
+
+      <h2 className={sectionTitle}>{copy.matchQuality.title}</h2>
+      <Card className="flex max-w-reading flex-col gap-2">
+        <p className="type-small text-fg-muted">{copy.matchQuality.line(METRIC_WINDOWS.totalDays, matchQuality.messages, matchQuality.days)}</p>
+        <p className="type-h2" data-testid="match-quality">
+          {matchQuality.rate === null
+            ? copy.matchQuality.none
+            : copy.matchQuality.value(matchQuality.successful, matchQuality.accepted, percent(matchQuality.rate))}
+        </p>
+      </Card>
+
+      <h2 className={sectionTitle}>{copy.streakRetention.title}</h2>
+      <Card className="flex max-w-reading flex-col gap-2">
+        <p className="type-small text-fg-muted">{copy.streakRetention.line}</p>
+        <p className="type-h2" data-testid="streak-retention">
+          {streaks.medianDays === null ? copy.streakRetention.none : copy.streakRetention.value(streaks.medianDays, streaks.activePairs)}
+        </p>
+      </Card>
 
       <p className="type-small mt-8 max-w-reading text-fg-muted">{copy.later}</p>
     </>

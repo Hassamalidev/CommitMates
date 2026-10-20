@@ -41,6 +41,7 @@ Row Level Security is enabled on every table. Only `notifications` (own rows), `
 | --- | --- | --- | --- |
 | `id` | Same id as the Supabase auth user | Until account deletion | Cascades from `auth.users` |
 | `status` | Active, suspended or hidden pending review (safety) | Until account deletion | Cascade |
+| `suspended_until` | When a moderator's suspension ends; empty while banned or not suspended | Until the suspension ends or the account is deleted | Cleared by `lift_suspensions`; cascade |
 | `last_seen_at` | Activity for trust and metrics | Until account deletion | Cascade |
 
 ### `github_identities` (class A)
@@ -86,23 +87,27 @@ The invite link's university slug and code are kept in a session cookie (`cm_inv
 
 ### `message_requests`, `threads`, `thread_members`, `messages` (class A)
 
-Chat (CLAUDE.md §8 F12): first messages waiting for consent, threads and who is in them, and messages. A member's own message requests, memberships and messages are in their export. When an author deletes their account, their messages are kept for the other members and replaced by one system note (§5.12; the replacement arrives with chat, P4-T05). Requests and memberships are deleted by cascade. Members read messages and memberships of their own threads through Supabase Realtime; Row Level Security limits each to the member's threads.
+Chat (CLAUDE.md §8 F12): first messages waiting for consent, threads and who is in them, and messages. A member's own message requests, memberships and messages are in their export. When a member deletes their account, their messages in threads shared with others are deleted and replaced by one system note per thread ("A member left this conversation", §5.12 step 2); threads only they were in are deleted. A deleted message keeps no text: its body is emptied and the thread shows that it was deleted. An accepted request also records a `connections` row. Requests and memberships are deleted by cascade. Members read messages and memberships of their own threads through Supabase Realtime; Row Level Security limits each to the member's threads.
 
 ### `blocks`, `reports` (class A)
 
-Who a member blocked, and their reports about others: reason, optional details, and the moderation outcome. A report outlives the reporter's account (`reporter` becomes null), because it is evidence for moderation. A report about a member is deleted with that member's account.
+Who a member blocked, and their reports about others: reason, optional details, the message the report is about (only one in a thread the reporter belongs to), and the moderation outcome. The reported member is never told who reported them. When enough distinct verified reporters report an account it is hidden pending review; the audit log records that with no actor and the member is notified. A moderator handling a report about a message can read that message and up to `safety.contextMessages` messages before and after it in the same thread; each reading is recorded in the audit log, as is every decision (dismiss, warn, suspend, ban). A report outlives the reporter's account (`reporter` becomes null), because it is evidence for moderation. A report about a member is deleted with that member's account.
 
 ### `match_suggestions`, `connections`, `trust_scores`, `skill_vectors` (class B for members)
 
 Daily suggestions with their score components and explanation keys, connections made through features, the nightly trust score with its components, and the member's skill vector: base weights from their public code (languages and tags), the TF-IDF weighting within their university, and interest topics from their own and starred repositories. Recomputed from activity; deleted by cascade.
 
-### `pairs`, `pair_days`, `pair_companions` (class A)
+### `persona_snapshots` (class B)
 
-Shared streaks between two members: daily contribution counts as GitHub reports them, outcomes, freezes and the pair companion. Deleted by cascade when either member deletes their account.
+The persona part of a member's latest Dev Card: the events window, rhythm metrics, up to three labels and the companion's inputs (seed, species key, palette, stage, traits). One row per member, replaced when their skill vector is recomputed, so Discover can show other members' companions and labels without rebuilding expired cards. In the member's export; deleted by cascade.
+
+### `pairs`, `pair_days`, `pair_companions`, `pair_invites` (class A)
+
+Shared streaks between two members: invitations sent from a conversation, daily contribution counts as GitHub reports them (only the per-day numbers), outcomes, freezes and the pair companion. Deleted by cascade when either member deletes their account; the partner is told the streak ended. A partner's coded-today status is shown only when they allow it (`profiles.share_today_status`); the one number behind it (today's contribution count) is cached in `analysis_cache` under their login for `streaks.todayStatusCacheMinutes`, and removed with their account. A pair's share image exists only while both members' profiles are public.
 
 ### `notifications`, `notification_prefs` (class A)
 
-In-app notifications and the member's email preferences. Deleted by cascade from `users`.
+In-app notifications and the member's email preferences: whether they want a daily digest and which kinds they muted. A digest goes to the email address of their sign-in account (from GitHub, stored by Supabase Auth); it lists unread notifications not emailed before and records when each went out (`emailed_at`), so none is sent twice. Muted kinds are never emailed and not counted in the unread badge. Deleted by cascade from `users`.
 
 ### `feedback` (class A)
 

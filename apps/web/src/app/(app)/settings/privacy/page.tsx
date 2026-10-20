@@ -1,11 +1,13 @@
-import { deletionConfirmation, getProfileDetails } from '@commitmates/core';
+import { blockedMembers, deletionConfirmation, getProfileDetails } from '@commitmates/core';
 import { Card, Input } from '@commitmates/ui';
 import type { Metadata } from 'next';
 import { redirect } from 'next/navigation';
 
 import { ActionForm } from '@/components/forms/ActionForm';
 import { privacyCenterCopy } from '@/copy/privacy-center';
+import { safetyCopy } from '@/copy/safety';
 import { deleteAccountAction, updatePrivacyAction } from '@/server/actions/privacy';
+import { blockAction } from '@/server/actions/safety';
 import { getCurrentMember } from '@/server/auth';
 
 export function generateMetadata(): Metadata {
@@ -14,11 +16,11 @@ export function generateMetadata(): Metadata {
 
 type Visibility = keyof typeof privacyCenterCopy.visibility.options;
 
-/** The privacy center (CLAUDE.md §5.12, §2.6): visibility, ghost mode, export and account deletion. */
+/** The privacy center (CLAUDE.md §5.12, §2.6): visibility, ghost mode, blocked people, export and account deletion. */
 export default async function PrivacyPage() {
   const member = await getCurrentMember();
   if (!member) redirect('/auth/sign-in?next=/settings/privacy');
-  const details = await getProfileDetails(member.id);
+  const [details, blocked] = await Promise.all([getProfileDetails(member.id), blockedMembers(member)]);
   const ghost = details?.ghostMode ?? false;
   const copy = privacyCenterCopy;
   const visibility: Visibility = details?.visibility ?? 'university';
@@ -60,6 +62,26 @@ export default async function PrivacyPage() {
             {copy.visibility.ghost}
           </label>
         </ActionForm>
+      </Card>
+
+      <Card title={safetyCopy.blockedList.title} className="flex flex-col gap-3">
+        <p className="type-body text-fg-muted">{safetyCopy.blockedList.line}</p>
+        {blocked.length === 0 ? (
+          <p className="type-small text-fg-muted">{safetyCopy.blockedList.empty}</p>
+        ) : (
+          <ul className="flex flex-col gap-2">
+            {blocked.map((person) => (
+              <li key={person.userId} className="flex flex-wrap items-center justify-between gap-2">
+                <span className="type-body min-w-0 break-words">{person.name ?? `@${person.login}`}</span>
+                <ActionForm
+                  action={blockAction}
+                  values={{ userId: person.userId, intent: 'unblock' }}
+                  submitLabel={safetyCopy.blockedList.unblockLabel(person.login)}
+                />
+              </li>
+            ))}
+          </ul>
+        )}
       </Card>
 
       <Card title={copy.export.title} className="flex flex-col gap-3">

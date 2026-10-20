@@ -39,6 +39,8 @@ Implemented so far: GitHub REST and GraphQL, GitHub Linguist, github/explore, pa
 - User input: only links parsed by `parseGitHubUrl` into owner, repo and number are ever requested.
 - Stored in: `api_cache`, `github_budgets`; feature tables arrive with their features.
 - License and attribution: GitHub Terms of Service; credited on `/attribution`.
+- Shared streaks: each member's contribution calendar (`user.contributionsCollection.contributionCalendar`, GraphQL) over the days being judged, read with that member's own token, so private counts appear only when they enabled them. Only the per-day counts are stored (`pair_days`).
+- Discover's cold start: one user search (`GET /search/users`, people only) by the member's top language and their university's country, with the member's own token when it is valid. The logins and avatars are cached in `analysis_cache` (kind `developers_like_you`) for the shorter of `cache.searchTtlHours` and `privacy.nonUserRawTtlHours`, filed under the member's login; nothing else about these people is stored.
 - Known behaviors: public events cover about 90 days and at most 300 events; search returns at most 1,000 results per query.
 
 ## GitHub Linguist

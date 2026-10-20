@@ -298,6 +298,99 @@ TF-IDF arrives in P4-T02.
 - Tests: `packages/algorithms/src/matching/tfidf.test.ts` (hand-computed three-member university), `packages/core/src/matching/vectors.test.ts`
 - Spec: CLAUDE.md §8 F11 "Vectors"
 
+### Scoring and daily decks
+
+- Code: `packages/algorithms/src/matching/match.ts`, `packages/algorithms/src/stats/random.ts`; job `match_daily` in `packages/core/src/matching/daily.ts`
+- Formula:
+  - sim = cosine of TF-IDF vectors; int = Jaccard of interest sets
+  - comp = mean over the member's goals of min(1, candidate weight ÷ candidate's max weight); without learning goals, the university's 20 strongest tags (sum of members' vectors) minus the member's own top tags stand in
+  - score = weights of the mode (`matching.weights`: study, teammate, explore) · (sim, int, comp)
+  - only pairs sharing a tag, an interest or a covered goal are scored
+  - decks (nightly, per university with at least `unlock.matching.minMembers` verified members): members are served in a seeded random order (mulberry32 seeded by FNV-1a of `day:university`); the three modes take turns picking their best remaining candidate up to `matching.deckSize` each; a candidate appears once per member per day and at most `matching.maxDailyImpressions` times across all decks
+  - excluded: blocks either way, existing connections, ghost mode or hidden profiles (as candidates), suspended or hidden-pending-review accounts, unverified members
+  - explanations: up to 3 shared top tags, up to 3 goals the candidate covers, the number of shared interests
+- Rhythm overlap: computed when Discover shows a card, from both members' persona snapshots (below), not stored with the suggestion
+- Settings: `matching.weights`, `matching.deckSize` (15), `matching.maxDailyImpressions` (20), `unlock.matching.minMembers` (10)
+- Tests: `packages/algorithms/src/matching/match.test.ts`, `packages/algorithms/src/stats/random.test.ts`, `packages/core/src/matching/daily.test.ts`
+- Spec: CLAUDE.md §8 F11 "Scoring", "Deck", "Explanations"
+
+### Weight tuning and social metrics
+
+- Code: `packages/algorithms/src/matching/tune.ts`; job `tune_match_weights` in `packages/core/src/matching/tune.ts` (nightly 02:00 UTC, before the decks); metrics in `packages/core/src/metrics/service.ts`
+- Success: a suggestion that was requested, whose Discover request was accepted, and in whose direct thread each side sent at least `matching.successMessages` messages within `matching.successWindowDays` of acceptance
+- Tuning, per mode, over suggestions acted on in the last `matching.tuneWindowDays`: only with at least `matching.tuneMinSuccesses` successes and some unsuccessful ones; diff = mean components of successes − of the rest; target = weights + step·diff/max|diff| (no negatives), renormalized; the move is scaled so no weight changes by more than `matching.weightStep`. Tuned weights are written as the computed value of `matching.weights` with the smallest success count among tuned modes as the sample size, so they apply once that reaches the key's min_sample.
+- Stage thresholds: each streak that a missed day ends records an anonymous `streaks.endedLength` sample (one per pair and salt period); `streaks.companionStageDays` = quantiles of those lengths at k/(n+1) for its n thresholds, rounded, at least 1 and increasing, once min_sample is reached
+- Metrics: match quality = successful ÷ accepted requests answered in the last 30 days; streak retention = median age in days of active pairs
+- Settings: `matching.weights`, `matching.weightStep` (0.05), `matching.tuneMinSuccesses` (30), `matching.successMessages` (4), `matching.successWindowDays` (14), `matching.tuneWindowDays` (30), `streaks.companionStageDays`
+- Tests: `packages/algorithms/src/matching/tune.test.ts`, `packages/core/src/matching/tune.test.ts`
+- Spec: CLAUDE.md §8 F11 "Weight tuning", §1.7, §5.5.1
+
+### Discover deck and message requests
+
+- Code: `packages/core/src/matching/discover.ts`, `packages/core/src/chat/service.ts`, `packages/core/src/chat/threads.ts`, `packages/core/src/chat/icebreakers.ts`, `packages/algorithms/src/text/links.ts`
+- Deck: today's (UTC) unanswered suggestions for the chosen mode, best score first, narrowed by department, graduation year range and tag (one of the candidate's top tags); people blocked since the deck was built, now in ghost mode or hidden, or no longer active are left out. Members without skill tags start in Explore.
+- Card: up to 6 top tags, up to 3 Dev Card labels and the companion from the candidate's persona snapshot (`persona_snapshots`, written by `compute_skill_vector` from their latest Dev Card); without a snapshot the companion is seeded by their GitHub id with the species from their top tag, stage 0. Shared hours = `sharedActiveWindow` of both members' UTC hour histograms (the F2 rule), shown in the viewer's timezone.
+- Request rules: both members verified, active and at the same university; neither blocked the other; recipient not in ghost mode; one pending request per direction; first message between `chat.minFirstMessageChars` and `chat.maxMessageChars` characters; accounts younger than `chat.newAccountDays` may include at most `chat.maxLinksNewAccount` links (an `http(s)://` URL or a `www.` host up to whitespace); at most `round(chat.newThreadsPerDay.base × trust multiplier)` requests in the last 24 hours, with a multiplier of 1 before the member's first trust score. The sender's user row is locked so concurrent requests are counted in turn; a request from a suggestion marks it `requested` in the same transaction.
+- Icebreakers: a template key with one real signal from the suggestion: the first shared top tag (`sharedTag`), the first covered tag that is one of the member's learning goals (`learning`), or the number of shared topics (`interests`). Only openers the suggestion supports are accepted; the page's copy writes the text, and the minimum length does not apply to them.
+- Answering: accepting opens a direct thread (or reuses the one the two share), posts the first message as the sender's at the request's time, records a connection (`discover` → `match`), accepts a crossing pending request, and notifies the sender; declining is silent and the sender sees "pending" until `chat.requestTtlDays` pass. A pending request older than that is expired when answered or when the same sender writes again.
+- Messages: members of the thread only, active senders, no block either way in direct threads; same length and link rules as first messages; edits within `chat.editWindowMinutes`; deletion empties the body. Unread = messages from others after the member's `last_read_at`, deleted ones excluded; muted threads are left out of the total. Conversations load `chat.messagesPerPage` at a time, keyset-paged by `(created_at, id)`.
+- Cold start: GitHub user search `language:"<member's most common own-repo language>" location:"<university country>" type:user`, `matching.coldStartListSize` people, the member left out; view-only.
+- Settings: `chat.*` above, `chat.requestTtlDays` (14), `chat.editWindowMinutes` (10), `chat.messagesPerPage` (50), `matching.coldStartListSize` (10)
+- Tests: `packages/core/src/matching/discover.test.ts`, `packages/core/src/chat/service.test.ts`, `packages/core/src/chat/threads.test.ts`, `packages/algorithms/src/text/links.test.ts`
+- Spec: CLAUDE.md §8 F11 "UI", "Edge cases"; §8 F12 "Message requests"
+
+### Trust score
+
+- Code: `packages/algorithms/src/safety/trust.ts`; job `compute_trust` in `packages/core/src/safety/trust.ts` (nightly, 02:00 UTC)
+- Formula: age = min(1, account days ÷ `trust.ageFullDays`); verified = 1 when the university is verified; acceptRate = accepted ÷ sent message requests in the last `trust.acceptRateWindowDays` (`trust.acceptRatePrior` when fewer than `trust.acceptRateMinSent` were sent); reports = min(distinct verified reporters in `safety.reportWindowDays`, `trust.reportCap`) ÷ `trust.reportCap`, counting each verified reporter once and leaving out dismissed reports; score = clamp(Σ `trust.weights`·component, 0, 1); multiplier = min + score·(max − min) over `trust.multiplierRange`
+- Used by: the daily request limit, round(`chat.newThreadsPerDay.base` × multiplier); a member without a score yet gets 1
+- Settings: `trust.weights`, `trust.multiplierRange` ([0.5, 3]), `trust.ageFullDays` (30), `trust.acceptRateWindowDays` (30), `trust.acceptRateMinSent` (3), `trust.acceptRatePrior` (0.5), `trust.reportCap` (3), `safety.reportWindowDays` (30)
+- Tests: `packages/algorithms/src/safety/trust.test.ts`, `packages/core/src/safety/trust.test.ts`
+- Spec: CLAUDE.md §8 F12 "Trust score"
+
+### Reports and auto-hide
+
+- Code: `packages/core/src/safety/service.ts`, `packages/db/src/queries/safety.ts`
+- Rule: after each report, count distinct reporters of the member whose profile is verified, whose report is within `safety.reportWindowDays` and not dismissed; at `safety.autoHideReports` or more an active account becomes `hidden_pending_review` (one conditional update, so concurrent reports hide it once), the change is audited as `safety.auto_hidden` with no actor, and the member gets a neutral notice with an appeal link. The reporter is not told.
+- Blocks: either direction stops requests and messages and removes the pair from each other's Discover; blocking declines pending requests between them silently.
+- A report about a message is accepted only for a message in a thread the reporter belongs to, written by the reported member.
+- Settings: `safety.autoHideReports` (3), `safety.reportWindowDays` (30), `safety.reportDetailsMaxChars` (1000), `feedback.maxChars` (2000)
+- Tests: `packages/core/src/safety/service.test.ts`, `e2e/safety.spec.ts`
+- Spec: CLAUDE.md §8 F12 "Reports and auto-hide"
+
+### Moderation decisions
+
+- Code: `packages/core/src/admin/moderation.ts`, `packages/db/src/queries/moderation.ts`; job `lift_suspensions` (hourly, :05)
+- Scope: admins act on anyone; a university moderator on members of the universities they moderate, never on admins or themselves
+- Decisions resolve every open report about the member: dismiss (dismissed; an account hidden by reports is restored), warn (actioned; the member is notified with the note; a hidden account is restored), suspend for 1 to `safety.maxSuspensionDays` days (`suspended_until` set), ban (suspended with no end). Each is audited as `moderation.<decision>` with the reports resolved, the end time, the note and the previous status.
+- Context: the reported message with up to `safety.contextMessages` messages on each side, keyset by `(created_at, id)` within the thread; audited as `moderation.context_viewed`.
+- Settings: `safety.contextMessages` (10), `safety.maxSuspensionDays` (365)
+- Tests: `packages/core/src/admin/moderation.test.ts`, `e2e/safety.spec.ts`
+- Spec: CLAUDE.md §8 F12 "Moderation queue", §5.11
+
+### Notifications and daily digests
+
+- Code: `packages/core/src/notifications/center.ts`, `packages/db/src/queries/notifications.ts`, words in `packages/email/src/notifications.ts`
+- Dispatch (hourly, on the hour): members whose clock in their profile timezone reads `email.digestHourLocal`, who chose digests, are active, and have unread, not-yet-emailed notifications in kinds they did not mute; each gets one `digest_email` per local day (idempotency key `digest:<userId>:<local date>`). Timezones Postgres does not know are skipped.
+- Digest: up to `email.digestMaxItems` such notifications, oldest first, described with the shared words; sent within `email.maxPerDay` (past the cap the job waits until the next UTC day without using an attempt); the notifications included are marked `emailed_at`.
+- Center: the latest `notifications.listLimit` notifications; the unread badge leaves out muted kinds. Only social kinds can be muted; account and moderation notices cannot.
+- Settings: `email.digestHourLocal` (18), `email.digestMaxItems` (20), `email.maxPerDay` (80), `notifications.listLimit` (50)
+- Tests: `packages/core/src/notifications/center.test.ts`, `packages/email/src/notifications.test.ts`
+- Spec: CLAUDE.md §7.5, §5.4 `digest_email`
+
+### Shared streaks
+
+- Code: `packages/algorithms/src/streaks/judge.ts`; job `streak_check` in `packages/core/src/streaks/judge.ts` (hourly at :15)
+- Day boundaries: a pair's first day is the UTC date it was created; day D is judged once both members' local D+1 has begun in their profile timezones (computed with the runtime's timezone data, so daylight-saving changes, including skipped midnights, are handled) plus `streaks.graceHours`
+- Dispatch: one per-pair run per ready day (idempotency key `streak:<pairId>:<day>`); the run judges every ready day in order with one contribution-calendar read per member over the range
+- Outcome: both counts ≥ `streaks.minDailyContributions` → counted (streak + 1, longest updated, a freeze every `streaks.freezeEveryDays` counted days up to `streaks.maxFreezes`, misses in a row reset); else a held freeze → frozen (streak kept); else missed (streak 0, misses in a row + 1); `streaks.pauseAfterMissedDays` misses in a row pause the pair and notify both. Counts are recorded as GitHub's calendar reports them.
+- Invalid token: a member whose stored token is missing or rejected makes the days skipped (no record, streak unchanged) and gets a sign-in-again notification
+- Companion: stage = thresholds of `streaks.companionStageDays` reached by the current streak; mood happy / neutral / sad after counted / frozen / missed; seed = FNV-1a of the pair id
+- Page: the pair companion is two-toned (each member's persona-snapshot color, the site's color before a member's first snapshot), drawn at min(stage, last drawable stage), wears the flame trait while the streak is above 0, and shows its mood as a hop (happy), rest (neutral) or slump (sad); the strip shows the last 30 UTC days ending yesterday; the partner's coded-today status is read in the partner's own day with their token, only when they allow it, and reused for `streaks.todayStatusCacheMinutes`; a share card exists only for a pair that has not ended between two public members
+- Settings: `streaks.minDailyContributions` (1), `streaks.graceHours` (6), `streaks.freezeEveryDays` (7), `streaks.maxFreezes` (2), `streaks.pauseAfterMissedDays` (3), `streaks.companionStageDays`, `streaks.todayStatusCacheMinutes` (30)
+- Tests: `packages/algorithms/src/streaks/judge.test.ts`, `packages/core/src/streaks/judge.test.ts`
+- Spec: CLAUDE.md §8 F13 "Daily judgement", "Edge cases"
+
 ## Clustering, graphs and assignment
 
 No entries yet. k-means with silhouette selection arrives in P6-T06; cycle search in P5-T06.

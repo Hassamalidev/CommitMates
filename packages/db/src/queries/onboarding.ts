@@ -160,3 +160,8 @@ export async function getProfileDetails(userId: string, db: DbOrTx = getDb()) {
     .where(eq(profiles.userId, userId));
   return row ?? null;
 }
+
+/** Replaces a member's learning goals (already validated against the tag vocabulary). */
+export async function setLearningGoals(userId: string, goals: readonly string[], db: DbOrTx = getDb()): Promise<void> {
+  await db.update(profiles).set({ learningGoals: [...goals] }).where(eq(profiles.userId, userId));
+}
