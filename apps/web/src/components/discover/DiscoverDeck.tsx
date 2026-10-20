@@ -20,7 +20,7 @@ export type DiscoverDeckProps = {
   aside: ReactNode;
 };
 
-type Target = { suggestionId: string; login: string };
+type Target = { suggestionId: string; login: string; openers: DeckCardView['openers'] };
 
 /**
  * Today's deck, one card at a time (CLAUDE.md §8 F11 "UI"), with Skip and Like as a native form
@@ -40,7 +40,7 @@ export function DiscoverDeck({ cards, liked, firstMessage, empty, aside }: Disco
       if (!card) return;
       if (action === 'skip') skipRef.current?.click();
       else if (action === 'like') likeRef.current?.click();
-      else setTarget({ suggestionId: card.suggestionId, login: card.login });
+      else setTarget({ suggestionId: card.suggestionId, login: card.login, openers: card.openers });
     },
     [card],
   );
@@ -104,7 +104,7 @@ export function DiscoverDeck({ cards, liked, firstMessage, empty, aside }: Disco
                     disabled={answering}
                     aria-keyshortcuts={DECK_SHORTCUTS.request}
                     onClick={() => {
-                      setTarget({ suggestionId: card.suggestionId, login: card.login });
+                      setTarget({ suggestionId: card.suggestionId, login: card.login, openers: card.openers });
                     }}
                   >
                     {copy.actions.request}
@@ -138,7 +138,7 @@ export function DiscoverDeck({ cards, liked, firstMessage, empty, aside }: Disco
                     variant="secondary"
                     aria-label={`${copy.actions.request}: ${person.name}`}
                     onClick={() => {
-                      setTarget({ suggestionId: person.suggestionId, login: person.login });
+                      setTarget({ suggestionId: person.suggestionId, login: person.login, openers: person.openers });
                     }}
                   >
                     {copy.actions.request}
@@ -154,6 +154,7 @@ export function DiscoverDeck({ cards, liked, firstMessage, empty, aside }: Disco
           key={target.suggestionId}
           suggestionId={target.suggestionId}
           login={target.login}
+          openers={target.openers}
           limits={firstMessage}
           onClose={() => {
             setTarget(null);

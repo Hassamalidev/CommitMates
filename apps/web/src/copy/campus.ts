@@ -44,6 +44,8 @@ export const notificationCopy: Readonly<Record<string, (data: Record<string, unk
     `Your request for ${text(data.domain)} was approved${text(data.universityName) ? ` as ${text(data.universityName)}` : ''}.`,
   university_request_rejected: (data) => `Your request for ${text(data.domain)} was not approved.`,
   verified_by_vouches: () => 'Members of your university vouched for you. You are verified.',
+  chat_request: (data) => (text(data.login) ? `@${text(data.login)} sent you a message request.` : 'You have a new message request.'),
+  chat_request_accepted: (data) => (text(data.login) ? `@${text(data.login)} accepted your message request.` : 'Your message request was accepted.'),
 };
 
 export const homeNotificationsCopy = {

@@ -1,10 +1,11 @@
-import { campusUnlocks, getUniversity, recentNotifications } from '@commitmates/core';
+import { campusUnlocks, getUniversity, recentNotifications, unreadCount } from '@commitmates/core';
 import { Card, buttonStyles } from '@commitmates/ui';
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import { redirect } from 'next/navigation';
 
 import { campusCopy, homeNotificationsCopy, notificationCopy } from '@/copy/campus';
+import { chatCopy } from '@/copy/chat';
 import { homeCopy } from '@/copy/onboarding';
 import { formatUtc } from '@/lib/format';
 import { getCurrentMember } from '@/server/auth';
@@ -22,10 +23,11 @@ const isRecord = (value: unknown): value is Record<string, unknown> => typeof va
 export default async function HomePage() {
   const member = await getCurrentMember();
   if (!member?.universityId) redirect('/onboarding');
-  const [university, progress, notifications] = await Promise.all([
+  const [university, progress, notifications, unread] = await Promise.all([
     getUniversity(member.universityId),
     campusUnlocks(member.universityId),
     recentNotifications(member.id),
+    unreadCount(member),
   ]);
   const copy = homeCopy;
   const open = progress.unlocks.filter((unlock) => unlock.unlocked).length;
@@ -68,6 +70,12 @@ export default async function HomePage() {
             </Link>
           </Card>
         ) : null}
+        <Card title={chatCopy.home.title} className="flex flex-col gap-3">
+          <p className="type-body">{chatCopy.home.unread(unread)}</p>
+          <Link href="/inbox" className={buttonStyles({ variant: unread > 0 ? 'primary' : 'secondary', size: 'md', className: 'self-start' })}>
+            {chatCopy.home.link}
+          </Link>
+        </Card>
         <Card title={homeNotificationsCopy.title} className="flex flex-col gap-3">
           {shown.length === 0 ? (
             <p className="type-small text-fg-muted">{homeNotificationsCopy.empty}</p>

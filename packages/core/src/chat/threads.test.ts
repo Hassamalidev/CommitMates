@@ -189,6 +189,8 @@ describe('messages', () => {
     });
     await expect(getConversation(await member(), threadId, null)).rejects.toMatchObject({ code: 'chat.thread_missing' });
     await expect(getConversation(b, 'not-a-thread', null)).rejects.toMatchObject({ code: 'chat.thread_missing' });
+    // An edited cursor opens the newest page.
+    expect(await getConversation(b, threadId, { createdAt: 'yesterday', id: 'x' })).toMatchObject({ latest: true });
   });
 
   it('mutes a thread out of the unread total, and leaving leaves a note for the others', async () => {

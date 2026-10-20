@@ -8,6 +8,7 @@ export const discoverCopy = {
   eyebrow: 'Find a partner',
   title: 'Discover',
   intro: 'People at your university who fit what you want to build or learn. New suggestions every day.',
+  inboxLink: 'Your inbox and requests',
   modesLabel: 'What are you looking for?',
   modes: {
     study: { label: 'Study buddy', line: 'People who build with what you build.' },
@@ -45,6 +46,8 @@ export const discoverCopy = {
     label: 'First message',
     help: (min: number, max: number) => `Between ${min} and ${max} characters. Plain text; links are fine.`,
     counter: (length: number, max: number) => `${length} / ${max}`,
+    openersLegend: 'Start with',
+    ownMessage: 'My own message',
     submit: 'Send request',
     close: 'Close',
     sent: (login: string) => `Request sent to @${login}. They'll see it with your message.`,

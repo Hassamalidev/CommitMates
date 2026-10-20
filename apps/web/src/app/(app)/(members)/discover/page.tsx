@@ -53,6 +53,9 @@ export default async function DiscoverPage({ searchParams }: Props) {
       <p className="type-eyebrow text-fg-muted">{copy.eyebrow}</p>
       <h1 className="type-h1 mt-1">{copy.title}</h1>
       <p className="type-body mt-2 max-w-reading text-fg-muted">{copy.intro}</p>
+      <Link href="/inbox" className="type-small mt-2 inline-flex min-h-11 items-center underline">
+        {copy.inboxLink}
+      </Link>
     </header>
   );
 

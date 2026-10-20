@@ -234,6 +234,8 @@ export type Conversation = {
   messages: MessageRow[];
   /** Cursor for the page before these, when there is one. */
   before: { createdAt: string; id: string } | null;
+  /** Whether this is the newest page, where live messages join. */
+  latest: boolean;
   editWindowMinutes: number;
   maxChars: number;
 };
@@ -255,7 +257,8 @@ export async function getConversation(
     getSetting('chat.editWindowMinutes'),
     getSetting('chat.maxMessageChars'),
   ]);
-  const before = cursor ? conversationCursorSchema.parse(cursor) : null;
+  // A cursor that is not one (an edited address) opens the newest page.
+  const before = cursor ? (conversationCursorSchema.safeParse(cursor).data ?? null) : null;
   // One extra row says whether an earlier page exists.
   const rows = await listMessages(thread.id, pageSize + 1, before ? { createdAt: new Date(before.createdAt), id: before.id } : null);
   const page = rows.slice(0, pageSize);
@@ -266,6 +269,7 @@ export async function getConversation(
     members,
     messages: [...page].reverse(),
     before: rows.length > pageSize && oldest ? { createdAt: oldest.createdAt.toISOString(), id: oldest.id } : null,
+    latest: before === null,
     editWindowMinutes,
     maxChars,
   };

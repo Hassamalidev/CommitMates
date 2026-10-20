@@ -123,6 +123,22 @@ describe('DiscoverDeck', () => {
     expect(requestFromSuggestionAction.mock.calls[1]?.[1].get('suggestionId')).toBe('s-sam');
   });
 
+  it('sends a suggested opener instead of a typed message', async () => {
+    requestFromSuggestionAction.mockResolvedValueOnce({ ok: true, data: null });
+    render(<DiscoverDeck {...props} />);
+    fireEvent.keyDown(document.body, { key: 'Enter' });
+    const dialog = await screen.findByRole('dialog', { name: 'Message @sam' });
+    fireEvent.click(screen.getByRole('radio', { name: 'Hi! I see we both build with react. Want to compare notes, or build something together?' }));
+    expect(screen.queryByLabelText('First message')).toBeNull();
+    expect(await findA11yViolations(dialog)).toEqual([]);
+    const radio = screen.getByRole('radio', { name: 'My own message' });
+    submitForm(radio);
+    await waitFor(() => {
+      expect(requestFromSuggestionAction).toHaveBeenCalledOnce();
+    });
+    expect(requestFromSuggestionAction.mock.calls[0]?.[1].get('icebreaker')).toBe('sharedTag:react');
+  });
+
   it('shows the empty state when the deck is done', () => {
     render(<DiscoverDeck {...props} cards={[]} />);
     expect(screen.getByText('Nobody left')).toBeTruthy();

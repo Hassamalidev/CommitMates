@@ -3,6 +3,7 @@ import type { CompanionInput } from '@commitmates/ui';
 
 import { devCardCopy, isDevCardLabelKey } from '@/copy/dev-card';
 import { discoverCopy } from '@/copy/discover';
+import { renderIcebreaker } from '@/copy/icebreakers';
 
 import { localHourRange } from './compat';
 import { companionFor } from './dev-card';
@@ -17,6 +18,8 @@ export type DeckCardView = {
   tags: string[];
   reasons: string[];
   companion: CompanionInput;
+  /** Openers built from this person's shared signals: the id the form sends, and the text. */
+  openers: { id: string; text: string }[];
 };
 
 /**
@@ -48,6 +51,7 @@ export function toCardView(card: DeckCard, hasGoals: boolean, timeZone: string, 
     tags: card.tags,
     reasons: reasonsFor(card.why, hasGoals, timeZone, on),
     companion: companionFor({ companion: card.companion }),
+    openers: card.icebreakers.map((icebreaker) => ({ id: `${icebreaker.key}:${icebreaker.value}`, text: renderIcebreaker(icebreaker) })),
   };
 }
 
