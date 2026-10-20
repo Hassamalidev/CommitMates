@@ -157,3 +157,4 @@ export {
   type MatchProfile,
   type ModeWeights,
 } from './matching/match';
+export { trustComponents, trustMultiplier, trustScore, type TrustComponents, type TrustInputs, type TrustParams, type TrustWeights } from './safety/trust';

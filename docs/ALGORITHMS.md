@@ -328,6 +328,15 @@ TF-IDF arrives in P4-T02.
 - Tests: `packages/core/src/matching/discover.test.ts`, `packages/core/src/chat/service.test.ts`, `packages/core/src/chat/threads.test.ts`, `packages/algorithms/src/text/links.test.ts`
 - Spec: CLAUDE.md §8 F11 "UI", "Edge cases"; §8 F12 "Message requests"
 
+### Trust score
+
+- Code: `packages/algorithms/src/safety/trust.ts`; job `compute_trust` in `packages/core/src/safety/trust.ts` (nightly, 02:00 UTC)
+- Formula: age = min(1, account days ÷ `trust.ageFullDays`); verified = 1 when the university is verified; acceptRate = accepted ÷ sent message requests in the last `trust.acceptRateWindowDays` (`trust.acceptRatePrior` when fewer than `trust.acceptRateMinSent` were sent); reports = min(distinct verified reporters in `safety.reportWindowDays`, `trust.reportCap`) ÷ `trust.reportCap`, counting each verified reporter once and leaving out dismissed reports; score = clamp(Σ `trust.weights`·component, 0, 1); multiplier = min + score·(max − min) over `trust.multiplierRange`
+- Used by: the daily request limit, round(`chat.newThreadsPerDay.base` × multiplier); a member without a score yet gets 1
+- Settings: `trust.weights`, `trust.multiplierRange` ([0.5, 3]), `trust.ageFullDays` (30), `trust.acceptRateWindowDays` (30), `trust.acceptRateMinSent` (3), `trust.acceptRatePrior` (0.5), `trust.reportCap` (3), `safety.reportWindowDays` (30)
+- Tests: `packages/algorithms/src/safety/trust.test.ts`, `packages/core/src/safety/trust.test.ts`
+- Spec: CLAUDE.md §8 F12 "Trust score"
+
 ## Clustering, graphs and assignment
 
 No entries yet. k-means with silhouette selection arrives in P6-T06; cycle search in P5-T06.
