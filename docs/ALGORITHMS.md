@@ -337,6 +337,16 @@ TF-IDF arrives in P4-T02.
 - Tests: `packages/algorithms/src/safety/trust.test.ts`, `packages/core/src/safety/trust.test.ts`
 - Spec: CLAUDE.md §8 F12 "Trust score"
 
+### Reports and auto-hide
+
+- Code: `packages/core/src/safety/service.ts`, `packages/db/src/queries/safety.ts`
+- Rule: after each report, count distinct reporters of the member whose profile is verified, whose report is within `safety.reportWindowDays` and not dismissed; at `safety.autoHideReports` or more an active account becomes `hidden_pending_review` (one conditional update, so concurrent reports hide it once), the change is audited as `safety.auto_hidden` with no actor, and the member gets a neutral notice with an appeal link. The reporter is not told.
+- Blocks: either direction stops requests and messages and removes the pair from each other's Discover; blocking declines pending requests between them silently.
+- A report about a message is accepted only for a message in a thread the reporter belongs to, written by the reported member.
+- Settings: `safety.autoHideReports` (3), `safety.reportWindowDays` (30), `safety.reportDetailsMaxChars` (1000), `feedback.maxChars` (2000)
+- Tests: `packages/core/src/safety/service.test.ts`, `e2e/safety.spec.ts`
+- Spec: CLAUDE.md §8 F12 "Reports and auto-hide"
+
 ## Clustering, graphs and assignment
 
 No entries yet. k-means with silhouette selection arrives in P6-T06; cycle search in P5-T06.

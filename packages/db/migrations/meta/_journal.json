@@ -316,6 +316,13 @@
       "when": 1792526111070,
       "tag": "0044_settings_trust",
       "breakpoints": true
+    },
+    {
+      "idx": 45,
+      "version": "7",
+      "when": 1792526810874,
+      "tag": "0045_settings_safety",
+      "breakpoints": true
     }
   ]
 }

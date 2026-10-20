@@ -139,6 +139,8 @@ export const SettingKeys = {
   'trust.reportCap': 'integer',
   'safety.autoHideReports': 'integer',
   'safety.reportWindowDays': 'integer',
+  'safety.reportDetailsMaxChars': 'integer',
+  'feedback.maxChars': 'integer',
   'streaks.minDailyContributions': 'integer',
   'streaks.graceHours': 'integer',
   'streaks.freezeEveryDays': 'integer',

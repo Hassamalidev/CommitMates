@@ -1,4 +1,4 @@
-import { NotFoundError, getConversation } from '@commitmates/core';
+import { NotFoundError, getConversation, getSetting, isBlocking } from '@commitmates/core';
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import { notFound, redirect } from 'next/navigation';
@@ -6,6 +6,7 @@ import { cache } from 'react';
 
 import { ConversationView } from '@/components/chat/ConversationView';
 import { ThreadActions } from '@/components/chat/ThreadActions';
+import { SafetyActions } from '@/components/safety/SafetyActions';
 import { chatCopy } from '@/copy/chat';
 import { toChatMessage, type ChatMessage } from '@/lib/chat';
 import { getCurrentMember } from '@/server/auth';
@@ -37,7 +38,10 @@ export async function generateMetadata({ params, searchParams }: Props): Promise
   const loaded = await load((await params).threadId, one(before), one(id));
   if (!loaded) return { robots: { index: false } };
   const others = loaded.conversation.members.filter((person) => person.userId !== loaded.member.id);
-  return { title: chatCopy.conversation.meta.title(others.map(nameOf).join(', ') || chatCopy.conversation.alone), robots: { index: false } };
+  return {
+    title: chatCopy.conversation.meta.title(others.map(nameOf).join(', ') || chatCopy.conversation.alone),
+    robots: { index: false },
+  };
 }
 
 /** One conversation (CLAUDE.md §8 F12): its messages, live updates, and the member's own controls. */
@@ -54,11 +58,19 @@ export default async function ConversationPage({ params, searchParams }: Props) 
     const parsed = toChatMessage(message);
     return parsed ? [parsed] : [];
   });
-  const people = Object.fromEntries(conversation.members.map((person) => [person.userId, { login: person.login, name: person.name }]));
+  const people = Object.fromEntries(
+    conversation.members.map((person) => [person.userId, { login: person.login, name: person.name }]),
+  );
   const earlier = conversation.before
     ? `/inbox/${threadId}?before=${encodeURIComponent(conversation.before.createdAt)}&id=${encodeURIComponent(conversation.before.id)}`
     : null;
   const latest = conversation.latest;
+  // In a direct conversation the other person can be blocked or reported from here (§8 F12).
+  const partner = conversation.thread.kind === 'direct' && others.length === 1 ? others[0] : undefined;
+  const [blocked, detailsMax] = await Promise.all([
+    partner ? isBlocking(member, partner.userId) : false,
+    getSetting('safety.reportDetailsMaxChars'),
+  ]);
 
   return (
     <div className="mx-auto flex max-w-reading flex-col gap-4 px-4 py-10">
@@ -67,7 +79,9 @@ export default async function ConversationPage({ params, searchParams }: Props) 
       </Link>
       <header className="flex flex-wrap items-start justify-between gap-3">
         <div className="min-w-0">
-          <h1 className="type-h1 break-words">{conversation.thread.title ?? (others.map(nameOf).join(', ') || copy.alone)}</h1>
+          <h1 className="type-h1 break-words">
+            {conversation.thread.title ?? (others.map(nameOf).join(', ') || copy.alone)}
+          </h1>
           <ul className="type-small mt-1 flex flex-wrap gap-x-3">
             {others.map((person) => (
               <li key={person.userId}>
@@ -78,7 +92,17 @@ export default async function ConversationPage({ params, searchParams }: Props) 
             ))}
           </ul>
         </div>
-        <ThreadActions threadId={threadId} muted={me?.muted ?? false} />
+        <div className="flex flex-col items-end gap-2">
+          <ThreadActions threadId={threadId} muted={me?.muted ?? false} />
+          {partner ? (
+            <SafetyActions
+              userId={partner.userId}
+              login={partner.login}
+              blocked={blocked}
+              detailsMax={detailsMax}
+            />
+          ) : null}
+        </div>
       </header>
       {earlier ? (
         <Link href={earlier} className="type-small self-center underline">
@@ -101,6 +125,7 @@ export default async function ConversationPage({ params, searchParams }: Props) 
         maxChars={conversation.maxChars}
         timeZone={member.timezone}
         latest={latest}
+        reportDetailsMax={detailsMax}
       />
     </div>
   );

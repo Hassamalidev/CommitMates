@@ -36,6 +36,8 @@ const editMessageAction = vi.fn<(previous: unknown, formData: FormData) => Promi
 const deleteMessageAction = vi.fn<(previous: unknown, formData: FormData) => Promise<ActionResult<null>>>();
 const markReadAction = vi.fn<(threadId: string) => Promise<ActionResult<null>>>();
 vi.mock('@/server/actions/chat', () => ({ sendMessageAction, editMessageAction, deleteMessageAction, markReadAction }));
+const reportAction = vi.fn<(previous: unknown, formData: FormData) => Promise<ActionResult<null>>>();
+vi.mock('@/server/actions/safety', () => ({ reportAction }));
 
 const { ConversationView } = await import('./ConversationView');
 
@@ -110,6 +112,7 @@ describe('ConversationView', () => {
     maxChars: 4000,
     timeZone: 'UTC',
     latest: true,
+    reportDetailsMax: 1000,
   };
 
   it('shows the messages with links, subscribes with the member’s token, and adds live messages', async () => {
@@ -170,6 +173,21 @@ describe('ConversationView', () => {
     });
     expect(screen.queryByRole('button', { name: 'Edit' })).toBeNull();
     vi.useRealTimers();
+  });
+
+  it('reports another member’s message with its id', async () => {
+    reportAction.mockResolvedValueOnce({ ok: true, data: null });
+    render(<ConversationView {...props} />);
+    // Only messages from others can be reported.
+    expect(screen.getAllByRole('button', { name: 'Report message' })).toHaveLength(1);
+    fireEvent.click(screen.getByRole('button', { name: 'Report message' }));
+    const dialog = await screen.findByRole('dialog', { name: 'Report a message from @sam' });
+    expect(await findA11yViolations(dialog)).toEqual([]);
+    fireEvent.click(screen.getByRole('radio', { name: 'Harassment or bullying' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Send report' }));
+    expect(await screen.findByText('Thank you. Your report was sent to the moderators.')).toBeTruthy();
+    const sent = reportAction.mock.calls[0]?.[1];
+    expect([sent?.get('targetUserId'), sent?.get('messageId'), sent?.get('reason')]).toEqual(['them', '1', 'harassment']);
   });
 
   it('leaves an older page alone: no live updates and no composer', () => {

@@ -145,3 +145,12 @@ export {
   type OutgoingView,
 } from './chat/threads';
 export { MEMBER_LEFT_NOTE, type IncomingRequest, type MessageRow, type ThreadMember, type ThreadSummary } from '@commitmates/db';
+export {
+  REPORT_REASONS,
+  blockMember,
+  blockedMembers,
+  isBlocking,
+  reportMember,
+  submitFeedback,
+  unblockMember,
+} from './safety/service';

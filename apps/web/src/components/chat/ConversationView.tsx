@@ -3,7 +3,9 @@
 import { Button, Textarea } from '@commitmates/ui';
 import { useActionState, useEffect, useMemo, useRef, useState } from 'react';
 
+import { ReportDialog } from '@/components/safety/ReportDialog';
 import { chatCopy } from '@/copy/chat';
+import { safetyCopy } from '@/copy/safety';
 import {
   formatMessageTime,
   linkify,
@@ -33,6 +35,8 @@ export type ConversationViewProps = {
   timeZone: string;
   /** Whether this is the latest page; live updates only join the latest page. */
   latest: boolean;
+  /** Longest details text on a report about a message. */
+  reportDetailsMax: number;
 };
 
 /** How often the edit buttons are re-checked against the edit window. */
@@ -118,8 +122,11 @@ export function ConversationView({
   maxChars,
   timeZone,
   latest,
+  reportDetailsMax,
 }: ConversationViewProps) {
   const copy = chatCopy.conversation;
+  const [reporting, setReporting] = useState<{ messageId: string; userId: string; login: string } | null>(null);
+  const [reported, setReported] = useState(false);
   const [live, setLive] = useState<ChatMessage[]>([]);
   const [editing, setEditing] = useState<string | null>(null);
   const [now, setNow] = useState<number | null>(null);
@@ -257,11 +264,46 @@ export function ConversationView({
                     </form>
                   </div>
                 ) : null}
+                {message.authorUserId !== meId && message.authorUserId !== null && !message.deletedAt ? (
+                  <div>
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      onClick={() => {
+                        const authorId = message.authorUserId;
+                        const person = authorId ? people[authorId] : undefined;
+                        if (authorId && person) setReporting({ messageId: message.id, userId: authorId, login: person.login });
+                      }}
+                    >
+                      {safetyCopy.report.messageButton}
+                    </Button>
+                  </div>
+                ) : null}
               </li>
             ),
           )}
         </ol>
       </div>
+      {reported ? (
+        <p role="status" className="type-small text-state-done">
+          {safetyCopy.report.done}
+        </p>
+      ) : null}
+      {reporting ? (
+        <ReportDialog
+          targetUserId={reporting.userId}
+          login={reporting.login}
+          messageId={reporting.messageId}
+          detailsMax={reportDetailsMax}
+          onClose={() => {
+            setReporting(null);
+          }}
+          onSent={() => {
+            setReporting(null);
+            setReported(true);
+          }}
+        />
+      ) : null}
       {deleted && !deleted.ok ? (
         <p role="alert" className="type-small text-state-error">
           {deleted.error.message}

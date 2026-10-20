@@ -90,7 +90,7 @@ Chat (CLAUDE.md §8 F12): first messages waiting for consent, threads and who is
 
 ### `blocks`, `reports` (class A)
 
-Who a member blocked, and their reports about others: reason, optional details, and the moderation outcome. A report outlives the reporter's account (`reporter` becomes null), because it is evidence for moderation. A report about a member is deleted with that member's account.
+Who a member blocked, and their reports about others: reason, optional details, the message the report is about (only one in a thread the reporter belongs to), and the moderation outcome. The reported member is never told who reported them. When enough distinct verified reporters report an account it is hidden pending review; the audit log records that with no actor and the member is notified. A report outlives the reporter's account (`reporter` becomes null), because it is evidence for moderation. A report about a member is deleted with that member's account.
 
 ### `match_suggestions`, `connections`, `trust_scores`, `skill_vectors` (class B for members)
 

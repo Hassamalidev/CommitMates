@@ -1,4 +1,4 @@
-import { canViewProfile, canVouchFor, getProfileOwner, getVouchingStatus, hasVouched, isPublicProfile } from '@commitmates/core';
+import { canViewProfile, canVouchFor, getProfileOwner, getSetting, getVouchingStatus, hasVouched, isBlocking, isPublicProfile } from '@commitmates/core';
 import type { Metadata } from 'next';
 import { notFound } from 'next/navigation';
 import { cache } from 'react';
@@ -6,6 +6,7 @@ import { cache } from 'react';
 import { DevCardTool } from '@/components/dev-card/DevCardTool';
 import { ActionForm } from '@/components/forms/ActionForm';
 import { SiteFrame } from '@/components/layout/SiteFrame';
+import { SafetyActions } from '@/components/safety/SafetyActions';
 import { ShareButton } from '@/components/share/ShareButton';
 import { devCardCopy } from '@/copy/dev-card';
 import { vouchCopy } from '@/copy/onboarding';
@@ -65,6 +66,11 @@ export default async function MemberProfilePage({ params }: Props) {
   const vouching = viewer && (await canVouchFor(viewer.id, owner.userId)) ? await getVouchingStatus(owner.userId) : null;
   // After vouching the button goes away; say so instead of leaving nothing.
   const vouched = viewer && !isSelf ? await hasVouched(viewer.id, owner.userId) : false;
+  // Verified members can block or report another member from their page (CLAUDE.md §8 F12).
+  const safety =
+    viewer?.verified && viewer.status !== 'suspended' && !isSelf
+      ? { blocked: await isBlocking(viewer, owner.userId), detailsMax: await getSetting('safety.reportDetailsMaxChars') }
+      : null;
 
   return (
     <SiteFrame>
@@ -75,6 +81,11 @@ export default async function MemberProfilePage({ params }: Props) {
           {isPublicProfile(owner) ? (
             <div className="mt-3">
               <ShareButton url={`${siteUrl}/u/${encodeURIComponent(owner.login)}`} title={shareCopy.title(owner.login, siteName)} />
+            </div>
+          ) : null}
+          {safety ? (
+            <div className="mt-3">
+              <SafetyActions userId={owner.userId} login={owner.login} blocked={safety.blocked} detailsMax={safety.detailsMax} />
             </div>
           ) : null}
           {isSelf && owner.visibility === 'hidden' ? (
