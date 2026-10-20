@@ -2,10 +2,11 @@
 
 import { useEffect, useState } from 'react';
 
+import { NotificationBell } from '@/components/notifications/NotificationBell';
 import { authCopy } from '@/copy/auth';
 import { hasSessionCookie } from '@/lib/session-cookie';
 
-type Signed = { login: string | null };
+type Signed = { login: string | null; userId: string };
 
 /** The GitHub login in the session's user metadata, as the sign-in callback reads it. */
 function loginFrom(metadata: Record<string, unknown> | undefined): string | null {
@@ -28,7 +29,7 @@ export function AuthStatus() {
     void import('@/lib/supabase/browser')
       .then(({ createSupabaseBrowserClient }) => createSupabaseBrowserClient().auth.getSession())
       .then(({ data }) => {
-        if (active && data.session) setSigned({ login: loginFrom(data.session.user.user_metadata) });
+        if (active && data.session) setSigned({ login: loginFrom(data.session.user.user_metadata), userId: data.session.user.id });
       })
       // A session that cannot be read shows the sign-in link, which is the safe default.
       .catch(() => undefined);
@@ -47,6 +48,7 @@ export function AuthStatus() {
 
   return (
     <div className="flex flex-wrap items-center gap-4" data-testid="auth-status">
+      <NotificationBell userId={signed.userId} />
       <span>{signed.login ? authCopy.signedInAs(signed.login) : authCopy.signedIn}</span>
       <form action="/auth/sign-out" method="post">
         <button className="text-accent underline underline-offset-4" type="submit">

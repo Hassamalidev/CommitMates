@@ -6,6 +6,7 @@ import { redirect } from 'next/navigation';
 
 import { campusCopy, homeNotificationsCopy } from '@/copy/campus';
 import { chatCopy } from '@/copy/chat';
+import { notificationsCopy } from '@/copy/notifications';
 import { homeCopy } from '@/copy/onboarding';
 import { formatUtc } from '@/lib/format';
 import { getCurrentMember } from '@/server/auth';
@@ -75,6 +76,9 @@ export default async function HomePage() {
           </Link>
         </Card>
         <Card title={homeNotificationsCopy.title} className="flex flex-col gap-3">
+          <Link href="/notifications" className="type-small self-start underline">
+            {notificationsCopy.homeLink}
+          </Link>
           {shown.length === 0 ? (
             <p className="type-small text-fg-muted">{homeNotificationsCopy.empty}</p>
           ) : (
