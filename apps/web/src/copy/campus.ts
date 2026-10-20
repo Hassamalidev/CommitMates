@@ -46,6 +46,9 @@ export const notificationCopy: Readonly<Record<string, (data: Record<string, unk
   verified_by_vouches: () => 'Members of your university vouched for you. You are verified.',
   chat_request: (data) => (text(data.login) ? `@${text(data.login)} sent you a message request.` : 'You have a new message request.'),
   account_hidden: () => 'Your account is hidden from others while moderators review reports about it. You can tell them your side.',
+  account_restored: () => 'Moderators reviewed the reports about your account. It is visible again.',
+  moderation_warning: (data) =>
+    text(data.note) ? `A moderator sent you a warning: ${text(data.note)}` : 'A moderator sent you a warning about how you use CommitMates.',
   chat_request_accepted: (data) => (text(data.login) ? `@${text(data.login)} accepted your message request.` : 'Your message request was accepted.'),
 };
 

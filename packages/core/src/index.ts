@@ -154,3 +154,12 @@ export {
   submitFeedback,
   unblockMember,
 } from './safety/service';
+export {
+  MODERATION_ACTIONS,
+  getModerationQueue,
+  moderate,
+  viewReportContext,
+  type ModerationAction,
+  type ReportContextLine,
+} from './admin/moderation';
+export type { ContextMessage, ReportGroup, ReportRow } from '@commitmates/db';

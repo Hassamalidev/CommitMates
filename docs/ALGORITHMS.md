@@ -347,6 +347,16 @@ TF-IDF arrives in P4-T02.
 - Tests: `packages/core/src/safety/service.test.ts`, `e2e/safety.spec.ts`
 - Spec: CLAUDE.md §8 F12 "Reports and auto-hide"
 
+### Moderation decisions
+
+- Code: `packages/core/src/admin/moderation.ts`, `packages/db/src/queries/moderation.ts`; job `lift_suspensions` (hourly, :05)
+- Scope: admins act on anyone; a university moderator on members of the universities they moderate, never on admins or themselves
+- Decisions resolve every open report about the member: dismiss (dismissed; an account hidden by reports is restored), warn (actioned; the member is notified with the note; a hidden account is restored), suspend for 1 to `safety.maxSuspensionDays` days (`suspended_until` set), ban (suspended with no end). Each is audited as `moderation.<decision>` with the reports resolved, the end time, the note and the previous status.
+- Context: the reported message with up to `safety.contextMessages` messages on each side, keyset by `(created_at, id)` within the thread; audited as `moderation.context_viewed`.
+- Settings: `safety.contextMessages` (10), `safety.maxSuspensionDays` (365)
+- Tests: `packages/core/src/admin/moderation.test.ts`, `e2e/safety.spec.ts`
+- Spec: CLAUDE.md §8 F12 "Moderation queue", §5.11
+
 ## Clustering, graphs and assignment
 
 No entries yet. k-means with silhouette selection arrives in P6-T06; cycle search in P5-T06.

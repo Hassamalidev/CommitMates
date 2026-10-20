@@ -41,6 +41,7 @@ Row Level Security is enabled on every table. Only `notifications` (own rows), `
 | --- | --- | --- | --- |
 | `id` | Same id as the Supabase auth user | Until account deletion | Cascades from `auth.users` |
 | `status` | Active, suspended or hidden pending review (safety) | Until account deletion | Cascade |
+| `suspended_until` | When a moderator's suspension ends; empty while banned or not suspended | Until the suspension ends or the account is deleted | Cleared by `lift_suspensions`; cascade |
 | `last_seen_at` | Activity for trust and metrics | Until account deletion | Cascade |
 
 ### `github_identities` (class A)
@@ -90,7 +91,7 @@ Chat (CLAUDE.md §8 F12): first messages waiting for consent, threads and who is
 
 ### `blocks`, `reports` (class A)
 
-Who a member blocked, and their reports about others: reason, optional details, the message the report is about (only one in a thread the reporter belongs to), and the moderation outcome. The reported member is never told who reported them. When enough distinct verified reporters report an account it is hidden pending review; the audit log records that with no actor and the member is notified. A report outlives the reporter's account (`reporter` becomes null), because it is evidence for moderation. A report about a member is deleted with that member's account.
+Who a member blocked, and their reports about others: reason, optional details, the message the report is about (only one in a thread the reporter belongs to), and the moderation outcome. The reported member is never told who reported them. When enough distinct verified reporters report an account it is hidden pending review; the audit log records that with no actor and the member is notified. A moderator handling a report about a message can read that message and up to `safety.contextMessages` messages before and after it in the same thread; each reading is recorded in the audit log, as is every decision (dismiss, warn, suspend, ban). A report outlives the reporter's account (`reporter` becomes null), because it is evidence for moderation. A report about a member is deleted with that member's account.
 
 ### `match_suggestions`, `connections`, `trust_scores`, `skill_vectors` (class B for members)
 

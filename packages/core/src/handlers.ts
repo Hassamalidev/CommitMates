@@ -12,6 +12,7 @@ import { recruiterReportJob } from './recruiter/jobs';
 import { taxonomyExpandJob } from './taxonomy/jobs';
 import { matchDailyJob } from './matching/daily';
 import { computeTrustJob } from './safety/trust';
+import { liftSuspensionsJob } from './admin/moderation';
 import { computeSkillVectorJob, refreshSkillVectorsJob } from './matching/vectors';
 import { sendEmailJob } from './notifications/email';
 import { sendOtpJob } from './verification/jobs';
@@ -67,6 +68,7 @@ export const jobHandlers: readonly Registration[] = [
   define(refreshSkillVectorsJob),
   define(matchDailyJob),
   define(computeTrustJob),
+  define(liftSuspensionsJob),
 ];
 
 /** Registers every handler. Safe to call on each request: re-registering is a no-op. */

@@ -140,6 +140,8 @@ export const SettingKeys = {
   'safety.autoHideReports': 'integer',
   'safety.reportWindowDays': 'integer',
   'safety.reportDetailsMaxChars': 'integer',
+  'safety.contextMessages': 'integer',
+  'safety.maxSuspensionDays': 'integer',
   'feedback.maxChars': 'integer',
   'streaks.minDailyContributions': 'integer',
   'streaks.graceHours': 'integer',

@@ -323,6 +323,20 @@
       "when": 1792526810874,
       "tag": "0045_settings_safety",
       "breakpoints": true
+    },
+    {
+      "idx": 46,
+      "version": "7",
+      "when": 1792527728924,
+      "tag": "0046_users_suspended_until",
+      "breakpoints": true
+    },
+    {
+      "idx": 47,
+      "version": "7",
+      "when": 1792527733557,
+      "tag": "0047_settings_moderation",
+      "breakpoints": true
     }
   ]
 }

@@ -954,6 +954,8 @@ Keys that §8 names as "new key" (or that a formula needs), seeded in `0003_sett
 | `trust.acceptRatePrior` | number | 0.5 | — | Accept rate assumed for members who sent too few requests (F12, P4-T06) |
 | `trust.reportCap` | integer | 3 | — | Distinct verified reporters at which the reports component is full (F12, P4-T06) |
 | `safety.reportDetailsMaxChars` | integer | 1000 | — | Longest optional details text on a report (F12, P4-T06) |
+| `safety.contextMessages` | integer | 10 | — | Messages around a reported message shown to the moderator handling it (F12, P4-T06) |
+| `safety.maxSuspensionDays` | integer | 365 | — | Longest suspension a moderator can set; longer is a ban (F12, P4-T06) |
 | `feedback.maxChars` | integer | 2000 | — | Longest feedback or appeal text (F12, P4-T06) |
 | `admin.deadJobWindowHours` | integer | 24 | — | Window in which a dead job raises an alert (§5.13) |
 | `admin.interactiveQueueAlertSeconds` | integer | 120 | — | An interactive job queued longer than this raises an alert (§5.13) |
@@ -1345,7 +1347,7 @@ The schema is split into nine groups. This section is the contract; the exact de
 
 | Table | Columns |
 | --- | --- |
-| `users` | `id uuid pk` (= `auth.users.id`, on delete cascade), `status enum(active, suspended, hidden_pending_review)`, `last_seen_at` |
+| `users` | `id uuid pk` (= `auth.users.id`, on delete cascade), `status enum(active, suspended, hidden_pending_review)`, `suspended_until timestamptz null` (null while suspended = banned), `last_seen_at` |
 | `github_identities` | `user_id pk fk`, `github_id bigint unique`, `login citext unique`, `name`, `avatar_url`, `token_enc text`, `token_key_version smallint`, `token_invalid boolean default false`, `scopes text[]`, `private_contrib_visible boolean` |
 | `profiles` | `user_id pk fk`, `university_id fk null`, `role enum(student, alumni, supervisor_pending, supervisor)`, `grad_year smallint null`, `department_id fk null`, `timezone text not null`, `visibility enum(university, country, public, hidden)`, `ghost_mode boolean`, `learning_goals text[]`, `bio text`, `onboarded_at`, `verified_at`, `verified_via enum(email, vouch, admin) null` |
 | `roles` | `user_id fk`, `role enum(admin, uni_moderator)`, `university_id fk null`, `granted_by`, `granted_at`; unique on `(user_id, role, coalesce(university_id, '00000000-0000-0000-0000-000000000000'))` |
@@ -3107,13 +3109,13 @@ Branch `phase/4-campus-social`. Goal: matching, safe realtime chat, notification
   - Split into subtasks (§0.5):
   - [x] **P4-T05a Chat service and actions.** Accept and decline with expiry, threads, messages with the edit window, read markers and unread counts, mute and leave, icebreakers from real shared signals, notifications, the deletion note, Server Actions.
   - [x] **P4-T05b Inbox and realtime.** `/inbox` and `/inbox/[threadId]`, Supabase Realtime subscription, opener choice in the request dialog, e2e flow 5.
-- [ ] **P4-T06 Trust and safety.** Spec: §8 F12 "Trust score", "Reports and auto-hide", "Moderation queue".
+- [x] **P4-T06 Trust and safety.** Spec: §8 F12 "Trust score", "Reports and auto-hide", "Moderation queue".
   - `compute_trust`, trust-based limits, link caps, block, report, auto-hide, moderation actions with audit.
   - Done when: auto-hide counts only distinct verified reporters; every moderation action is audited (tested).
   - Split into subtasks (§0.5):
   - [x] **P4-T06a Trust score.** Pure formula, `compute_trust` nightly with its schedule, the settings the formula names.
   - [x] **P4-T06b Blocks, reports and auto-hide.** Block and unblock, reports from profiles and conversations, auto-hide at distinct verified reporters, the member's notice and the feedback form for appeals.
-  - [ ] **P4-T06c Moderation queue.** Open reports by target with context, dismiss, warn, suspend for N days, ban, lifting suspensions, every action audited.
+  - [x] **P4-T06c Moderation queue.** Open reports by target with context, dismiss, warn, suspend for N days, ban, lifting suspensions, every action audited.
 - [ ] **P4-T07 Notifications.** Spec: §7.5, §8 F12.
   - In-app notification center via Realtime, `digest_email` per timezone batch, preferences, email cap respected.
   - Done when: digests batch correctly and respect mutes and caps.
@@ -3226,6 +3228,7 @@ Branch `phase/7-launch`. Goal: secure, fast, accessible, documented, deployed.
 
 Newest first, one line per completed task or subtask: `YYYY-MM-DD — <task id> — <what was done>`. A `BLOCKED:` line, when present, is always the first line (§13). Spec fixes made under §0.9 are logged here too.
 
+- 2026-10-21 — P4-T06c — Moderation queue (P4-T06 complete): /admin/moderation lists open reports grouped by the reported member within the viewer's scope (admins everything, moderators their universities), with reasons, details and reporters; the reported message and up to safety.contextMessages messages on each side load on request, only in scope, each reading audited as moderation.context_viewed; decisions dismiss (restores an account hidden by reports), warn (notifies the member with the note, restores a hidden account), suspend for 1 to safety.maxSuspensionDays days, or ban, resolve every open report about the member and are audited as moderation.<decision>; moderators cannot act on admins or themselves; lift_suspensions (hourly) ends suspensions whose time is up, audited. Spec fix (§7.1): users gains suspended_until (null while suspended means banned), additive. New keys safety.contextMessages (10) and safety.maxSuspensionDays (365).
 - 2026-10-21 — P4-T06b — Blocks, reports and auto-hide: block (confirmed) and unblock from member profiles and direct conversations, blocked people listed in /settings/privacy, blocking declines pending requests between the two silently; reports with a reason and optional details from profiles, conversations and individual messages (only messages in the reporter's own threads, written by the reported member); after each report the distinct verified reporters within safety.reportWindowDays (dismissed reports and repeats left out) are counted and at safety.autoHideReports an active account becomes hidden_pending_review once, audited as safety.auto_hidden, with a neutral notice and an appeal link; a minimal /feedback form for any signed-in member (appeals carry ?about=appeal) ahead of P7-T08. New keys safety.reportDetailsMaxChars (1000) and feedback.maxChars (2000).
 - 2026-10-21 — P4-T06a — Trust score (P4-T06 split in three): pure trust components, score and multiplier in packages/algorithms; compute_trust nightly (02:00 UTC schedule) scores every member with a profile from account age, verification, accept rate of message requests and distinct verified reporters (dismissed reports and repeat reports by the same person left out) and stores score, multiplier and components in trust_scores, which the daily request limit already reads. The numbers the F12 formula names became settings: trust.ageFullDays (30), trust.acceptRateWindowDays (30), trust.acceptRateMinSent (3), trust.acceptRatePrior (0.5), trust.reportCap (3).
 - 2026-10-21 — P4-T05b — Inbox and realtime (P4-T05 complete): /inbox with conversations (other members, last message, unread count, muted), requests for the member with their context and Accept/Decline as one native form (accepting opens the conversation), and requests they sent (declined ones read as waiting); /inbox/[threadId] with the conversation in a role=log region, plain text with auto-linked http(s)/www links (rel noopener noreferrer nofollow ugc, never HTML), system notes from keys, Edit within the edit window judged by the browser clock after hydration, Delete, Mute and a confirmed Leave, and paging back by cursor; new messages, edits and deletions arrive through Supabase Realtime (postgres_changes on messages filtered by thread, subscribed with the member's own token so RLS decides), and the thread is marked read as they arrive. The request dialog offers openers from real shared signals or the member's own message; home shows unread messages and request notifications; Discover links to the inbox. E2e flow 5 passes at desktop and 360px with axe.

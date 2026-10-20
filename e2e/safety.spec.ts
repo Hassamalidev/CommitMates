@@ -79,4 +79,65 @@ test.describe('trust and safety (P4-T06)', () => {
       });
     }
   });
+
+  test('a moderator reads a reported message in context and suspends the member, all audited', async ({ page, context, baseURL }) => {
+    const suffix = randomBytes(4).toString('hex');
+    const name = `Moderated University ${suffix}`;
+    const universityId = await seedUniversity(name, `moderated-university-${suffix}`);
+    const moderator = await signInTestMember(context, baseURL ?? '');
+    try {
+      await prepareMember(moderator, { universityId, verifiedDaysAgo: 30, onboarded: true });
+      const { targetId, targetLogin } = await withAppDatabase(async (sql) => {
+        await sql`insert into roles (user_id, role, university_id) values (${moderator.userId}, 'uni_moderator', ${universityId})`;
+        const people: { id: string; login: string }[] = [];
+        for (const label of ['target', 'reporter']) {
+          const [auth] = await sql<{ id: string }[]>`insert into auth.users (id) values (gen_random_uuid()) returning id`;
+          if (!auth) throw new Error('auth.users insert returned no row');
+          const login = `e2e-${label}-${suffix}`;
+          await sql`insert into users (id) values (${auth.id}) on conflict (id) do nothing`;
+          await sql`insert into profiles (user_id, timezone, university_id, verified_at, onboarded_at) values (${auth.id}, 'UTC', ${universityId}, now(), now())`;
+          await sql`insert into github_identities (user_id, github_id, login) values (${auth.id}, ${710_000_000 + Number.parseInt(randomBytes(3).toString('hex'), 16)}, ${login})`;
+          people.push({ id: auth.id, login });
+        }
+        const [target, reporter] = people as [{ id: string; login: string }, { id: string; login: string }];
+        const [thread] = await sql<{ id: string }[]>`insert into threads (kind) values ('direct') returning id`;
+        await sql`insert into thread_members (thread_id, user_id) values (${thread!.id}, ${target.id}), (${thread!.id}, ${reporter.id})`;
+        await sql`insert into messages (thread_id, author_user_id, body, created_at) values (${thread!.id}, ${reporter.id}, 'Hi, are you joining the hackathon?', now() - interval '2 minutes')`;
+        const [bad] = await sql<{ id: string }[]>`
+          insert into messages (thread_id, author_user_id, body, created_at) values (${thread!.id}, ${target.id}, 'Send me your password or else.', now() - interval '1 minute') returning id`;
+        await sql`insert into reports (reporter, target_user, target_message, reason, details) values (${reporter.id}, ${target.id}, ${bad!.id}, 'harassment', 'Threatening message.')`;
+        return { targetId: target.id, targetLogin: target.login };
+      });
+
+      await page.goto('/admin/moderation');
+      const card = page.getByRole('article', { name: `@${targetLogin}` });
+      await expect(card).toBeVisible(ACTION_TIMEOUT);
+      await expect(card.getByText('Threatening message.')).toBeVisible();
+      await card.getByRole('button', { name: 'Show the message in context' }).click();
+      await expect(card.getByText('Send me your password or else.')).toBeVisible(ACTION_TIMEOUT);
+      await expect(card.getByText('Hi, are you joining the hackathon?')).toBeVisible();
+      await expectNoSeriousA11yViolations(page);
+
+      await card.getByRole('radio', { name: 'Suspend for a number of days' }).check();
+      await card.getByRole('spinbutton', { name: 'Days' }).fill('3');
+      await card.getByLabel('Note (optional)').fill('Threats in chat.');
+      await card.getByRole('button', { name: 'Record decision' }).click();
+      await expect(card).toHaveCount(0, ACTION_TIMEOUT);
+      await expect(page.getByText('No reports to review.')).toBeVisible();
+
+      const [status] = await withAppDatabase((sql) => sql<{ status: string; suspended_until: Date | null }[]>`select status, suspended_until from users where id = ${targetId}`);
+      expect(status?.status).toBe('suspended');
+      expect(status?.suspended_until).not.toBeNull();
+      const actions = await withAppDatabase(
+        (sql) => sql<{ action: string }[]>`select action from audit_log where actor_user_id = ${moderator.userId} order by id`,
+      );
+      expect(actions.map((row) => row.action)).toEqual(['moderation.context_viewed', 'moderation.suspend']);
+    } finally {
+      await moderator.cleanup();
+      await withAppDatabase(async (sql) => {
+        await sql`delete from auth.users where id in (select user_id from profiles where university_id = ${universityId})`;
+        await sql`delete from universities where id = ${universityId}`;
+      });
+    }
+  });
 });
