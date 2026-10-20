@@ -129,6 +129,7 @@ export const SettingKeys = {
   'chat.maxMessageChars': 'integer',
   'chat.requestTtlDays': 'integer',
   'chat.editWindowMinutes': 'integer',
+  'chat.messagesPerPage': 'integer',
   'trust.weights': 'json',
   'trust.multiplierRange': 'number[]',
   'safety.autoHideReports': 'integer',

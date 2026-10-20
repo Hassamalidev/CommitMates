@@ -21,6 +21,7 @@ const NOW = new Date();
 const DAY = NOW.toISOString().slice(0, 10);
 const MESSAGE = 'Hi! Your Docker work looks great. Would you like to build something together this term?';
 const noFilters = { mode: null } as const;
+const render = (icebreaker: { key: string; value: string }) => `Hello! Opener ${icebreaker.key} about ${icebreaker.value}.`;
 
 type Person = Pick<Member, 'id' | 'universityId' | 'verified' | 'hasValidToken'> & { login: string; githubId: number };
 type Options = { tags?: string[]; gradYear?: number; department?: string | null; goals?: string[] };
@@ -184,24 +185,57 @@ describe('deck actions', () => {
     expect(view.liked.map((card) => card.login)).toEqual([someone.login]);
 
     // A liked person can still be sent a request; the card then leaves the liked list.
-    await requestFromSuggestion(me, { suggestionId: liked, message: MESSAGE }, NOW);
+    await requestFromSuggestion(me, { suggestionId: liked, message: MESSAGE }, render, NOW);
     const after = await open(() => getDiscover(me, noFilters, NOW));
     expect(after.status === 'open' && after.liked).toEqual([]);
-    await expect(requestFromSuggestion(me, { suggestionId: skipped, message: MESSAGE }, NOW)).rejects.toMatchObject({ code: 'discover.gone' });
+    await expect(requestFromSuggestion(me, { suggestionId: skipped, message: MESSAGE }, render, NOW)).rejects.toMatchObject({ code: 'discover.gone' });
   });
 
   it('sends a request with Discover as its context, and leaves the card untouched when the request is refused', async () => {
     const [me, someone] = [await member(), await member()];
     const suggestionId = await suggest(me, someone);
-    await expect(requestFromSuggestion(me, { suggestionId, message: 'hi' }, NOW)).rejects.toMatchObject({ code: 'chat.first_message_short' });
+    await expect(requestFromSuggestion(me, { suggestionId, message: 'hi' }, render, NOW)).rejects.toMatchObject({ code: 'chat.first_message_short' });
     const [untouched] = await database.sql`select action from match_suggestions where id = ${suggestionId}`;
     expect(untouched?.action).toBeNull();
 
-    const requestId = await requestFromSuggestion(me, { suggestionId, message: MESSAGE }, NOW);
+    const requestId = await requestFromSuggestion(me, { suggestionId, message: MESSAGE }, render, NOW);
     const [row] = await database.sql`select to_user, context_kind, context_id from message_requests where id = ${requestId}`;
     expect(row).toMatchObject({ to_user: someone.id, context_kind: 'discover', context_id: suggestionId });
     const [marked] = await database.sql`select action from match_suggestions where id = ${suggestionId}`;
     expect(marked?.action).toBe('requested');
+  });
+});
+
+describe('icebreakers', () => {
+  it('offers openers from the suggestion’s signals and only sends those', async () => {
+    const me = await member({ goals: ['docker'] });
+    const someone = await member({ tags: ['docker', 'react'] });
+    const suggestionId = await suggest(me, someone);
+    const view = await open(() => getDiscover(me, noFilters, NOW));
+    expect(view.status === 'open' && view.cards[0]?.icebreakers).toEqual([
+      { key: 'sharedTag', value: 'react' },
+      { key: 'learning', value: 'docker' },
+      { key: 'interests', value: '2' },
+    ]);
+
+    await expect(requestFromSuggestion(me, { suggestionId, message: '', icebreaker: 'sharedTag:rust' }, render, NOW)).rejects.toMatchObject({
+      code: 'chat.icebreaker_unknown',
+    });
+    await expect(requestFromSuggestion(me, { suggestionId, message: '', icebreaker: 'made-up' }, render, NOW)).rejects.toMatchObject({
+      code: 'chat.icebreaker_unknown',
+    });
+    // An opener is short, and that is fine: the template says why.
+    const requestId = await requestFromSuggestion(me, { suggestionId, message: 'ignored', icebreaker: 'learning:docker' }, render, NOW);
+    const [row] = await database.sql`select icebreaker_key, first_message from message_requests where id = ${requestId}`;
+    expect(row).toMatchObject({ icebreaker_key: 'learning:docker', first_message: 'Hello! Opener learning about docker.' });
+  });
+
+  it('offers the learning opener only for real goals', async () => {
+    const me = await member();
+    const someone = await member({ tags: ['docker'] });
+    await suggest(me, someone);
+    const view = await open(() => getDiscover(me, noFilters, NOW));
+    expect(view.status === 'open' && view.cards[0]?.icebreakers.map((icebreaker) => icebreaker.key)).toEqual(['sharedTag', 'interests']);
   });
 });
 

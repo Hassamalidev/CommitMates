@@ -3,6 +3,7 @@
 import { answerSuggestion, requestFromSuggestion, updateLearningGoals } from '@commitmates/core';
 import { revalidatePath } from 'next/cache';
 
+import { renderIcebreaker } from '@/copy/icebreakers';
 import { withAction, type ActionResult } from '@/server/action';
 import { requireVerified } from '@/server/guards';
 import { guardWriteRate } from '@/server/rate';
@@ -29,12 +30,16 @@ export const answerSuggestionAction = async (_previous: ActionResult<AnswerResul
     return { action, login: field(formData, 'login') };
   })();
 
-/** Request chat from a suggestion, with a first message (CLAUDE.md §8 F12 "Message requests"). */
+/** Request chat from a suggestion, with a first message or a suggested opener (CLAUDE.md §8 F12 "Message requests"). */
 export const requestFromSuggestionAction = async (_previous: ActionResult<null> | null, formData: FormData) =>
   withAction('discover.request', async (): Promise<null> => {
     const member = await requireVerified();
     await guardWriteRate(member.id);
-    await requestFromSuggestion(member, { suggestionId: field(formData, 'suggestionId'), message: field(formData, 'message') });
+    await requestFromSuggestion(
+      member,
+      { suggestionId: field(formData, 'suggestionId'), message: field(formData, 'message'), icebreaker: field(formData, 'icebreaker') },
+      renderIcebreaker,
+    );
     revalidatePath('/discover');
     return null;
   })();

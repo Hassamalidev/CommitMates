@@ -127,3 +127,21 @@ export { createRequest } from './chat/service';
 export { REQUEST_CONTEXTS, messageRequestSchema, type MessageRequestInput, type RequestContext } from './chat/schemas';
 export { learningGoalsSchema, updateLearningGoals } from './profiles/onboarding';
 export type { SnapshotCompanion } from '@commitmates/db';
+export { ICEBREAKER_KEYS, icebreakerId, icebreakersFor, parseIcebreakerId, type Icebreaker, type IcebreakerKey } from './chat/icebreakers';
+export {
+  SYSTEM_NOTES,
+  deleteMessage,
+  editMessage,
+  getConversation,
+  getInbox,
+  leaveThread,
+  markRead,
+  muteThread,
+  respondToRequest,
+  sendMessage,
+  unreadCount,
+  type Conversation,
+  type Inbox,
+  type OutgoingView,
+} from './chat/threads';
+export { MEMBER_LEFT_NOTE, type IncomingRequest, type MessageRow, type ThreadMember, type ThreadSummary } from '@commitmates/db';

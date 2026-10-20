@@ -26,6 +26,7 @@ const card = (login: string, overrides: Partial<DeckCard> = {}): DeckCard => ({
   labels: ['nightOwl', 'unknown-label'],
   companion: { seed: 7, speciesKey: 'react', paletteHex: null, stage: 1, traits: [] },
   why: { sharedTags: ['react', 'postgres'], coverage: ['docker'], sharedInterests: 3, window: { startHourUtc: 20, hours: 2 } },
+  icebreakers: [{ key: 'sharedTag', value: 'react' }],
   ...overrides,
 });
 

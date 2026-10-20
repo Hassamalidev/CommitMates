@@ -13,5 +13,7 @@ export const messageRequestSchema = z.object({
   message: z.string().trim(),
   contextKind: z.enum(REQUEST_CONTEXTS),
   contextId: z.string().min(1).nullable(),
+  /** `key:value` of the icebreaker the message was filled from, if any. */
+  icebreakerKey: z.string().min(1).nullable().default(null),
 });
-export type MessageRequestInput = z.infer<typeof messageRequestSchema>;
+export type MessageRequestInput = z.input<typeof messageRequestSchema>;

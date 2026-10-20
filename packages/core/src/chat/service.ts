@@ -4,11 +4,14 @@ import {
   ForbiddenError,
   RateLimitedError,
   ValidationError,
+  expireStaleRequests,
   getChatParticipant,
   getDb,
+  getLogin,
   getSetting,
   getTrustMultiplier,
   insertMessageRequest,
+  insertNotification,
   isBlockedEitherWay,
   lockSender,
   requestsSentSince,
@@ -31,6 +34,7 @@ export type RequestRules = {
   newAccountDays: number;
   maxLinks: number;
   baseLimit: number;
+  requestTtlDays: number;
 };
 
 /**
@@ -38,27 +42,26 @@ export type RequestRules = {
  * waits for a pool connection while it holds the sender's lock.
  */
 export async function loadRequestRules(): Promise<RequestRules> {
-  const [minChars, maxChars, newAccountDays, maxLinks, baseLimit] = await Promise.all([
+  const [minChars, maxChars, newAccountDays, maxLinks, baseLimit, requestTtlDays] = await Promise.all([
     getSetting('chat.minFirstMessageChars'),
     getSetting('chat.maxMessageChars'),
     getSetting('chat.newAccountDays'),
     getSetting('chat.maxLinksNewAccount'),
     getSetting('chat.newThreadsPerDay.base'),
+    getSetting('chat.requestTtlDays'),
   ]);
-  return { minChars, maxChars, newAccountDays, maxLinks, baseLimit };
+  return { minChars, maxChars, newAccountDays, maxLinks, baseLimit, requestTtlDays };
 }
 
+export type MessageRules = Pick<RequestRules, 'maxChars' | 'newAccountDays' | 'maxLinks'>;
+
 /**
- * Checks a first message against the length and link rules (CLAUDE.md §8 F12 "Message requests"
- * step 1, "Messages"): long enough to say why, not over the cap, and few links from new accounts.
+ * Checks any message body (CLAUDE.md §8 F12 "Messages"): not empty, not over `chat.maxMessageChars`,
+ * and at most `chat.maxLinksNewAccount` links from accounts younger than `chat.newAccountDays`.
  */
-function checkFirstMessage(message: string, senderCreatedAt: Date, now: Date, rules: RequestRules): void {
-  const { minChars, maxChars, newAccountDays, maxLinks } = rules;
-  if (message.length < minChars) {
-    throw new ValidationError('chat.first_message_short', `Say a little about why you'd like to talk: at least ${minChars} characters.`, {
-      field: 'message',
-    });
-  }
+export function checkMessageBody(message: string, senderCreatedAt: Date, now: Date, rules: MessageRules): void {
+  const { maxChars, newAccountDays, maxLinks } = rules;
+  if (message.length === 0) throw new ValidationError('chat.message_empty', 'Write a message first.', { field: 'message' });
   if (message.length > maxChars) {
     throw new ValidationError('chat.message_long', `Messages can be up to ${maxChars} characters.`, { field: 'message' });
   }
@@ -70,6 +73,19 @@ function checkFirstMessage(message: string, senderCreatedAt: Date, now: Date, ru
       { field: 'message' },
     );
   }
+}
+
+/**
+ * Checks a first message (§8 F12 "Message requests" step 1): with an icebreaker the template says
+ * enough; without one it must be at least `chat.minFirstMessageChars` long, so it says why.
+ */
+function checkFirstMessage(message: string, icebreaker: boolean, senderCreatedAt: Date, now: Date, rules: RequestRules): void {
+  if (!icebreaker && message.length < rules.minChars) {
+    throw new ValidationError('chat.first_message_short', `Say a little about why you'd like to talk: at least ${rules.minChars} characters.`, {
+      field: 'message',
+    });
+  }
+  checkMessageBody(message, senderCreatedAt, now, rules);
 }
 
 /**
@@ -94,10 +110,12 @@ export async function createRequestInTx(
   if (!recipient?.verified || recipient.status !== 'active' || recipient.ghostMode || recipient.universityId !== sender.universityId) {
     throw unreachable();
   }
-  checkFirstMessage(input.message, sender.createdAt, now, rules);
+  checkFirstMessage(input.message, input.icebreakerKey !== null, sender.createdAt, now, rules);
 
   await lockSender(fromUserId, tx);
   if (await isBlockedEitherWay(fromUserId, input.toUserId, tx)) throw unreachable();
+  // An unanswered request older than `chat.requestTtlDays` has expired and no longer blocks a new one.
+  await expireStaleRequests(fromUserId, input.toUserId, new Date(now.getTime() - rules.requestTtlDays * MS_PER_DAY), tx);
   const [multiplier, sent] = await Promise.all([
     getTrustMultiplier(fromUserId, tx),
     requestsSentSince(fromUserId, new Date(now.getTime() - MS_PER_DAY), tx),
@@ -117,12 +135,13 @@ export async function createRequestInTx(
       toUser: input.toUserId,
       contextKind: input.contextKind,
       contextId: input.contextId,
-      icebreakerKey: null,
+      icebreakerKey: input.icebreakerKey,
       firstMessage: input.message,
     },
     tx,
   );
   if (id === null) throw new ConflictError('chat.request_pending', 'You already have a request waiting with this person.');
+  await insertNotification(input.toUserId, 'chat_request', { login: await getLogin(fromUserId, tx), context: input.contextKind }, tx);
   return id;
 }
 

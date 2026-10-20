@@ -24,6 +24,7 @@ import {
 import { GitHubServerError, RateLimitError, SERVER_IDENTITY, githubFor, searchUsers, type SearchUser } from '@commitmates/github';
 import { z } from 'zod';
 
+import { icebreakerId, icebreakersFor, parseIcebreakerId, type Icebreaker } from '../chat/icebreakers';
 import { createRequestInTx, loadRequestRules } from '../chat/service';
 import { utcDay } from '../notifications/email';
 import type { Member } from '../profiles/schemas';
@@ -86,15 +87,21 @@ export type DeckCard = {
   labels: string[];
   companion: SnapshotCompanion;
   why: { sharedTags: string[]; coverage: string[]; sharedInterests: number; window: HourWindow | null };
+  /** Icebreakers the shared signals support (§8 F12 "Message requests" step 1). */
+  icebreakers: Icebreaker[];
 };
 
 /**
  * The card for one suggestion. A candidate without a persona snapshot yet gets the companion their
  * Dev Card would start from: seeded by their GitHub id, species from their top tag (§9.5 "Seeds").
  */
-function toCard(row: DeckCardRow, ownHours: number[] | null): DeckCard {
-  const why = explanationSchema.safeParse(row.explanation);
-  const explanation = why.success ? why.data : { sharedTags: [], coverage: [], sharedInterests: 0 };
+const parseExplanation = (value: unknown) => {
+  const parsed = explanationSchema.safeParse(value);
+  return parsed.success ? parsed.data : { sharedTags: [], coverage: [], sharedInterests: 0 };
+};
+
+function toCard(row: DeckCardRow, ownHours: number[] | null, goals: readonly string[]): DeckCard {
+  const explanation = parseExplanation(row.explanation);
   return {
     suggestionId: row.suggestionId,
     mode: modeSchema.catch('explore').parse(row.mode),
@@ -107,6 +114,7 @@ function toCard(row: DeckCardRow, ownHours: number[] | null): DeckCard {
     labels: row.labels.slice(0, MAX_LABELS),
     companion: row.companion ?? { seed: row.githubId, speciesKey: row.topTags[0] ?? row.login, paletteHex: null, stage: 0, traits: [] },
     why: { ...explanation, window: ownHours && row.hourHistUtc ? sharedActiveWindow(ownHours, row.hourHistUtc) : null },
+    icebreakers: icebreakersFor(explanation, goals),
   };
 }
 
@@ -156,6 +164,7 @@ export async function getDiscover(member: DiscoverMember, query: DiscoverQuery, 
     listLikedToday(member.id, day),
   ]);
   const ownHours = own?.hourHistUtc ?? null;
+  const goals = details?.learningGoals ?? [];
   const year = now.getUTCFullYear();
   return {
     status: 'open',
@@ -163,8 +172,8 @@ export async function getDiscover(member: DiscoverMember, query: DiscoverQuery, 
     emptyProfile,
     hasGoals: (details?.learningGoals.length ?? 0) > 0,
     hasDeck,
-    cards: filtered.map((row) => toCard(row, ownHours)),
-    liked: liked.map((row) => toCard(row, ownHours)),
+    cards: filtered.map((row) => toCard(row, ownHours, goals)),
+    liked: liked.map((row) => toCard(row, ownHours, goals)),
     filters,
     options: {
       departments,
@@ -176,7 +185,12 @@ export async function getDiscover(member: DiscoverMember, query: DiscoverQuery, 
 }
 
 export const suggestionActionSchema = z.object({ suggestionId: z.uuid() });
-export const suggestionRequestSchema = z.object({ suggestionId: z.uuid(), message: z.string() });
+export const suggestionRequestSchema = z.object({
+  suggestionId: z.uuid(),
+  message: z.string(),
+  /** `key:value` of a chosen icebreaker; empty when the member wrote their own message. */
+  icebreaker: z.string().default(''),
+});
 
 const gone = () => new NotFoundError('discover.gone', 'That suggestion is no longer in your deck.');
 
@@ -189,14 +203,39 @@ export async function answerSuggestion(member: Pick<Member, 'id'>, action: 'like
 /**
  * Request chat from a suggestion: the suggestion is marked requested and a message request is sent
  * with Discover as its context, in one transaction, so a refused request leaves the card as it was.
+ * With an icebreaker, it must be one the suggestion's own signals support, and `render` (the page's
+ * copy) writes the message from it.
  */
-export async function requestFromSuggestion(member: Pick<Member, 'id'>, raw: unknown, now: Date = new Date()): Promise<string> {
-  const { suggestionId, message } = suggestionRequestSchema.parse(raw);
-  const rules = await loadRequestRules();
+export async function requestFromSuggestion(
+  member: Pick<Member, 'id'>,
+  raw: unknown,
+  render: (icebreaker: Icebreaker) => string,
+  now: Date = new Date(),
+): Promise<string> {
+  const input = suggestionRequestSchema.parse(raw);
+  const icebreaker = input.icebreaker === '' ? null : parseIcebreakerId(input.icebreaker);
+  if (input.icebreaker !== '' && icebreaker === null) throw new ValidationError('chat.icebreaker_unknown', 'Pick one of the suggested openers.');
+  const [rules, details] = await Promise.all([loadRequestRules(), getProfileDetails(member.id)]);
   return getDb().transaction(async (tx) => {
-    const candidate = await markSuggestionRequested(member.id, suggestionId, now, tx);
-    if (candidate === null) throw gone();
-    return createRequestInTx(tx, member.id, { toUserId: candidate, message, contextKind: 'discover', contextId: suggestionId }, now, rules);
+    const marked = await markSuggestionRequested(member.id, input.suggestionId, now, tx);
+    if (marked === null) throw gone();
+    if (icebreaker) {
+      const allowed = icebreakersFor(parseExplanation(marked.explanation), details?.learningGoals ?? []).map(icebreakerId);
+      if (!allowed.includes(icebreakerId(icebreaker))) throw new ValidationError('chat.icebreaker_unknown', 'Pick one of the suggested openers.');
+    }
+    return createRequestInTx(
+      tx,
+      member.id,
+      {
+        toUserId: marked.candidateUserId,
+        message: icebreaker ? render(icebreaker) : input.message,
+        contextKind: 'discover',
+        contextId: input.suggestionId,
+        icebreakerKey: icebreaker ? icebreakerId(icebreaker) : null,
+      },
+      now,
+      rules,
+    );
   });
 }
 

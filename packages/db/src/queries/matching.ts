@@ -270,9 +270,15 @@ export async function actOnSuggestion(
 
 /**
  * Marks one of the member's suggestions as requested, from the deck or from their liked list, and
- * returns the candidate; null when it is not theirs or a request or skip was already recorded.
+ * returns the candidate with the suggestion's explanation; null when it is not theirs or a request
+ * or skip was already recorded.
  */
-export async function markSuggestionRequested(userId: string, suggestionId: string, now: Date, db: DbOrTx = getDb()): Promise<string | null> {
+export async function markSuggestionRequested(
+  userId: string,
+  suggestionId: string,
+  now: Date,
+  db: DbOrTx = getDb(),
+): Promise<{ candidateUserId: string; explanation: unknown } | null> {
   const [row] = await db
     .update(matchSuggestions)
     .set({ action: 'requested', actedAt: now })
@@ -283,8 +289,8 @@ export async function markSuggestionRequested(userId: string, suggestionId: stri
         or(isNull(matchSuggestions.action), eq(matchSuggestions.action, 'liked')),
       ),
     )
-    .returning({ candidateUserId: matchSuggestions.candidateUserId });
-  return row?.candidateUserId ?? null;
+    .returning({ candidateUserId: matchSuggestions.candidateUserId, explanation: matchSuggestions.explanationKeys });
+  return row ?? null;
 }
 
 /** Whether today's decks were built for the member at all (to tell "none today" from "seen everyone"). */

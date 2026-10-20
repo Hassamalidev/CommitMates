@@ -316,13 +316,16 @@ TF-IDF arrives in P4-T02.
 
 ### Discover deck and message requests
 
-- Code: `packages/core/src/matching/discover.ts`, `packages/core/src/chat/service.ts`, `packages/algorithms/src/text/links.ts`
+- Code: `packages/core/src/matching/discover.ts`, `packages/core/src/chat/service.ts`, `packages/core/src/chat/threads.ts`, `packages/core/src/chat/icebreakers.ts`, `packages/algorithms/src/text/links.ts`
 - Deck: today's (UTC) unanswered suggestions for the chosen mode, best score first, narrowed by department, graduation year range and tag (one of the candidate's top tags); people blocked since the deck was built, now in ghost mode or hidden, or no longer active are left out. Members without skill tags start in Explore.
 - Card: up to 6 top tags, up to 3 Dev Card labels and the companion from the candidate's persona snapshot (`persona_snapshots`, written by `compute_skill_vector` from their latest Dev Card); without a snapshot the companion is seeded by their GitHub id with the species from their top tag, stage 0. Shared hours = `sharedActiveWindow` of both members' UTC hour histograms (the F2 rule), shown in the viewer's timezone.
 - Request rules: both members verified, active and at the same university; neither blocked the other; recipient not in ghost mode; one pending request per direction; first message between `chat.minFirstMessageChars` and `chat.maxMessageChars` characters; accounts younger than `chat.newAccountDays` may include at most `chat.maxLinksNewAccount` links (an `http(s)://` URL or a `www.` host up to whitespace); at most `round(chat.newThreadsPerDay.base × trust multiplier)` requests in the last 24 hours, with a multiplier of 1 before the member's first trust score. The sender's user row is locked so concurrent requests are counted in turn; a request from a suggestion marks it `requested` in the same transaction.
+- Icebreakers: a template key with one real signal from the suggestion: the first shared top tag (`sharedTag`), the first covered tag that is one of the member's learning goals (`learning`), or the number of shared topics (`interests`). Only openers the suggestion supports are accepted; the page's copy writes the text, and the minimum length does not apply to them.
+- Answering: accepting opens a direct thread (or reuses the one the two share), posts the first message as the sender's at the request's time, records a connection (`discover` → `match`), accepts a crossing pending request, and notifies the sender; declining is silent and the sender sees "pending" until `chat.requestTtlDays` pass. A pending request older than that is expired when answered or when the same sender writes again.
+- Messages: members of the thread only, active senders, no block either way in direct threads; same length and link rules as first messages; edits within `chat.editWindowMinutes`; deletion empties the body. Unread = messages from others after the member's `last_read_at`, deleted ones excluded; muted threads are left out of the total. Conversations load `chat.messagesPerPage` at a time, keyset-paged by `(created_at, id)`.
 - Cold start: GitHub user search `language:"<member's most common own-repo language>" location:"<university country>" type:user`, `matching.coldStartListSize` people, the member left out; view-only.
-- Settings: `chat.*` above, `matching.coldStartListSize` (10)
-- Tests: `packages/core/src/matching/discover.test.ts`, `packages/core/src/chat/service.test.ts`, `packages/algorithms/src/text/links.test.ts`
+- Settings: `chat.*` above, `chat.requestTtlDays` (14), `chat.editWindowMinutes` (10), `chat.messagesPerPage` (50), `matching.coldStartListSize` (10)
+- Tests: `packages/core/src/matching/discover.test.ts`, `packages/core/src/chat/service.test.ts`, `packages/core/src/chat/threads.test.ts`, `packages/algorithms/src/text/links.test.ts`
 - Spec: CLAUDE.md §8 F11 "UI", "Edge cases"; §8 F12 "Message requests"
 
 ## Clustering, graphs and assignment

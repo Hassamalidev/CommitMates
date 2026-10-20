@@ -38,6 +38,9 @@ import {
 
 import { writeAudit } from './admin';
 
+/** System message body left in shared threads when a member deletes their account; the page renders it from copy. */
+export const MEMBER_LEFT_NOTE = 'member_left';
+
 /** Cache keys that are about a member: their login, `login:<login>`, or a sorted pair containing it. */
 const memberCacheKeys = (login: string) => {
   const key = login.toLowerCase();
@@ -193,7 +196,8 @@ export async function updatePrivacy(
 /**
  * Deletes what a member's account owns but no foreign key can cascade from: analyses cached about
  * them (by login) and their GitHub user and repository rows (by GitHub id), in one transaction with an
- * audit entry that holds only a hash of the user id (§5.12 steps 2 and 5). Deleting the auth user
+ * audit entry that holds only a hash of the user id (§5.12 steps 2 and 5). The member's messages in
+ * threads shared with others become one system note per thread. Deleting the auth user
  * afterwards removes everything else through `on delete cascade`.
  */
 export async function deleteMemberData(userId: string, now: Date, db: DbOrTx = getDb()): Promise<void> {
@@ -208,6 +212,15 @@ export async function deleteMemberData(userId: string, now: Date, db: DbOrTx = g
       await tx.delete(ghRepos).where(eq(ghRepos.ownerGithubId, identity.githubId));
       await tx.delete(ghUsers).where(eq(ghUsers.githubId, identity.githubId));
     }
+    // Threads shared with others keep going: the member's messages are replaced by one system note
+    // (§5.12 step 2). Threads only they were in are deleted with their messages.
+    await tx.execute(sql`
+      with mine as (select thread_id from thread_members where user_id = ${userId}),
+           shared as (select distinct tm.thread_id from thread_members tm join mine using (thread_id) where tm.user_id <> ${userId}),
+           removed as (delete from messages where author_user_id = ${userId} and thread_id in (select thread_id from shared) returning 1),
+           solo as (delete from threads where id in (select thread_id from mine except select thread_id from shared) returning 1)
+      insert into messages (thread_id, author_user_id, kind, body)
+      select thread_id, null, 'system', ${MEMBER_LEFT_NOTE} from shared`);
     await writeAudit(
       { actorUserId: null, action: 'account.deleted', targetType: 'user', targetId: hashUserId(userId), data: { at: now.toISOString() } },
       tx,

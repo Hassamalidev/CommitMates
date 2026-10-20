@@ -86,7 +86,7 @@ The invite link's university slug and code are kept in a session cookie (`cm_inv
 
 ### `message_requests`, `threads`, `thread_members`, `messages` (class A)
 
-Chat (CLAUDE.md §8 F12): first messages waiting for consent, threads and who is in them, and messages. A member's own message requests, memberships and messages are in their export. When an author deletes their account, their messages are kept for the other members and replaced by one system note (§5.12; the replacement arrives with chat, P4-T05). Requests and memberships are deleted by cascade. Members read messages and memberships of their own threads through Supabase Realtime; Row Level Security limits each to the member's threads.
+Chat (CLAUDE.md §8 F12): first messages waiting for consent, threads and who is in them, and messages. A member's own message requests, memberships and messages are in their export. When a member deletes their account, their messages in threads shared with others are deleted and replaced by one system note per thread ("A member left this conversation", §5.12 step 2); threads only they were in are deleted. A deleted message keeps no text: its body is emptied and the thread shows that it was deleted. An accepted request also records a `connections` row. Requests and memberships are deleted by cascade. Members read messages and memberships of their own threads through Supabase Realtime; Row Level Security limits each to the member's threads.
 
 ### `blocks`, `reports` (class A)
 

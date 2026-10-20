@@ -302,6 +302,13 @@
       "when": 1792520667463,
       "tag": "0042_settings_discover",
       "breakpoints": true
+    },
+    {
+      "idx": 43,
+      "version": "7",
+      "when": 1792523669469,
+      "tag": "0043_settings_chat",
+      "breakpoints": true
     }
   ]
 }

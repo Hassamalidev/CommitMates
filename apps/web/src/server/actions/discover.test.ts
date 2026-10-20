@@ -66,7 +66,9 @@ describe('discover actions', () => {
   it('sends a request with the typed message and returns its error inline', async () => {
     requestFromSuggestion.mockResolvedValueOnce('request-1');
     expect(await requestFromSuggestionAction(null, form({ suggestionId: 's-1', message: 'Hello there' }))).toEqual({ ok: true, data: null });
-    expect(requestFromSuggestion).toHaveBeenCalledWith(member, { suggestionId: 's-1', message: 'Hello there' });
+    expect(requestFromSuggestion).toHaveBeenCalledWith(member, { suggestionId: 's-1', message: 'Hello there', icebreaker: '' }, expect.any(Function));
+    const render = requestFromSuggestion.mock.calls[0]?.[2] as (icebreaker: { key: string; value: string }) => string;
+    expect(render({ key: 'learning', value: 'docker' })).toBe("Hi! I'm learning docker and you know it well. Could I ask you a few questions about it?");
 
     requestFromSuggestion.mockRejectedValueOnce(new ValidationError('chat.first_message_short', 'Say a little more.'));
     expect(await requestFromSuggestionAction(null, form({ suggestionId: 's-1', message: 'hi' }))).toEqual({
