@@ -35,18 +35,18 @@
     "icons:build": "tsx scripts/build-icons.ts"
   },
   "devDependencies": {
-    "@axe-core/playwright": "^4.13.0",
+    "@axe-core/playwright": "^4.14.0",
     "@commitmates/config": "workspace:*",
-    "@playwright/test": "^1.64.0",
+    "@playwright/test": "^1.64.1",
     "@supabase/ssr": "^0.12.7",
-    "@supabase/supabase-js": "^2.117.3",
+    "@supabase/supabase-js": "^2.118.0",
     "@types/node": "catalog:",
     "eslint": "catalog:",
     "postgres": "^3.4.9",
     "prettier": "^3.9.10",
-    "supabase": "^2.120.0",
+    "supabase": "^2.121.0",
     "tsx": "catalog:",
-    "turbo": "2.11.7",
+    "turbo": "2.11.9",
     "typescript": "catalog:",
     "vitest": "catalog:",
     "zod": "catalog:"
