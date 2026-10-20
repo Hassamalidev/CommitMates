@@ -35,6 +35,7 @@ export { VisuallyHidden } from './components/VisuallyHidden';
 export { CompanionSprite, type CompanionSpriteProps } from './companion/CompanionSprite';
 export { CompanionView, type CompanionViewProps } from './companion/CompanionView';
 export { SpeechBubble, type SpeechBubbleProps } from './companion/SpeechBubble';
+export { pairCompanion, pairCompanionState, type PairCompanionSource, type PairMood } from './companion/pair';
 export {
   COMPANION_TRAITS,
   MAX_STAGE,
@@ -69,3 +70,4 @@ export { RhythmStrip, topHours, type RhythmStripProps } from './charts/RhythmStr
 export { ScoreDial, normalizeScore, type ScoreDialProps } from './charts/ScoreDial';
 export { BarList, type BarListItem, type BarListProps } from './charts/BarList';
 export { Timeline, type TimelineProps, type TimelineSeries } from './charts/Timeline';
+export { StreakStrip, type StreakDayOutcome, type StreakStripDay, type StreakStripProps } from './charts/StreakStrip';

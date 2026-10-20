@@ -1,6 +1,6 @@
 import { randomUUID } from 'node:crypto';
 
-import { addDays, seedFrom } from '@commitmates/algorithms';
+import { addDays, localDate, seedFrom } from '@commitmates/algorithms';
 import {
   ConflictError,
   ForbiddenError,
@@ -10,9 +10,15 @@ import {
   countActivePairs,
   createPair,
   endPairRow,
+  getCachedAnalysis,
   getChatParticipant,
   getDb,
   getLogin,
+  getPairById,
+  getPairCompanion,
+  getPersonaSnapshot,
+  getProfileDetails,
+  putCachedAnalysis,
   getSetting,
   getThread,
   insertNotification,
@@ -30,9 +36,13 @@ import {
   setPairInviteStatus,
   type PairView,
 } from '@commitmates/db';
+import { GitHubAuthError, GitHubServerError, RateLimitError, fetchContributionDays, githubFor } from '@commitmates/github';
 import { z } from 'zod';
 
 import type { Member } from '../profiles/schemas';
+import { getMember } from '../profiles/service';
+import { getProfileOwner, isPublicProfile } from '../profiles/visibility';
+import { hashParams } from '../tools/service';
 
 import { firstPairDay } from './judge';
 
@@ -171,19 +181,93 @@ export async function resumePair(actor: Actor, raw: unknown, now: Date = new Dat
   });
 }
 
-export type StreakCard = PairView & { days: { day: string; outcome: 'counted' | 'frozen' | 'missed' }[] };
+export type StreakCard = PairView & {
+  days: { day: string; outcome: 'counted' | 'frozen' | 'missed' }[];
+  /** Each member's companion color from their latest persona snapshot; null before their first. */
+  palettes: { mine: string | null; partner: string | null };
+};
+
+const paletteOf = async (userId: string) => (await getPersonaSnapshot(userId))?.companion.paletteHex ?? null;
 
 /** The member's streaks with the last days' outcomes, and invitations both ways (CLAUDE.md §8 F13). */
 export async function getStreaks(actor: Actor, now: Date = new Date()): Promise<{ pairs: StreakCard[]; invites: Awaited<ReturnType<typeof listPendingInvites>> }> {
   const since = addDays(firstPairDay(now), -STRIP_DAYS);
-  const [views, invites] = await Promise.all([listPairViews(actor.id), listPendingInvites(actor.id)]);
+  const [views, invites, mine] = await Promise.all([listPairViews(actor.id), listPendingInvites(actor.id), paletteOf(actor.id)]);
   const pairs = await Promise.all(
-    views.map(async (view) => ({
-      ...view,
-      days: (await listPairDays(view.id, since)).map((row) => ({ day: row.day, outcome: row.outcome })),
-    })),
+    views.map(async (view) => {
+      const [days, partner] = await Promise.all([listPairDays(view.id, since), paletteOf(view.partner.userId)]);
+      return { ...view, days: days.map((row) => ({ day: row.day, outcome: row.outcome })), palettes: { mine, partner } };
+    }),
   );
   return { pairs, invites };
+}
+
+export type TodayStatus = 'coded' | 'not_yet' | 'unknown' | 'private';
+
+const MS_PER_MINUTE = 60 * 1000; // allowed-literal: unit conversion
+
+/**
+ * Whether the partner in one of the actor's pairs has contributed today, in the partner's own day
+ * (CLAUDE.md §8 F13 "UI"). Only when the partner allows it (`profiles.share_today_status`); read with the
+ * partner's token and reused for `streaks.todayStatusCacheMinutes`. "unknown" when GitHub cannot tell.
+ */
+export async function partnerTodayStatus(actor: Actor, raw: unknown, now: Date = new Date()): Promise<TodayStatus> {
+  const { pairId } = pairActionSchema.parse(raw);
+  const pair = (await listPairViews(actor.id)).find((view) => view.id === pairId);
+  if (!pair) throw new NotFoundError('streaks.pair_missing', 'That streak has ended or is not yours.');
+  const details = await getProfileDetails(pair.partner.userId);
+  if (!details?.shareTodayStatus) return 'private';
+  const day = localDate(now, details.timezone);
+  const key = { kind: 'today_status', subjectKey: pair.partner.login.toLowerCase(), paramsHash: hashParams({ day }) };
+  const cached = await getCachedAnalysis(key, now);
+  if (cached && typeof cached.result === 'number') return cached.result > 0 ? 'coded' : 'not_yet';
+  const partner = await getMember(pair.partner.userId);
+  if (!partner?.hasValidToken || partner.login === null) return 'unknown';
+  let count: number;
+  try {
+    count = (await fetchContributionDays(githubFor({ kind: 'user', userId: partner.id }), partner.login, day, day)).get(day) ?? 0;
+  } catch (error) {
+    if (error instanceof GitHubAuthError || error instanceof GitHubServerError || error instanceof RateLimitError) return 'unknown';
+    throw error;
+  }
+  const minutes = await getSetting('streaks.todayStatusCacheMinutes');
+  await putCachedAnalysis({ ...key, result: count, isMemberSubject: true, computedAt: now, expiresAt: new Date(now.getTime() + minutes * MS_PER_MINUTE) });
+  return count > 0 ? 'coded' : 'not_yet';
+}
+
+export type StreakShare = {
+  logins: [string, string];
+  currentStreak: number;
+  longestStreak: number;
+  companion: { seed: number; stage: number; mood: 'happy' | 'neutral' | 'sad' };
+  palettes: [string | null, string | null];
+};
+
+/**
+ * What a pair's share card shows (CLAUDE.md §9.7), or null when it may not be shared: only a pair that
+ * has not ended, both of whose members are active with public profiles (crawlers fetch the image).
+ */
+export async function getStreakShare(pairId: string): Promise<StreakShare | null> {
+  if (!z.uuid().safeParse(pairId).success) return null;
+  const pair = await getPairById(pairId);
+  if (!pair || pair.status === 'ended') return null;
+  const [loginA, loginB] = await Promise.all([getLogin(pair.userA), getLogin(pair.userB)]);
+  if (loginA === null || loginB === null) return null;
+  const [ownerA, ownerB, companion, paletteA, paletteB] = await Promise.all([
+    getProfileOwner(loginA),
+    getProfileOwner(loginB),
+    getPairCompanion(pair.id),
+    paletteOf(pair.userA),
+    paletteOf(pair.userB),
+  ]);
+  if (!ownerA || !ownerB || !isPublicProfile(ownerA) || !isPublicProfile(ownerB) || !companion) return null;
+  return {
+    logins: [loginA, loginB],
+    currentStreak: pair.currentStreak,
+    longestStreak: pair.longestStreak,
+    companion: { seed: companion.seed, stage: companion.stage, mood: companion.mood },
+    palettes: [paletteA, paletteB],
+  };
 }
 
 /**

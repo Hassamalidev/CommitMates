@@ -151,6 +151,7 @@ export const SettingKeys = {
   'streaks.maxFreezes': 'integer',
   'streaks.pauseAfterMissedDays': 'integer',
   'streaks.maxActivePairs': 'integer',
+  'streaks.todayStatusCacheMinutes': 'integer',
   'streaks.companionStageDays': 'number[]',
   'adoptions.reviveMinCommits': 'integer',
   'adoptions.dropAfterDays': 'integer',

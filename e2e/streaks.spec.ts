@@ -124,6 +124,13 @@ test.describe('shared streaks (e2e flow 7)', () => {
       await expect(card.getByText('Current streak')).toBeVisible(ACTION_TIMEOUT);
       await expect(card.getByRole('definition').first()).toHaveText('1 day');
       await expect(card.getByText(`Judged up to ${dayTwo}.`)).toBeVisible();
+      // The shared companion rests after a frozen day; the strip shows both days.
+      await expect(card.getByRole('img', { name: `Your shared companion with @${inviter.login}, resting` })).toBeVisible();
+      await expect(card.getByText('The last 30 days')).toBeVisible();
+      await expect(card.getByText(`${dayOne}: Both coded`)).toBeAttached();
+      await expect(card.getByText(`${dayTwo}: Freeze used`)).toBeAttached();
+      // Neither profile is public, so there is no share card.
+      await expect(card.getByRole('link', { name: /Share card/ })).toHaveCount(0);
       await expectNoSeriousA11yViolations(partnerPage);
     } finally {
       restoreFetch();

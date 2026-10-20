@@ -12,6 +12,7 @@ const getProfileOwner = vi.fn<(login: string) => Promise<Owner | null>>();
 const getCachedDevCard = vi.fn<(login: string) => Promise<unknown>>();
 const compatShareAllowed = vi.fn<(a: string, b: string, viewer: string | null) => Promise<boolean>>();
 const getCachedCompat = vi.fn<(a: string, b: string) => Promise<unknown>>();
+const getStreakShare = vi.fn<(pairId: string) => Promise<unknown>>();
 vi.mock('@commitmates/core', async () => {
   const { z } = await import('zod');
   return {
@@ -19,6 +20,7 @@ vi.mock('@commitmates/core', async () => {
     getCachedDevCard,
     compatShareAllowed,
     getCachedCompat,
+    getStreakShare,
     isPublicProfile: (owner: Owner) => owner.active && owner.visibility === 'public',
     loginSchema: z.string().regex(/^[A-Za-z0-9](?:[A-Za-z0-9-]{0,37}[A-Za-z0-9])?$/),
   };
@@ -49,6 +51,7 @@ beforeEach(() => {
   getCachedDevCard.mockReset();
   compatShareAllowed.mockReset();
   getCachedCompat.mockReset();
+  getStreakShare.mockReset();
 });
 
 describe('GET /api/og/[kind]', () => {
@@ -139,5 +142,27 @@ describe('OG_COLORS', () => {
       textMuted: token('text-muted'),
       accent: token('accent'),
     });
+  });
+});
+
+describe('GET /api/og/streak', () => {
+  it('exists only when the pair may be shared', async () => {
+    getStreakShare.mockResolvedValue(null);
+    expect((await call('streak', '?pair=0b6a8f2e-7c1d-4e5f-9a0b-1c2d3e4f5a6b')).status).toBe(404);
+    expect((await call('streak', '')).status).toBe(404);
+  });
+
+  it('renders a PNG with the pair companion for two public members', async () => {
+    getStreakShare.mockResolvedValue({
+      logins: ['alice-dev', 'bob-dev'],
+      currentStreak: 12,
+      longestStreak: 20,
+      companion: { seed: 77, stage: 2, mood: 'happy' },
+      palettes: ['#3178c6', null],
+    });
+    const response = await call('streak', '?pair=0b6a8f2e-7c1d-4e5f-9a0b-1c2d3e4f5a6b');
+    expect(response.status).toBe(200);
+    expect(response.headers.get('content-type')).toBe('image/png');
+    expect(getStreakShare).toHaveBeenCalledWith('0b6a8f2e-7c1d-4e5f-9a0b-1c2d3e4f5a6b');
   });
 });

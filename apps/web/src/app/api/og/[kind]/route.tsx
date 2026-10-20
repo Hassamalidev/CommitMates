@@ -3,6 +3,7 @@ import {
   getCachedCompat,
   getCachedDevCard,
   getProfileOwner,
+  getStreakShare,
   isPublicProfile,
   loginSchema,
 } from '@commitmates/core';
@@ -14,6 +15,7 @@ import { compatCopy } from '@/copy/compat';
 import { shareCopy } from '@/copy/share';
 import { brandCompanion } from '@/lib/brand';
 import { companionFor } from '@/lib/dev-card';
+import { pairCompanionView } from '@/lib/streaks';
 import { OG_COLORS, OG_SIZE } from '@/lib/og-theme';
 import { siteName } from '@/lib/site';
 import { ogFonts } from '@/server/og-fonts';
@@ -151,11 +153,32 @@ async function compatImage(params: URLSearchParams): Promise<Response> {
   );
 }
 
+/** A pair's streak: only for a pair that has not ended, between two public members (CLAUDE.md §8 F13 "UI"). */
+async function streakImage(params: URLSearchParams): Promise<Response> {
+  const share = await getStreakShare(params.get('pair') ?? '');
+  if (!share) return notFound();
+  const { companion } = pairCompanionView(share.companion, share.companion.seed, share.palettes, share.currentStreak);
+  return image(
+    <div style={{ display: 'flex', alignItems: 'center', width: '100%', gap: 48 }}>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: 320 }}>{companionImage(companion, COMPANION_PX)}</div>
+      <div style={{ display: 'flex', flexDirection: 'column', justifyContent: 'center', flex: 1 }}>
+        <div style={{ fontSize: 28, color: OG_COLORS.textMuted }}>{shareCopy.streak.current}</div>
+        <div style={{ fontFamily: 'Pixelify Sans', fontSize: 110, color: OG_COLORS.accent, lineHeight: 1 }}>
+          {shareCopy.streak.days(share.currentStreak)}
+        </div>
+        <div style={{ fontSize: 30, marginTop: 16 }}>{shareCopy.streak.pair(share.logins[0], share.logins[1])}</div>
+        <div style={{ fontSize: 26, color: OG_COLORS.textMuted, marginTop: 8 }}>{shareCopy.streak.longest(share.longestStreak)}</div>
+      </div>
+    </div>,
+  );
+}
+
 /** Share images (CLAUDE.md §9.7). Where sharing is not allowed the image does not exist. */
 export async function GET(request: Request, context: { params: Promise<{ kind: string }> }): Promise<Response> {
   const { kind } = await context.params;
   const params = new URL(request.url).searchParams;
   if (kind === 'dev-card') return devCardImage(params);
   if (kind === 'compat') return compatImage(params);
+  if (kind === 'streak') return streakImage(params);
   return notFound();
 }

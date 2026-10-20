@@ -31,6 +31,28 @@ export const streaksCopy = {
     endConfirm: 'End this streak? This cannot be undone.',
     cancel: 'Keep it',
   },
+  companionLabel: (name: string, mood: string) => `Your shared companion with ${name}, ${mood}`,
+  moods: { happy: 'happy after a day you both coded', neutral: 'resting', sad: 'a little sad after a missed day' },
+  strip: {
+    label: 'The last 30 days',
+    outcomes: { counted: 'Both coded', frozen: 'Freeze used', missed: 'Missed', none: 'Not judged' },
+    day: (day: string, outcome: string) => `${day}: ${outcome}`,
+  },
+  today: {
+    coded: (name: string) => `${name} has coded today.`,
+    not_yet: (name: string) => `${name} hasn't coded yet today.`,
+    unknown: '',
+    private: '',
+  },
+  share: 'Share card',
+  shareLabel: (name: string) => `Share card of your streak with ${name}`,
+  home: {
+    title: 'Shared streaks',
+    none: 'Start a streak from a conversation to keep each other coding.',
+    summary: (count: number, best: number) =>
+      `${count === 1 ? '1 streak' : `${count} streaks`} going; the longest is at ${best === 1 ? '1 day' : `${best} days`}.`,
+    link: 'Open streaks',
+  },
   thread: {
     start: 'Start a shared streak',
     invited: 'Streak invitation sent.',

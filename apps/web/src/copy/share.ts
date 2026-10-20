@@ -13,4 +13,10 @@ export const shareCopy = {
     total: 'This year',
     days: (count: number) => `${count} ${count === 1 ? 'day' : 'days'}`,
   },
+  streak: {
+    current: 'Shared streak',
+    days: (count: number) => (count === 1 ? '1 day' : `${count} days`),
+    longest: (count: number) => `Longest: ${count === 1 ? '1 day' : `${count} days`}`,
+    pair: (a: string, b: string) => `@${a} and @${b}`,
+  },
 } as const;

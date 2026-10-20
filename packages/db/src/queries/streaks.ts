@@ -224,3 +224,8 @@ export async function openPairPartners(userId: string, db: DbOrTx = getDb()): Pr
   const rows = await listMemberPairs(userId, db);
   return rows.map((row) => (row.userA === userId ? row.userB : row.userA));
 }
+
+export async function getPairById(pairId: string, db: DbOrTx = getDb()): Promise<PairRow | null> {
+  const [row] = await db.select().from(pairs).where(eq(pairs.id, pairId));
+  return row ?? null;
+}

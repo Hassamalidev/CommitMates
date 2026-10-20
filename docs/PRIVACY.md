@@ -103,7 +103,7 @@ The persona part of a member's latest Dev Card: the events window, rhythm metric
 
 ### `pairs`, `pair_days`, `pair_companions`, `pair_invites` (class A)
 
-Shared streaks between two members: invitations sent from a conversation, daily contribution counts as GitHub reports them (only the per-day numbers), outcomes, freezes and the pair companion. Deleted by cascade when either member deletes their account; the partner is told the streak ended.
+Shared streaks between two members: invitations sent from a conversation, daily contribution counts as GitHub reports them (only the per-day numbers), outcomes, freezes and the pair companion. Deleted by cascade when either member deletes their account; the partner is told the streak ended. A partner's coded-today status is shown only when they allow it (`profiles.share_today_status`); the one number behind it (today's contribution count) is cached in `analysis_cache` under their login for `streaks.todayStatusCacheMinutes`, and removed with their account. A pair's share image exists only while both members' profiles are public.
 
 ### `notifications`, `notification_prefs` (class A)
 

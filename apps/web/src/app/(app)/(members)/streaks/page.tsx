@@ -1,14 +1,17 @@
-import { getStreaks } from '@commitmates/core';
-import { Card, CompanionView, EmptyState, StateChip, buttonStyles } from '@commitmates/ui';
+import { STRIP_DAYS, getStreakShare, getStreaks } from '@commitmates/core';
+import { Card, CompanionView, EmptyState, StateChip, StreakStrip, buttonStyles } from '@commitmates/ui';
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import { redirect } from 'next/navigation';
+import { Suspense } from 'react';
 
 import { ActionForm } from '@/components/forms/ActionForm';
 import { EndPair } from '@/components/streaks/EndPair';
 import { InviteResponse } from '@/components/streaks/InviteResponse';
+import { PartnerToday } from '@/components/streaks/PartnerToday';
 import { streaksCopy } from '@/copy/streaks';
 import { brandCompanion } from '@/lib/brand';
+import { pairCompanionView, stripDays } from '@/lib/streaks';
 import { cancelPairInviteAction, resumePairAction } from '@/server/actions/streaks';
 import { getCurrentMember } from '@/server/auth';
 
@@ -22,7 +25,13 @@ const STATUS_STATE = { active: 'done', paused: 'waiting', ended: 'idle' } as con
 export default async function StreaksPage() {
   const member = await getCurrentMember();
   if (!member) redirect('/auth/sign-in?next=/streaks');
-  const { pairs, invites } = await getStreaks(member);
+  const now = new Date();
+  const { pairs, invites } = await getStreaks(member, now);
+  const shareable = new Set(
+    (await Promise.all(pairs.map(async (pair) => ((await getStreakShare(pair.id)) ? pair.id : null)))).filter(
+      Boolean,
+    ),
+  );
   const copy = streaksCopy;
   const nameOf = (person: { login: string; name: string | null }) => person.name ?? `@${person.login}`;
 
@@ -54,7 +63,9 @@ export default async function StreaksPage() {
         {pairs.length === 0 ? (
           <Card>
             <EmptyState
-              companion={<CompanionView companion={brandCompanion} state="idle" size={96} label={copy.pairsTitle} />}
+              companion={
+                <CompanionView companion={brandCompanion} state="idle" size={96} label={copy.pairsTitle} />
+              }
               title={copy.empty.title}
               description={copy.empty.line}
               action={
@@ -68,11 +79,38 @@ export default async function StreaksPage() {
           <ul className="grid gap-4 md:grid-cols-2">
             {pairs.map((pair) => (
               <li key={pair.id}>
-                <article aria-label={copy.pair.with(nameOf(pair.partner))} className="flex flex-col gap-3 rounded-card border border-line bg-surface p-4">
+                <article
+                  aria-label={copy.pair.with(nameOf(pair.partner))}
+                  className="flex flex-col gap-3 rounded-card border border-line bg-surface p-4"
+                >
                   <header className="flex flex-wrap items-center justify-between gap-2">
                     <h3 className="type-h3">{copy.pair.with(nameOf(pair.partner))}</h3>
                     <StateChip state={STATUS_STATE[pair.status]} label={copy.pair.status[pair.status]} />
                   </header>
+                  {(() => {
+                    const view = pairCompanionView(
+                      pair.companion,
+                      member.githubId ?? 0,
+                      [pair.palettes.mine, pair.palettes.partner],
+                      pair.currentStreak,
+                    );
+                    const mood = pair.companion?.mood ?? 'neutral';
+                    return (
+                      <div className="flex justify-center">
+                        <CompanionView
+                          companion={view.companion}
+                          state={view.state}
+                          size={160}
+                          label={copy.companionLabel(nameOf(pair.partner), copy.moods[mood])}
+                        />
+                      </div>
+                    );
+                  })()}
+                  {pair.status === 'active' ? (
+                    <Suspense fallback={null}>
+                      <PartnerToday member={member} pairId={pair.id} name={nameOf(pair.partner)} />
+                    </Suspense>
+                  ) : null}
                   <dl className="grid grid-cols-3 gap-2">
                     <div>
                       <dt className="type-small text-fg-muted">{copy.pair.currentLabel}</dt>
@@ -87,11 +125,35 @@ export default async function StreaksPage() {
                       <dd className="type-body">{pair.freezesAvailable}</dd>
                     </div>
                   </dl>
-                  <p className="type-small text-fg-muted">{pair.lastJudgedDay ? copy.pair.lastJudged(pair.lastJudgedDay) : copy.pair.notJudged}</p>
+                  <p className="type-small text-fg-muted">
+                    {pair.lastJudgedDay ? copy.pair.lastJudged(pair.lastJudgedDay) : copy.pair.notJudged}
+                  </p>
+                  <StreakStrip
+                    days={stripDays(pair.days, STRIP_DAYS, now)}
+                    label={copy.strip.label}
+                    outcomeLabels={copy.strip.outcomes}
+                    describeDay={(day) => copy.strip.day(day.day, copy.strip.outcomes[day.outcome ?? 'none'])}
+                  />
                   {pair.status === 'paused' ? <p className="type-small">{copy.pair.paused}</p> : null}
                   <div className="flex flex-wrap items-center gap-2">
                     {pair.status === 'paused' ? (
-                      <ActionForm action={resumePairAction} values={{ pairId: pair.id }} submitLabel={copy.pair.resume} variant="primary" />
+                      <ActionForm
+                        action={resumePairAction}
+                        values={{ pairId: pair.id }}
+                        submitLabel={copy.pair.resume}
+                        variant="primary"
+                      />
+                    ) : null}
+                    {shareable.has(pair.id) ? (
+                      <a
+                        href={`/api/og/streak?pair=${pair.id}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        aria-label={copy.shareLabel(nameOf(pair.partner))}
+                        className={buttonStyles({ variant: 'secondary', size: 'sm' })}
+                      >
+                        {copy.share}
+                      </a>
                     ) : null}
                     <EndPair pairId={pair.id} />
                   </div>
@@ -108,7 +170,11 @@ export default async function StreaksPage() {
             {invites.outgoing.map((invite) => (
               <li key={invite.id} className="flex flex-wrap items-center justify-between gap-2">
                 <span className="type-body">{copy.waitingFor(nameOf(invite))}</span>
-                <ActionForm action={cancelPairInviteAction} values={{ inviteId: invite.id }} submitLabel={copy.cancelLabel(invite.login)} />
+                <ActionForm
+                  action={cancelPairInviteAction}
+                  values={{ inviteId: invite.id }}
+                  submitLabel={copy.cancelLabel(invite.login)}
+                />
               </li>
             ))}
           </ul>

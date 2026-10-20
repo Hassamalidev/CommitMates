@@ -1,4 +1,4 @@
-import { campusUnlocks, describeNotification, getUniversity, recentNotifications, unreadCount } from '@commitmates/core';
+import { campusUnlocks, describeNotification, getStreaks, getUniversity, recentNotifications, unreadCount } from '@commitmates/core';
 import { Card, buttonStyles } from '@commitmates/ui';
 import type { Metadata } from 'next';
 import Link from 'next/link';
@@ -7,6 +7,7 @@ import { redirect } from 'next/navigation';
 import { campusCopy, homeNotificationsCopy } from '@/copy/campus';
 import { chatCopy } from '@/copy/chat';
 import { notificationsCopy } from '@/copy/notifications';
+import { streaksCopy } from '@/copy/streaks';
 import { homeCopy } from '@/copy/onboarding';
 import { formatUtc } from '@/lib/format';
 import { getCurrentMember } from '@/server/auth';
@@ -22,12 +23,14 @@ export function generateMetadata(): Metadata {
 export default async function HomePage() {
   const member = await getCurrentMember();
   if (!member?.universityId) redirect('/onboarding');
-  const [university, progress, notifications, unread] = await Promise.all([
+  const [university, progress, notifications, unread, streaks] = await Promise.all([
     getUniversity(member.universityId),
     campusUnlocks(member.universityId),
     recentNotifications(member.id),
     unreadCount(member),
+    getStreaks(member),
   ]);
+  const activePairs = streaks.pairs.filter((pair) => pair.status === 'active');
   const copy = homeCopy;
   const open = progress.unlocks.filter((unlock) => unlock.unlocked).length;
   const matching = progress.unlocks.find((unlock) => unlock.key === 'matching');
@@ -73,6 +76,16 @@ export default async function HomePage() {
           <p className="type-body">{chatCopy.home.unread(unread)}</p>
           <Link href="/inbox" className={buttonStyles({ variant: unread > 0 ? 'primary' : 'secondary', size: 'md', className: 'self-start' })}>
             {chatCopy.home.link}
+          </Link>
+        </Card>
+        <Card title={streaksCopy.home.title} className="flex flex-col gap-3">
+          <p className="type-body">
+            {activePairs.length === 0
+              ? streaksCopy.home.none
+              : streaksCopy.home.summary(activePairs.length, Math.max(...activePairs.map((pair) => pair.currentStreak)))}
+          </p>
+          <Link href="/streaks" className={buttonStyles({ variant: 'secondary', size: 'md', className: 'self-start' })}>
+            {streaksCopy.home.link}
           </Link>
         </Card>
         <Card title={homeNotificationsCopy.title} className="flex flex-col gap-3">
