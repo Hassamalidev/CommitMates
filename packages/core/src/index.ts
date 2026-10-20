@@ -163,3 +163,13 @@ export {
   type ReportContextLine,
 } from './admin/moderation';
 export type { ContextMessage, ReportGroup, ReportRow } from '@commitmates/db';
+export {
+  getNotificationCenter,
+  getNotificationSettings,
+  markAllRead,
+  notificationSettingsSchema,
+  unreadNotificationCount,
+  updateNotificationSettings,
+  type CenterItem,
+} from './notifications/center';
+export { MUTABLE_NOTIFICATIONS, describeNotification, type NotificationText } from '@commitmates/email';

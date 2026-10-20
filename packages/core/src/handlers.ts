@@ -14,6 +14,7 @@ import { matchDailyJob } from './matching/daily';
 import { computeTrustJob } from './safety/trust';
 import { liftSuspensionsJob } from './admin/moderation';
 import { computeSkillVectorJob, refreshSkillVectorsJob } from './matching/vectors';
+import { digestEmailJob } from './notifications/center';
 import { sendEmailJob } from './notifications/email';
 import { sendOtpJob } from './verification/jobs';
 import { purgeNonUserRawJob } from './privacy/jobs';
@@ -68,6 +69,7 @@ export const jobHandlers: readonly Registration[] = [
   define(refreshSkillVectorsJob),
   define(matchDailyJob),
   define(computeTrustJob),
+  define(digestEmailJob),
   define(liftSuspensionsJob),
 ];
 

@@ -107,7 +107,7 @@ Shared streaks between two members: daily contribution counts as GitHub reports 
 
 ### `notifications`, `notification_prefs` (class A)
 
-In-app notifications and the member's email preferences. Deleted by cascade from `users`.
+In-app notifications and the member's email preferences: whether they want a daily digest and which kinds they muted. A digest goes to the email address of their sign-in account (from GitHub, stored by Supabase Auth); it lists unread notifications not emailed before and records when each went out (`emailed_at`), so none is sent twice. Muted kinds are never emailed and not counted in the unread badge. Deleted by cascade from `users`.
 
 ### `feedback` (class A)
 

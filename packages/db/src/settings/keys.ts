@@ -28,6 +28,8 @@ export const SettingKeys = {
   'storage.dbBudgetMb': 'integer',
   'email.maxPerDay': 'integer',
   'email.digestHourLocal': 'integer',
+  'email.digestMaxItems': 'integer',
+  'notifications.listLimit': 'integer',
   'profile.bioMaxChars': 'integer',
   'profile.maxLearningGoals': 'integer',
   'profile.gradYearMaxAhead': 'integer',

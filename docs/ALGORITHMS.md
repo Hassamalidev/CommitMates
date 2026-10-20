@@ -357,6 +357,16 @@ TF-IDF arrives in P4-T02.
 - Tests: `packages/core/src/admin/moderation.test.ts`, `e2e/safety.spec.ts`
 - Spec: CLAUDE.md §8 F12 "Moderation queue", §5.11
 
+### Notifications and daily digests
+
+- Code: `packages/core/src/notifications/center.ts`, `packages/db/src/queries/notifications.ts`, words in `packages/email/src/notifications.ts`
+- Dispatch (hourly, on the hour): members whose clock in their profile timezone reads `email.digestHourLocal`, who chose digests, are active, and have unread, not-yet-emailed notifications in kinds they did not mute; each gets one `digest_email` per local day (idempotency key `digest:<userId>:<local date>`). Timezones Postgres does not know are skipped.
+- Digest: up to `email.digestMaxItems` such notifications, oldest first, described with the shared words; sent within `email.maxPerDay` (past the cap the job waits until the next UTC day without using an attempt); the notifications included are marked `emailed_at`.
+- Center: the latest `notifications.listLimit` notifications; the unread badge leaves out muted kinds. Only social kinds can be muted; account and moderation notices cannot.
+- Settings: `email.digestHourLocal` (18), `email.digestMaxItems` (20), `email.maxPerDay` (80), `notifications.listLimit` (50)
+- Tests: `packages/core/src/notifications/center.test.ts`, `packages/email/src/notifications.test.ts`
+- Spec: CLAUDE.md §7.5, §5.4 `digest_email`
+
 ## Clustering, graphs and assignment
 
 No entries yet. k-means with silhouette selection arrives in P6-T06; cycle search in P5-T06.

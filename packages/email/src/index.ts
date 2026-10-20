@@ -3,3 +3,4 @@ export const PACKAGE_NAME = '@commitmates/email';
 
 export { ACCOUNT_NOTICES, escapeHtml, renderEmail, type Brand, type DigestItem, type RenderedEmail, type TemplateData, type TemplateName } from './templates';
 export { sendEmail, setMailTransport, type MailTransport, type SendResult } from './transport';
+export { MUTABLE_NOTIFICATIONS, describeNotification, type NotificationText } from './notifications';

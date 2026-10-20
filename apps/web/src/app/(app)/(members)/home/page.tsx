@@ -1,10 +1,10 @@
-import { campusUnlocks, getUniversity, recentNotifications, unreadCount } from '@commitmates/core';
+import { campusUnlocks, describeNotification, getUniversity, recentNotifications, unreadCount } from '@commitmates/core';
 import { Card, buttonStyles } from '@commitmates/ui';
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import { redirect } from 'next/navigation';
 
-import { campusCopy, homeNotificationsCopy, notificationCopy } from '@/copy/campus';
+import { campusCopy, homeNotificationsCopy } from '@/copy/campus';
 import { chatCopy } from '@/copy/chat';
 import { homeCopy } from '@/copy/onboarding';
 import { formatUtc } from '@/lib/format';
@@ -13,8 +13,6 @@ import { getCurrentMember } from '@/server/auth';
 export function generateMetadata(): Metadata {
   return { title: homeCopy.meta.title, robots: { index: false } };
 }
-
-const isRecord = (value: unknown): value is Record<string, unknown> => typeof value === 'object' && value !== null;
 
 /**
  * The member's home (CLAUDE.md §9.6): their university and its unlock progress, recent updates and
@@ -36,8 +34,8 @@ export default async function HomePage() {
     .filter((unlock) => !unlock.unlocked && unlock.metric === 'members')
     .sort((a, b) => a.required - b.required)[0];
   const shown = notifications.flatMap((notification) => {
-    const line = notificationCopy[notification.kind];
-    return line ? [{ id: notification.id, text: line(isRecord(notification.data) ? notification.data : {}), at: notification.createdAt }] : [];
+    const described = describeNotification(notification.kind, notification.data);
+    return described ? [{ id: notification.id, text: described.line, at: notification.createdAt }] : [];
   });
 
   return (
