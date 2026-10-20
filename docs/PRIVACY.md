@@ -105,6 +105,26 @@ The persona part of a member's latest Dev Card: the events window, rhythm metric
 
 Shared streaks between two members: invitations sent from a conversation, daily contribution counts as GitHub reports them (only the per-day numbers), outcomes, freezes and the pair companion. Deleted by cascade when either member deletes their account; the partner is told the streak ended. A partner's coded-today status is shown only when they allow it (`profiles.share_today_status`); the one number behind it (today's contribution count) is cached in `analysis_cache` under their login for `streaks.todayStatusCacheMinutes`, and removed with their account. A pair's share image exists only while both members' profiles are public.
 
+### `graveyard_listings`, `listing_suggestions`, `adoptions` (class A)
+
+Repositories a member put up for adoption with an optional note, private suggestions of their own repositories to list (shown only to them), and adoptions they asked for with the fork they work in. Listings are visible only inside the member's university. Deleted by cascade.
+
+### `review_requests`, `reviews`, `credit_ledger`, `ledger_locks` (class A)
+
+Pull requests offered for review, the review a member gave (GitHub review ids and how many line comments it had, read through the API) and its rating, and the review credits they earned and spent. The ledger is append-only: rows are never changed or removed while the account exists, and all of them are deleted with it. The lock row only serializes a member's ledger writes. Deleted by cascade.
+
+### `swap_offers`, `swap_wants`, `swap_proposals`, `swap_responses` (class A)
+
+Tags a member offers to teach (verified from their code or self-declared) and wants to learn, the swap cycles proposed to them and their answers. A proposal lists its members in an array, so account deletion removes every proposal that names the member; the rest go by cascade.
+
+### `legacy_entries` (class A)
+
+Projects a member chose to showcase for their university, or confirmed final-year projects: the repository, a blurb, tags, graduation year and whether they take questions. Deleted by cascade.
+
+### `oss_member_contribs` (class B for members)
+
+How many pull requests a verified member got merged into public repositories, refreshed weekly from GitHub's public search, for the "seniors from your university contributed here" panel. Deleted by cascade.
+
 ### `notifications`, `notification_prefs` (class A)
 
 In-app notifications and the member's email preferences: whether they want a daily digest and which kinds they muted. A digest goes to the email address of their sign-in account (from GitHub, stored by Supabase Auth); it lists unread notifications not emailed before and records when each went out (`emailed_at`), so none is sent twice. Muted kinds are never emailed and not counted in the unread badge. Deleted by cascade from `users`.
