@@ -28,21 +28,28 @@ export function NotificationBell({ userId }: { userId: string }) {
 
   useEffect(() => {
     let active = true;
+    // Read through a function: the flag changes while the awaits below are pending.
+    const isActive = () => active;
     let cleanup: (() => void) | null = null;
     // Loaded only for members, so public pages never ship the Supabase client.
-    void import('@/lib/supabase/browser').then(async ({ createSupabaseBrowserClient }) => {
-      const supabase = createSupabaseBrowserClient();
-      const { data } = await supabase.auth.getSession();
-      if (!active) return;
-      if (data.session) void supabase.realtime.setAuth(data.session.access_token);
-      const channel = supabase
-        .channel(`notifications:${userId}`)
-        .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'notifications', filter: `user_id=eq.${userId}` }, refresh)
-        .subscribe();
-      cleanup = () => {
-        void supabase.removeChannel(channel);
-      };
-    });
+    void import('@/lib/supabase/browser')
+      .then(async ({ createSupabaseBrowserClient }) => {
+        // The header may unmount while the client loads; then nothing is set up.
+        if (!isActive()) return;
+        const supabase = createSupabaseBrowserClient();
+        const { data } = await supabase.auth.getSession();
+        if (!isActive()) return;
+        if (data.session) void supabase.realtime.setAuth(data.session.access_token);
+        const channel = supabase
+          .channel(`notifications:${userId}`)
+          .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'notifications', filter: `user_id=eq.${userId}` }, refresh)
+          .subscribe();
+        cleanup = () => {
+          void supabase.removeChannel(channel);
+        };
+      })
+      // Without live updates the badge still refreshes on every page change.
+      .catch(() => undefined);
     return () => {
       active = false;
       cleanup?.();
