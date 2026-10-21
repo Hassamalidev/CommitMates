@@ -277,7 +277,8 @@ All algorithms live in `packages/algorithms` and are pure: no I/O, no clock, no 
 - Repositories: per new account, one page of its own public non-fork repositories (at most `crawler.reposPerUser`), metadata only; an account GitHub no longer has leaves the index with its repositories
 - Storage guard: before each step and each repository fetch, at `crawler.maxUsers` accounts or `crawler.maxRepos` repositories the index is pruned to `crawler.pruneTargetPct` of both (repositories fetched longest ago with the fewest stars first, then accounts fetched longest ago with the fewest followers, with their repositories), and nothing is added in that step; members' rows are never pruned
 - Refresh: a crawled cursor older than `crawler.refreshDays` is crawled again from its first page
-- Opt-out: the login is recorded and its index rows are deleted at once
+- Opt-out: `/optout` (public, linked from the footer, rate-limited per hashed address like the tools) takes any GitHub login; the login is recorded and its index rows are deleted at once. It only removes data, so it needs no proof of ownership; members' own rows are never touched.
+- Admin: `/admin/crawler` shows the index size against `crawler.maxUsers` and `crawler.maxRepos`, the date ranges by status, the number of seeds and opt-outs
 - Settings: `crawler.searchCap` (1000), `crawler.maxUsers` (50000), `crawler.maxRepos` (200000), `crawler.reposPerUser` (30), `crawler.minCitySeedMembers` (2), `crawler.refreshDays` (30), `crawler.pruneTargetPct` (0.95), `crawler.earliestAccountDate` (2008-01-01)
 - Tests: `packages/core/src/crawler/crawler.test.ts`
 - Spec: CLAUDE.md §8 F18

@@ -9,7 +9,7 @@ import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 
 import { registerAllHandlers } from '../handlers';
 
-import { crawlStep, cursorQuery, guardStorage, middleDay } from './service';
+import { crawlStep, cursorQuery, getCrawlerOverview, guardStorage, middleDay, optOutOfCountryIndex } from './service';
 
 const API = 'https://api.github.com';
 const server = createMswServer();
@@ -153,5 +153,18 @@ describe('crawl_repos', () => {
     }
     expect(await database.sql`select github_id::int, expires_at from gh_repos where owner_github_id = 8001`).toEqual([{ github_id: 80011, expires_at: null }]);
     expect(await database.sql`select 1 from gh_users where github_id = 8002`).toEqual([]);
+  });
+});
+
+describe('opt-out and overview', () => {
+  it('validates the login, and shows admins the index size against its limits', async () => {
+    await expect(optOutOfCountryIndex({ login: 'not a login!' })).rejects.toThrow();
+    expect(await optOutOfCountryIndex({ login: '@Someone-Else' })).toBe('Someone-Else');
+    expect(await database.sql`select 1 from crawl_optouts where github_login = 'someone-else'`).toHaveLength(1);
+    await expect(getCrawlerOverview({ roles: [] })).rejects.toMatchObject({ code: 'crawler.forbidden' });
+    const overview = await getCrawlerOverview({ roles: [{ role: 'admin', universityId: null }] });
+    expect(overview.limits).toEqual({ maxUsers: 50_000, maxRepos: 200_000 });
+    expect(overview.optouts).toBeGreaterThanOrEqual(2);
+    expect(overview.cursors.done).toBeGreaterThanOrEqual(2);
   });
 });

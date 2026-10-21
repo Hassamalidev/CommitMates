@@ -236,7 +236,16 @@ export {
 } from './reviews/settlement';
 export { askGapHelper, gapHelpers, type GapHelper, type GapHelpers } from './gap/campus';
 export { askOssContributor, ossCampus, refreshMemberContribs, type OssCampus } from './oss/campus';
-export { crawlStep, cursorQuery, guardStorage, middleDay, type CrawlStep } from './crawler/service';
+export {
+  crawlStep,
+  cursorQuery,
+  getCrawlerOverview,
+  guardStorage,
+  middleDay,
+  optOutOfCountryIndex,
+  type CrawlStep,
+  type CrawlerOverview,
+} from './crawler/service';
 export {
   addLegacyEntry,
   askLegacyAuthor,

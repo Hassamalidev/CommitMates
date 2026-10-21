@@ -14,5 +14,6 @@ export const navCopy = {
     terms: 'Terms',
     status: 'Status',
     note: 'No AI, no ads, no selling data.',
+    optout: 'Opt out of the index',
   },
 } as const;

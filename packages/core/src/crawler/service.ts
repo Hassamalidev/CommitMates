@@ -1,11 +1,14 @@
 import {
+  ForbiddenError,
   addToCountryIndex,
   countryIndexCounts,
   crawlSeeds,
+  crawlerStatus,
   extendCursors,
   getSetting,
   indexedLogin,
   nextCrawlCursor,
+  optOutOfIndex,
   optedOutLogins,
   pruneCountryIndex,
   removeFromCountryIndex,
@@ -13,12 +16,16 @@ import {
   updateCrawlCursor,
   upsertGhRepos,
   type CrawlCursor,
+  type CrawlerStatus,
 } from '@commitmates/db';
 import { GitHubNotFoundError, SERVER_IDENTITY, githubFor, listUserRepos, searchUsersPage, type GitHubClient, type Repository } from '@commitmates/github';
 import { PRIORITY, enqueue, type JobHandler } from '@commitmates/jobs';
 import { z } from 'zod';
 
 import { utcDay } from '../notifications/email';
+import { loginSchema } from '../persona/schemas';
+import type { Member } from '../profiles/schemas';
+import { hasRole } from '../profiles/service';
 
 const MS_PER_DAY = 24 * 60 * 60 * 1000; // allowed-literal: unit conversion
 /** GitHub's largest search page. */
@@ -183,3 +190,30 @@ export const crawlReposJob: JobHandler<z.infer<typeof reposPayloadSchema>> = {
     }
   },
 };
+
+export const optOutSchema = z.object({ login: loginSchema });
+
+/**
+ * The public opt-out (§8 F18 "Privacy"): anyone may ask that a GitHub login never be indexed. It only
+ * removes data, so it needs no proof of ownership; the login is recorded and its index rows go now.
+ */
+export async function optOutOfCountryIndex(raw: unknown): Promise<string> {
+  const { login } = optOutSchema.parse(raw);
+  await optOutOfIndex(login);
+  return login;
+}
+
+export type CrawlerOverview = CrawlerStatus & { limits: { maxUsers: number; maxRepos: number }; refreshDays: number; searchCap: number };
+
+/** What `/admin/crawler` shows; admins only. */
+export async function getCrawlerOverview(actor: Pick<Member, 'roles'>): Promise<CrawlerOverview> {
+  if (!hasRole(actor, 'admin')) throw new ForbiddenError('crawler.forbidden', 'Only admins can see the crawler.');
+  const [status, maxUsers, maxRepos, refreshDays, searchCap] = await Promise.all([
+    crawlerStatus(),
+    getSetting('crawler.maxUsers'),
+    getSetting('crawler.maxRepos'),
+    getSetting('crawler.refreshDays'),
+    getSetting('crawler.searchCap'),
+  ]);
+  return { ...status, limits: { maxUsers, maxRepos }, refreshDays, searchCap };
+}
