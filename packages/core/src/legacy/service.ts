@@ -1,5 +1,6 @@
 import { markdownExcerpt } from '@commitmates/algorithms';
 import {
+  AppError,
   NotFoundError,
   ValidationError,
   deleteLegacyEntry,
@@ -151,12 +152,18 @@ export const legacyQuerySchema = z.object({
   sort: z.enum(['relevance', 'stars']).default('relevance'),
 });
 
+type Companion = NonNullable<LegacyEntryView['companion']>;
+
+/** The owner's companion, or one seeded from their GitHub id until their Dev Card exists (as on Discover). */
+const companionOf = (entry: LegacyEntryView): Companion =>
+  entry.companion ?? { seed: entry.ownerGithubId, speciesKey: entry.tags[0] ?? entry.ownerLogin, paletteHex: null, stage: 0, traits: [] };
+
 export type LegacyView =
   | { state: 'unverified' }
   | { state: 'locked'; current: number; required: number }
   | {
       state: 'open';
-      entries: (LegacyEntryView & { standing: 'alumni' | 'senior' | null })[];
+      entries: (LegacyEntryView & { standing: 'alumni' | 'senior' | null; companion: Companion })[];
       departments: Department[];
       expanded: string[];
     };
@@ -191,10 +198,15 @@ export async function getLegacy(actor: Actor, raw: unknown, now: Date = new Date
     limit,
   });
   const year = now.getUTCFullYear();
-  return { state: 'open', entries: entries.map((entry) => ({ ...entry, standing: standingOf(entry, year, minGradYearsAgo) })), departments, expanded };
+  return {
+    state: 'open',
+    entries: entries.map((entry) => ({ ...entry, standing: standingOf(entry, year, minGradYearsAgo), companion: companionOf(entry) })),
+    departments,
+    expanded,
+  };
 }
 
-export type LegacyDetail = LegacyEntryView & { standing: 'alumni' | 'senior' | null; excerpt: string | null; canAsk: boolean };
+export type LegacyDetail = LegacyEntryView & { standing: 'alumni' | 'senior' | null; companion: Companion; excerpt: string | null; canAsk: boolean };
 
 /** One entry with the start of its README as plain text (§8 F17 "UI"), for members of its university. */
 export async function getLegacyDetail(actor: Actor, raw: unknown, now: Date = new Date()): Promise<LegacyDetail | null> {
@@ -204,13 +216,15 @@ export async function getLegacyDetail(actor: Actor, raw: unknown, now: Date = ne
   if (entry.ownerUserId !== actor.id && (await isBlockedEitherWay(actor.id, entry.ownerUserId))) return null;
   const [excerptChars, minGradYearsAgo] = await Promise.all([getSetting('legacy.excerptChars'), getSetting('legacy.minGradYearsAgo')]);
   const [owner = '', repo = ''] = entry.fullName.split('/');
+  // The excerpt is a courtesy: without GitHub (limits, outages) the entry still shows.
   const readme = await fetchReadme(githubFor(SERVER_IDENTITY), owner, repo).catch((error: unknown) => {
-    if (error instanceof GitHubNotFoundError) return null;
+    if (error instanceof AppError) return null;
     throw error;
   });
   return {
     ...entry,
     standing: standingOf(entry, now.getUTCFullYear(), minGradYearsAgo),
+    companion: companionOf(entry),
     excerpt: readme === null ? null : markdownExcerpt(readme, excerptChars),
     canAsk: entry.acceptsQuestions && entry.ownerUserId !== actor.id,
   };

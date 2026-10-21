@@ -7,6 +7,7 @@ import { redirect } from 'next/navigation';
 import { campusCopy, homeNotificationsCopy } from '@/copy/campus';
 import { chatCopy } from '@/copy/chat';
 import { notificationsCopy } from '@/copy/notifications';
+import { legacyCopy } from '@/copy/legacy';
 import { reviewsCopy } from '@/copy/reviews';
 import { swapsCopy } from '@/copy/swaps';
 import { streaksCopy } from '@/copy/streaks';
@@ -39,6 +40,7 @@ export default async function HomePage() {
   const reviewsUnlock = progress.unlocks.find((unlock) => unlock.key === 'reviews');
   const reviews = reviewsUnlock?.unlocked ? await Promise.all([getCredits(member.id), listClaimable(member)]) : null;
   const swapUnlock = progress.unlocks.find((unlock) => unlock.key === 'swap');
+  const legacyUnlock = progress.unlocks.find((unlock) => unlock.key === 'legacy');
   const swaps = swapUnlock?.unlocked ? await getSwaps(member) : null;
   const waitingSwaps = swaps?.proposals.filter((proposal) => proposal.status === 'proposed' && !proposal.responses.some((response) => response.userId === member.id)).length ?? 0;
   const next = progress.unlocks
@@ -103,6 +105,16 @@ export default async function HomePage() {
             <p className="type-body">{swaps ? swapsCopy.home.summary(waitingSwaps) : swapsCopy.home.locked(swapUnlock.current, swapUnlock.required)}</p>
             <Link href="/swaps" className={buttonStyles({ variant: waitingSwaps > 0 ? 'primary' : 'secondary', size: 'md', className: 'self-start' })}>
               {swapsCopy.home.link}
+            </Link>
+          </Card>
+        ) : null}
+        {legacyUnlock ? (
+          <Card title={legacyCopy.home.title} className="flex flex-col gap-3">
+            <p className="type-body">
+              {legacyUnlock.unlocked ? legacyCopy.home.open(legacyUnlock.current) : legacyCopy.home.locked(legacyUnlock.current, legacyUnlock.required)}
+            </p>
+            <Link href="/legacy" className={buttonStyles({ variant: 'secondary', size: 'md', className: 'self-start' })}>
+              {legacyCopy.home.link}
             </Link>
           </Card>
         ) : null}

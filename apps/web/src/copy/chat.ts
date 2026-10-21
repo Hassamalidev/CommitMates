@@ -15,7 +15,7 @@ export const chatCopy = {
     decline: 'Decline',
     acceptLabel: (login: string) => `Accept the request from @${login}`,
     declineLabel: (login: string) => `Decline the request from @${login}`,
-    context: { discover: 'From Discover', adoption: 'About adopting your project', gap: 'From Gap Finder', oss: 'From Open-Source Starter' } as Readonly<Record<string, string>>,
+    context: { discover: 'From Discover', adoption: 'About adopting your project', gap: 'From Gap Finder', oss: 'From Open-Source Starter', legacy: 'About your project in Senior’s Legacy' } as Readonly<Record<string, string>>,
     status: { pending: 'Waiting', accepted: 'Accepted', expired: 'Expired' },
     unread: (count: number) => (count === 1 ? '1 unread message' : `${count} unread messages`),
     muted: 'Muted',

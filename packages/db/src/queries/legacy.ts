@@ -1,7 +1,7 @@
 import { and, eq, sql } from 'drizzle-orm';
 
 import { getDb, type DbOrTx } from '../client';
-import { ghRepos, legacyEntries } from '../schema';
+import { ghRepos, legacyEntries, type SnapshotCompanion } from '../schema';
 
 /** Entries counted toward `unlock.legacy.minProjects`: those of active members whose profile is not hidden. */
 export async function countLegacyEntries(universityId: string, db: DbOrTx = getDb()): Promise<number> {
@@ -43,6 +43,9 @@ export type LegacyEntryView = {
   universityId: string;
   ownerUserId: string;
   ownerLogin: string;
+  ownerGithubId: number;
+  /** The owner's Dev Card companion, when they have a snapshot. */
+  companion: SnapshotCompanion | null;
   ownerRole: 'student' | 'alumni' | 'supervisor_pending' | 'supervisor';
   gradYear: number | null;
   department: string | null;
@@ -64,6 +67,8 @@ type RawEntry = {
   university_id: string;
   owner_user_id: string;
   login: string;
+  github_id: string;
+  companion: SnapshotCompanion | null;
   role: LegacyEntryView['ownerRole'];
   grad_year: number | null;
   department: string | null;
@@ -85,6 +90,8 @@ const toEntry = (row: RawEntry): LegacyEntryView => ({
   universityId: row.university_id,
   ownerUserId: row.owner_user_id,
   ownerLogin: row.login,
+  ownerGithubId: Number(row.github_id),
+  companion: row.companion,
   ownerRole: row.role,
   gradYear: row.grad_year,
   department: row.department,
@@ -102,14 +109,15 @@ const toEntry = (row: RawEntry): LegacyEntryView => ({
 });
 
 const entryColumns = sql`
-  le.id, le.university_id, le.owner_user_id, gi.login, p.role, coalesce(le.grad_year, p.grad_year) as grad_year, d.name as department,
+  le.id, le.university_id, le.owner_user_id, gi.login, gi.github_id, ps.companion, p.role, coalesce(le.grad_year, p.grad_year) as grad_year, d.name as department,
   le.repo_github_id, r.full_name, r.description, r.topics, r.primary_language, r.stars, le.tags, le.blurb, le.accepts_questions, le.created_at`;
 const entryJoins = sql`
   join gh_repos r on r.github_id = le.repo_github_id
   join profiles p on p.user_id = le.owner_user_id
   join users u on u.id = le.owner_user_id
   join github_identities gi on gi.user_id = le.owner_user_id
-  left join departments d on d.id = p.department_id`;
+  left join departments d on d.id = p.department_id
+  left join persona_snapshots ps on ps.user_id = le.owner_user_id`;
 
 export type LegacySearch = {
   query: string | null;

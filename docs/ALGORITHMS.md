@@ -248,6 +248,7 @@ All algorithms live in `packages/algorithms` and are pure: no I/O, no clock, no 
 - Labels: alumni by role; seniors when the graduation year is at most this year + `legacy.minGradYearsAgo`; others by year
 - Detail: the README's start as plain text (fenced code, HTML, images and link targets removed), at most `legacy.excerptChars`; only members of the entry's university, never across a block
 - Ask the author: a message request with `context_kind = 'legacy'` when the author takes questions; alumni with questions off are reached through Alumni Quick Asks once F20 exists (P6-T05)
+- Page: `/legacy` (search form as URL parameters, cards with the owner's companion, a tag links to that tag's results) and `/legacy/<id>` (excerpt, language, tags, Ask); the excerpt is skipped when GitHub cannot be read
 - Refresh: each entry's repository is read again by id; private, deleted, or transferred away from the owner → the entry leaves; otherwise its metadata and tags are updated
 - Settings: `unlock.legacy.minProjects` (5), `legacy.minGradYearsAgo` (0), `legacy.blurbMaxChars` (280), `legacy.excerptChars` (600), `legacy.listLimit` (50)
 - Tests: `packages/core/src/legacy/legacy.test.ts`, `packages/algorithms/src/text/markdown.test.ts`
