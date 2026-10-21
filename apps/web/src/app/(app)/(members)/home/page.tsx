@@ -4,6 +4,7 @@ import type { Metadata } from 'next';
 import Link from 'next/link';
 import { redirect } from 'next/navigation';
 
+import { alumniCopy } from '@/copy/alumni';
 import { campusCopy, homeNotificationsCopy } from '@/copy/campus';
 import { chatCopy } from '@/copy/chat';
 import { notificationsCopy } from '@/copy/notifications';
@@ -43,6 +44,7 @@ export default async function HomePage() {
   const swapUnlock = progress.unlocks.find((unlock) => unlock.key === 'swap');
   const legacyUnlock = progress.unlocks.find((unlock) => unlock.key === 'legacy');
   const boardUnlock = progress.unlocks.find((unlock) => unlock.key === 'leaderboard');
+  const alumniUnlock = progress.unlocks.find((unlock) => unlock.key === 'alumni');
   const swaps = swapUnlock?.unlocked ? await getSwaps(member) : null;
   const waitingSwaps = swaps?.proposals.filter((proposal) => proposal.status === 'proposed' && !proposal.responses.some((response) => response.userId === member.id)).length ?? 0;
   const next = progress.unlocks
@@ -125,6 +127,14 @@ export default async function HomePage() {
             <p className="type-body">{boardUnlock.unlocked ? leaderboardsCopy.home.open : leaderboardsCopy.home.locked(boardUnlock.current, boardUnlock.required)}</p>
             <Link href="/leaderboards" className={buttonStyles({ variant: 'secondary', size: 'md', className: 'self-start' })}>
               {leaderboardsCopy.home.link}
+            </Link>
+          </Card>
+        ) : null}
+        {alumniUnlock ? (
+          <Card title={alumniCopy.home.title} className="flex flex-col gap-3">
+            <p className="type-body">{alumniUnlock.unlocked ? alumniCopy.home.open : alumniCopy.home.locked(alumniUnlock.current, alumniUnlock.required)}</p>
+            <Link href="/alumni" className={buttonStyles({ variant: 'secondary', size: 'md', className: 'self-start' })}>
+              {alumniCopy.home.link}
             </Link>
           </Card>
         ) : null}

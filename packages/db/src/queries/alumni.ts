@@ -148,7 +148,7 @@ export async function questionsAskedBy(userId: string, limit: number, db: DbOrTx
 
 export type RoutedQuestion = { questionId: string; body: string; tags: string[]; anonymous: boolean; askerLogin: string | null; status: string; routeStatus: string; round: number; routedAt: Date };
 
-/** Questions routed to an alumnus, newest first; the asker's login only when they did not ask anonymously. */
+/** Questions routed to an alumnus, newest first; an anonymous asker's login only once this alumnus answered. */
 export async function questionsRoutedTo(alumniUserId: string, limit: number, db: DbOrTx = getDb()): Promise<RoutedQuestion[]> {
   const rows = await db.execute<{
     question_id: string;
@@ -161,7 +161,7 @@ export async function questionsRoutedTo(alumniUserId: string, limit: number, db:
     round: number;
     routed_at: string;
   }>(sql`
-    select r.question_id, q.body, q.tags, q.anonymous, case when q.anonymous then null else gi.login end as asker_login,
+    select r.question_id, q.body, q.tags, q.anonymous, case when q.anonymous and r.status <> 'answered' then null else gi.login end as asker_login,
            q.status, r.status as route_status, r.round, r.routed_at
     from question_routes r join alumni_questions q on q.id = r.question_id
     left join github_identities gi on gi.user_id = q.asker_user_id
@@ -178,4 +178,9 @@ export async function questionsRoutedTo(alumniUserId: string, limit: number, db:
     round: row.round,
     routedAt: new Date(row.routed_at),
   }));
+}
+
+/** Sets a member's graduation year and role together (the alumni page's correction after the transition). */
+export async function setGraduation(userId: string, gradYear: number, role: 'student' | 'alumni', db: DbOrTx = getDb()): Promise<void> {
+  await db.update(profiles).set({ gradYear, role }).where(eq(profiles.userId, userId));
 }

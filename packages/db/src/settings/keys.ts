@@ -205,6 +205,7 @@ export const SettingKeys = {
   'alumni.questionMaxChars': 'integer',
   'alumni.maxQuestionTags': 'integer',
   'alumni.responsivenessDays': 'integer',
+  'alumni.listLimit': 'integer',
   'alumni.transitionMonth': 'integer',
   'squads.kMax': 'integer',
   'squads.defaultTeamSize': 'integer',

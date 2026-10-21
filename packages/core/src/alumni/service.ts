@@ -10,6 +10,7 @@ import {
   findDirectThread,
   getDb,
   getLogin,
+  getProfileDetails,
   getSetting,
   insertAlumniQuestion,
   insertMessage,
@@ -20,12 +21,18 @@ import {
   lockQuestionRoute,
   markAlumni,
   markQuestionAnswered,
+  popularTags,
+  questionsAskedBy,
   questionsAwaitingReroute,
+  questionsRoutedTo,
   resolveTags,
   routeAlumniQuestion,
+  setGraduation,
   setAlumniQuestionStatus,
   setRouteStatus,
   studentsGraduatedBefore,
+  type AskedQuestion,
+  type RoutedQuestion,
 } from '@commitmates/db';
 import { PRIORITY, enqueue, type JobHandler } from '@commitmates/jobs';
 import { normalizeTag } from '@commitmates/sources';
@@ -236,4 +243,78 @@ export async function passQuestion(actor: Pick<Member, 'id'>, raw: unknown, now:
   });
   const [due] = await questionsAwaitingReroute([questionId]);
   if (due) await enqueueRoute(due.id, due.round + 1);
+}
+
+/** Popular tags offered as quick picks when asking. */
+const TAG_SUGGESTIONS = 12;
+
+export type AlumniView =
+  | { state: 'locked'; current: number; required: number }
+  | {
+      state: 'open';
+      rules: { maxChars: number; maxTags: number; slaHours: number; maxRounds: number };
+      suggestions: string[];
+      asked: AskedQuestion[];
+      /** Questions routed to the member; null when they are not an alumnus. */
+      inbox: RoutedQuestion[] | null;
+      /** The member's graduation year, offered for correction to alumni. */
+      graduation: { gradYear: number | null; years: { min: number; max: number } } | null;
+    };
+
+/** What the Alumni Quick Asks page shows a verified member (§8 F20 "Routes"). */
+export async function getAlumni(actor: Actor, now: Date = new Date()): Promise<AlumniView> {
+  if (!actor.verified || actor.universityId === null) throw new ForbiddenError('alumni.verify_first', 'Verify your university to ask its alumni.');
+  const unlock = (await campusUnlocks(actor.universityId)).unlocks.find((entry) => entry.key === 'alumni');
+  if (!unlock?.unlocked) return { state: 'locked', current: unlock?.current ?? 0, required: unlock?.required ?? 0 };
+  const [maxChars, maxTags, slaHours, maxRounds, limit, maxAhead, maxBehind, details] = await Promise.all([
+    getSetting('alumni.questionMaxChars'),
+    getSetting('alumni.maxQuestionTags'),
+    getSetting('alumni.slaHours'),
+    getSetting('alumni.maxRounds'),
+    getSetting('alumni.listLimit'),
+    getSetting('profile.gradYearMaxAhead'),
+    getSetting('profile.gradYearMaxBehind'),
+    getProfileDetails(actor.id),
+  ]);
+  const isAlumnus = details?.role === 'alumni';
+  const [suggestions, asked, inbox] = await Promise.all([
+    popularTags(TAG_SUGGESTIONS),
+    questionsAskedBy(actor.id, limit),
+    isAlumnus ? questionsRoutedTo(actor.id, limit) : Promise.resolve(null),
+  ]);
+  const year = now.getUTCFullYear();
+  return {
+    state: 'open',
+    rules: { maxChars, maxTags, slaHours, maxRounds },
+    suggestions,
+    asked,
+    inbox,
+    graduation: isAlumnus ? { gradYear: details.gradYear, years: { min: year - maxBehind, max: year + maxAhead } } : null,
+  };
+}
+
+export const graduationSchema = z.object({ gradYear: z.coerce.number().int() });
+
+/**
+ * Lets an alumnus correct their graduation year after the role transition (§8 F20 "Roles": "a
+ * notification letting them adjust"). A year that has not passed the cutoff makes them a student
+ * again, so the next daily transition does not undo the correction.
+ */
+export async function correctGraduation(actor: Pick<Member, 'id' | 'verified'>, raw: unknown, now: Date = new Date()): Promise<'student' | 'alumni'> {
+  if (!actor.verified) throw new ForbiddenError('alumni.verify_first', 'Verify your university first.');
+  const { gradYear } = graduationSchema.parse(raw);
+  const [details, maxAhead, maxBehind, month] = await Promise.all([
+    getProfileDetails(actor.id),
+    getSetting('profile.gradYearMaxAhead'),
+    getSetting('profile.gradYearMaxBehind'),
+    getSetting('alumni.transitionMonth'),
+  ]);
+  if (details?.role !== 'alumni') throw new ValidationError('alumni.not_alumnus', 'Only alumni can change this here.');
+  const year = now.getUTCFullYear();
+  if (gradYear < year - maxBehind || gradYear > year + maxAhead) {
+    throw new ValidationError('alumni.grad_year', `Enter a year between ${year - maxBehind} and ${year + maxAhead}.`, { field: 'gradYear' });
+  }
+  const role = gradYear < alumniCutoffYear(now, month) ? 'alumni' : 'student';
+  await setGraduation(actor.id, gradYear, role);
+  return role;
 }

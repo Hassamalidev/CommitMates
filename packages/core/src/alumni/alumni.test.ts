@@ -3,7 +3,7 @@ import { insertTestUser, useTestDatabase, withSettings, type TestDatabase } from
 import pino from 'pino';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
-import { answerQuestion, askQuestion, enforceAlumniSla, passQuestion, questionNote, routeQuestion, transitionGraduates } from './service';
+import { answerQuestion, askQuestion, correctGraduation, enforceAlumniSla, getAlumni, passQuestion, questionNote, routeQuestion, transitionGraduates } from './service';
 
 let database: TestDatabase;
 let counter = 0;
@@ -176,5 +176,49 @@ describe('answerQuestion', () => {
       expect(await database.sql`select source from connections where (user_a = ${asker.id} and user_b = ${one.id}) or (user_a = ${one.id} and user_b = ${asker.id})`).toEqual([{ source: 'alumni' }]);
       await expect(answerQuestion({ id: two.id }, { questionId: id })).rejects.toMatchObject({ code: 'alumni.closed' });
     });
+  });
+});
+
+describe('getAlumni and correctGraduation', () => {
+  it('shows progress until unlocked, then questions both ways, revealing an anonymous asker only after the answer', async () => {
+    const uni = await university();
+    const asker = await member(uni);
+    const alum = await member(uni, { role: 'alumni', gradYear: 2020, vector: { react: 1 } });
+    expect(await getAlumni(asker)).toEqual({ state: 'locked', current: 1, required: 5 });
+    await withSettings(open, async () => {
+      const id = await askQuestion(asker, { body: 'How did you find your first react job?', tags: ['react'], anonymous: true });
+      await routeQuestion(id, 1, new Date());
+      const mine = await getAlumni(asker);
+      expect(mine).toMatchObject({ state: 'open', inbox: null, graduation: null, rules: { maxChars: 600, slaHours: 48, maxRounds: 3 } });
+      if (mine.state !== 'open') throw new Error('expected open');
+      expect(mine.asked.map((question) => question.id)).toEqual([id]);
+
+      const before = await getAlumni(alum, new Date('2026-10-21T00:00:00Z'));
+      if (before.state !== 'open') throw new Error('expected open');
+      expect(before.inbox).toEqual([expect.objectContaining({ questionId: id, askerLogin: null, routeStatus: 'pending', status: 'open' })]);
+      expect(before.graduation).toEqual({ gradYear: 2020, years: { min: 1966, max: 2034 } });
+      await answerQuestion(alum, { questionId: id });
+      const after = await getAlumni(alum);
+      if (after.state !== 'open') throw new Error('expected open');
+      expect(after.inbox?.[0]).toMatchObject({ askerLogin: asker.login, routeStatus: 'answered' });
+      const answered = await getAlumni(asker);
+      if (answered.state !== 'open') throw new Error('expected open');
+      expect(answered.asked[0]).toMatchObject({ status: 'answered', answeredByLogin: alum.login });
+    });
+  });
+
+  it('lets an alumnus correct their year, back to student when it has not passed', async () => {
+    const uni = await university();
+    const alum = await member(uni, { role: 'alumni', gradYear: 2024 });
+    const student = await member(uni, { gradYear: 2027 });
+    const now = new Date('2026-10-21T00:00:00Z');
+    await expect(correctGraduation(student, { gradYear: 2020 }, now)).rejects.toMatchObject({ code: 'alumni.not_alumnus' });
+    await expect(correctGraduation(alum, { gradYear: 1900 }, now)).rejects.toMatchObject({ code: 'alumni.grad_year' });
+    expect(await correctGraduation(alum, { gradYear: 2023 }, now)).toBe('alumni');
+    expect(await correctGraduation(alum, { gradYear: 2027 }, now)).toBe('student');
+    expect(await database.sql`select role, grad_year from profiles where user_id = ${alum.id}`).toEqual([{ role: 'student', grad_year: 2027 }]);
+    // The next transition leaves the corrected year alone.
+    await transitionGraduates(now);
+    expect((await database.sql`select role from profiles where user_id = ${alum.id}`)[0]?.role).toBe('student');
   });
 });

@@ -463,6 +463,13 @@
       "when": 1792570213983,
       "tag": "0065_settings_alumni",
       "breakpoints": true
+    },
+    {
+      "idx": 66,
+      "version": "7",
+      "when": 1792571867476,
+      "tag": "0066_settings_alumni_page",
+      "breakpoints": true
     }
   ]
 }

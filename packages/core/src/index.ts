@@ -239,12 +239,15 @@ export {
   QUESTION_NOTE_PREFIX,
   answerQuestion,
   askQuestion,
+  correctGraduation,
   enforceAlumniSla,
+  getAlumni,
   passQuestion,
   questionNote,
   questionTags,
   routeQuestion,
   transitionGraduates,
+  type AlumniView,
 } from './alumni/service';
 export { getLeaderboards, lastWeekStart, setLeaderboardOptIn, type Board, type BoardEntry, type LeaderboardsView } from './leaderboard/service';
 export { askOssContributor, ossCampus, refreshMemberContribs, type OssCampus } from './oss/campus';
