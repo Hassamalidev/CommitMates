@@ -2,6 +2,7 @@ import { RateLimitedError, ValidationError, checkVerificationCode, getSetting, s
 import { PRIORITY, enqueue } from '@commitmates/jobs';
 
 import { requestSkillVector } from '../matching/vectors';
+import { grantStarterCredits } from '../reviews/ledger';
 import { utcDay } from '../notifications/email';
 import { matchEmailToUniversity } from '../universities/service';
 
@@ -63,6 +64,8 @@ export async function confirmEmailCode(userId: string, raw: unknown, now: Date =
     case 'verified':
       // Matching needs the member's skill vector at their new university.
       await requestSkillVector(userId, now);
+      // New verified members get their review starter credits once (§8 F15 "Credits").
+      await grantStarterCredits(userId);
       return { universityId: result.universityId };
     case 'no_pending':
       throw new ValidationError('verify.no_pending', 'Start by entering your university email.', { field: 'email' });

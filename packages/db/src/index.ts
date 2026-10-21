@@ -10,6 +10,7 @@ export * from './queries/chat';
 export * from './queries/email';
 export * from './queries/gap';
 export * from './queries/github-data';
+export * from './queries/ledger';
 export * from './queries/matching';
 export * from './queries/metrics';
 export * from './queries/moderation';

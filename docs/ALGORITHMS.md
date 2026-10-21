@@ -422,6 +422,19 @@ TF-IDF arrives in P4-T02.
 - Tests: `packages/core/src/adoptions/revivals.test.ts`, `packages/github/src/queries/repos.test.ts`
 - Spec: CLAUDE.md §8 F14 "Revival tracking"
 
+### Credit ledger
+
+- Code: `packages/core/src/reviews/ledger.ts`, queries in `packages/db/src/queries/ledger.ts`; table `credit_ledger` (append-only by trigger), view `credit_balances`, lock rows in `ledger_locks`
+- Balance: the sum of a member's rows (`credit_balances`)
+- Locking: every write first creates (if needed) and locks the member's `ledger_locks` row `for update` in its transaction; a write that touches two members locks both in sorted id order, so concurrent settlements cannot deadlock
+- Starter: `reviews.starterCredits` credits once per member (`starter` row), granted after email or vouch verification; re-verifying grants nothing; 0 grants nothing
+- Escrow: inside the review request's own transaction, under the author's lock: balance below 1 → "Review someone else's code to earn a credit."; otherwise a `-1 escrow` row tied to the request
+- Settlement: a held escrow (an `escrow` row of the author for the request and no `release` or `refund` row for it) settles once: `+1 release` to the reviewer or `+1 refund` to the author; later attempts return false
+- Admin adjustment: admins only, one `admin_adjust` row with an audit entry (`credits.adjusted`, delta and note), refused when it would leave the balance below 0
+- Settings: `reviews.starterCredits` (1)
+- Tests: `packages/core/src/reviews/ledger.test.ts` (50 concurrent escrows against 3 credits: exactly 3 succeed, the running balance never drops below 0), `packages/db/src/schema/collaboration.test.ts` (append-only)
+- Spec: CLAUDE.md §8 F15 "Credits", §5.10 "Credit-ledger manipulation"
+
 ## Clustering, graphs and assignment
 
 No entries yet. k-means with silhouette selection arrives in P6-T06; cycle search in P5-T06.

@@ -193,4 +193,14 @@ export { dismissSuggestion, getProjects, listRepo, weekStart, withdrawRepo } fro
 export type { ListingView, OwnRepo, SuggestionView } from '@commitmates/db';
 export { getAdoptions, linkFork, recordAdoptionInterest, requestAdoption, type AdoptionsOverview } from './adoptions/flow';
 export { relistRepo, trackAdoption } from './adoptions/revivals';
+export {
+  LEDGER_HISTORY_SIZE,
+  REVIEW_COST,
+  adjustCredits,
+  escrowCredit,
+  getCredits,
+  grantStarterCredits,
+  settleEscrow,
+  type CreditOverview,
+} from './reviews/ledger';
 export type { AdoptionView } from '@commitmates/db';

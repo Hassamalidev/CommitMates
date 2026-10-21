@@ -15,6 +15,7 @@ import {
 import { z } from 'zod';
 
 import { requestSkillVector } from '../matching/vectors';
+import { grantStarterCredits } from '../reviews/ledger';
 import type { Member } from '../profiles/schemas';
 
 const MS_PER_DAY = 24 * 60 * 60 * 1000; // allowed-literal: unit conversion
@@ -78,7 +79,10 @@ export async function vouchForMember(voucher: Pick<Member, 'id'>, raw: unknown, 
   const outcome = await vouchFor(voucher.id, vouchee.userId, now, { required, voucherMinDays });
   switch (outcome.status) {
     case 'vouched':
-      if (outcome.verified) await requestSkillVector(vouchee.userId, now);
+      if (outcome.verified) {
+        await requestSkillVector(vouchee.userId, now);
+        await grantStarterCredits(vouchee.userId);
+      }
       return { vouches: outcome.vouches, required, verified: outcome.verified };
     case 'already_vouched':
       throw new ValidationError('vouch.already_vouched', 'You already vouched for this member.');
