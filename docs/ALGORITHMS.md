@@ -391,6 +391,14 @@ TF-IDF arrives in P4-T02.
 - Tests: `packages/algorithms/src/streaks/judge.test.ts`, `packages/core/src/streaks/judge.test.ts`
 - Spec: CLAUDE.md §8 F13 "Daily judgement", "Edge cases"
 
+### Listing suggestions
+
+- Code: `packages/core/src/adoptions/listings.ts` (job `suggest_listings`, weekly on Monday 04:00 UTC, one run per verified member and week: `listings:<userId>:<week Monday>`); scoring shared with the Graveyard in `packages/core/src/graveyard/signals.ts`
+- Rule: a member's own repositories that are not forks, idle at least `graveyard.idleMonths.default`, with a README and at least `graveyard.minCommits` commits, whose adjusted unfinished score (F7 steps 5–6) is at least `adoptions.suggestMinUnfinished`, and that are not listed or dismissed. Read with the member's own token when valid. A dismissed repository is never suggested again.
+- Settings: `adoptions.suggestMinUnfinished` (0.5), `adoptions.noteMaxChars` (280), `graveyard.idleMonths.default`, `graveyard.minCommits`, `graveyard.unfinishedTerms`
+- Tests: `packages/core/src/adoptions/listings.test.ts`, `e2e/projects.spec.ts`
+- Spec: CLAUDE.md §8 F14 "Private suggestions", "Listing"
+
 ## Clustering, graphs and assignment
 
 No entries yet. k-means with silhouette selection arrives in P6-T06; cycle search in P5-T06.

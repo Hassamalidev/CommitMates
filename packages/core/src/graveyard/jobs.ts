@@ -1,14 +1,6 @@
 import { createHash } from 'node:crypto';
 
-import {
-  adjustedUnfinished,
-  commitUnfinishedSignal,
-  monthsBetween,
-  readmeUnfinishedSignal,
-  scoreRevivals,
-  termMatcher,
-  unfinishedScore,
-} from '@commitmates/algorithms';
+import { monthsBetween, scoreRevivals, termMatcher } from '@commitmates/algorithms';
 import { getCategoryNumber, getSetting } from '@commitmates/db';
 import { SERVER_IDENTITY, githubFor, searchRepositories, type SearchRepo } from '@commitmates/github';
 import { PRIORITY, type JobHandler } from '@commitmates/jobs';
@@ -24,7 +16,7 @@ import {
   type GraveyardItem,
   type GraveyardPayload,
 } from './schemas';
-import { repoSignals, withRecentStars, type RepoSignals } from './signals';
+import { repoSignals, unfinishedFromSignals, withRecentStars, type RepoSignals } from './signals';
 
 /** The steps `graveyard_search` reports, in order. */
 export const GRAVEYARD_STEPS = { expanding: 'expanding', searching: 'searching', reading: 'reading', scoring: 'scoring' } as const;
@@ -137,21 +129,7 @@ export const graveyardSearchJob: JobHandler<GraveyardPayload> = {
     }
 
     await ctx.progress({ step: GRAVEYARD_STEPS.scoring });
-    const unfinished = passing.map(({ signals }) => {
-      const openIssues = signals.issues.openComments;
-      const readme = readmeUnfinishedSignal(signals.readme, unfinishedTerms);
-      // Open issues nobody has answered: certainly none from the owner (the owner's share is not read per issue).
-      const unanswered = openIssues.length === 0 ? null : openIssues.filter((comments) => comments === 0).length / openIssues.length;
-      const commits = commitUnfinishedSignal(signals.commitMessages, unfinishedTerms);
-      const noReleases = signals.hasReleases ? 0 : 1;
-      const score = adjustedUnfinished(unfinishedScore([readme, unanswered, commits, noReleases]), {
-        hasReleases: signals.hasReleases,
-        allIssuesClosed: signals.issues.allClosed,
-        totalIssues: signals.issues.total,
-        readme: signals.readme,
-      });
-      return { score, readme, unanswered, commits };
-    });
+    const unfinished = passing.map(({ signals }) => unfinishedFromSignals(signals, unfinishedTerms));
     const scores = scoreRevivals(
       passing.map((entry, index) => ({
         key: entry.repo.fullName,

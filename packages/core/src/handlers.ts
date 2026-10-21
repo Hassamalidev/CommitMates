@@ -12,6 +12,7 @@ import { recruiterReportJob } from './recruiter/jobs';
 import { taxonomyExpandJob } from './taxonomy/jobs';
 import { matchDailyJob } from './matching/daily';
 import { tuneMatchWeightsJob } from './matching/tune';
+import { suggestListingsJob } from './adoptions/listings';
 import { computeTrustJob } from './safety/trust';
 import { streakCheckJob } from './streaks/judge';
 import { liftSuspensionsJob } from './admin/moderation';
@@ -72,6 +73,7 @@ export const jobHandlers: readonly Registration[] = [
   define(matchDailyJob),
   define(tuneMatchWeightsJob),
   define(computeTrustJob),
+  define(suggestListingsJob),
   define(streakCheckJob),
   define(digestEmailJob),
   define(liftSuspensionsJob),

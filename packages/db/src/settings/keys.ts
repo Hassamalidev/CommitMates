@@ -156,6 +156,8 @@ export const SettingKeys = {
   'streaks.todayStatusCacheMinutes': 'integer',
   'streaks.companionStageDays': 'number[]',
   'adoptions.reviveMinCommits': 'integer',
+  'adoptions.suggestMinUnfinished': 'number',
+  'adoptions.noteMaxChars': 'integer',
   'adoptions.dropAfterDays': 'integer',
   'reviews.starterCredits': 'integer',
   'reviews.minLineComments': 'integer',

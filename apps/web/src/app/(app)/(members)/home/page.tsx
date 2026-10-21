@@ -62,6 +62,9 @@ export default async function HomePage() {
             <Link href={`/uni/${university.slug}`} className={buttonStyles({ variant: 'secondary', size: 'md', className: 'self-start' })}>
               {copy.universityLink}
             </Link>
+            <Link href="/settings/projects" className="type-small self-start underline">
+              {copy.projectsLink}
+            </Link>
           </Card>
         ) : null}
         {matching ? (
