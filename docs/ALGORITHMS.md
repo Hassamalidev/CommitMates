@@ -447,6 +447,18 @@ TF-IDF arrives in P4-T02.
 - Tests: `packages/core/src/reviews/requests.test.ts`, `packages/github/src/queries/pulls.test.ts`
 - Spec: CLAUDE.md §8 F15 "Request", "Claim and verify" steps 1–2, "Edge cases"
 
+### Review verification, settlement and reputation
+
+- Code: `packages/core/src/reviews/settlement.ts` (jobs `verify_review` and `expire_reviews`, hourly at :15), queries in `packages/db/src/queries/reviews.ts`
+- Verification: "I've submitted my review" queues one `verify_review` per claim (`review:<requestId>:<claim time>`). It reads the pull request, its reviews and its line comments (the reviewer's own token when valid). Verified when the claimer (login compared case-insensitively) submitted a non-pending review at or after the claim time and wrote at least `reviews.minLineComments` line comments at or after it; the review ids and comment count are stored, the request becomes `submitted` and the author is asked to rate. A missing pull request, or one closed or private without such a review, ends the request with a refund. Otherwise the job waits (no attempt used) for `reviews.verifyRetryMinutes` or until the claim's end, whichever is sooner; at the end the request opens again and the reviewer is told.
+- Rating: helpful → the escrow is released to the reviewer (`settled_helpful`); unhelpful → refunded to the author (`settled_unhelpful`); each settles once
+- Dispute: the reviewer of an unhelpful rating may dispute it within `reviews.disputeWindowDays` with a note (at most `reviews.disputeNoteMaxChars`); the author keeps the refund meanwhile. Admins, or moderators of the request's university, decide: for the reviewer, they receive one credit as an audited `admin_adjust` and the request settles as helpful; for the author, it stays unhelpful. The decision is audited and both are told.
+- Upkeep (hourly): claims older than `reviews.claimTtlHours`, or whose reviewer deleted their account, open again; open requests past their lifetime expire with a refund; verified reviews unrated after `reviews.autoSettleDays` settle as helpful; a submitted request whose review was deleted with its reviewer opens again
+- Reputation: helpful reviews of the member as a percentile rank among the verified members of their university (members with none count as 0); tier = number of `reviews.reputationTierCuts` reached; no helpful review → no percentile, tier 0
+- Settings: `reviews.minLineComments` (3), `reviews.claimTtlHours` (72), `reviews.autoSettleDays` (7), `reviews.verifyRetryMinutes` (60), `reviews.disputeWindowDays` (7), `reviews.disputeNoteMaxChars` (500), `reviews.reputationTierCuts` ([0.5, 0.75, 0.9])
+- Tests: `packages/core/src/reviews/settlement.test.ts`
+- Spec: CLAUDE.md §8 F15 "Claim and verify" step 3, "Rating and settlement", "Reputation", "Edge cases"
+
 ## Clustering, graphs and assignment
 
 No entries yet. k-means with silhouette selection arrives in P6-T06; cycle search in P5-T06.

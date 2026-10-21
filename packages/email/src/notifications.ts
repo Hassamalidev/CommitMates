@@ -93,6 +93,38 @@ const describers: Readonly<Record<string, (data: Record<string, unknown>) => Not
         : 'Your pull request was closed or is no longer public, so the request ended and your credit is back.',
     path: '/reviews',
   }),
+  review_submitted: (data) => ({
+    title: 'Your review is in',
+    line: `${text(data.login) ? `@${text(data.login)}` : 'Your reviewer'} reviewed ${text(data.repo) ? `${text(data.repo)}#${text(data.number)}` : 'your pull request'}. Was it helpful?`,
+    path: '/reviews',
+  }),
+  review_rated: (data) => ({
+    title: text(data.rating) === 'helpful' ? 'You earned a credit' : 'Your review was rated',
+    line:
+      text(data.rating) === 'helpful'
+        ? data.automatic === true
+          ? 'Your review settled as helpful, so the credit is yours.'
+          : 'The author found your review helpful, so the credit is yours.'
+        : 'The author did not find your review helpful. You can dispute the rating if you disagree.',
+    path: '/reviews',
+  }),
+  review_claim_expired: (data) => ({
+    title: 'Your claim ran out',
+    line: `Your claim on ${text(data.repo) ? `${text(data.repo)}#${text(data.number)}` : 'a review request'} ran out before a review showed up on GitHub, so it is open again.`,
+    path: '/reviews',
+  }),
+  review_dispute_resolved: (data) => ({
+    title: 'A review dispute was decided',
+    line:
+      text(data.outcome) === 'reviewer'
+        ? text(data.role) === 'reviewer'
+          ? 'A moderator agreed your review was helpful. The credit is yours.'
+          : 'A moderator found the review helpful. Your refund stands.'
+        : text(data.role) === 'reviewer'
+          ? 'A moderator kept the unhelpful rating.'
+          : 'A moderator kept your unhelpful rating.',
+    path: '/reviews',
+  }),
   github_reconnect: () => ({
     title: 'Sign in with GitHub again',
     line: 'Your GitHub sign-in has expired, so a streak day was skipped instead of counted. Sign in again to keep it going.',
@@ -137,4 +169,7 @@ export const MUTABLE_NOTIFICATIONS: Readonly<Record<string, string>> = {
   adoption_dropped: 'Ended adoptions',
   review_claimed: 'Claimed review requests',
   review_refunded: 'Ended review requests',
+  review_submitted: 'Reviews to rate',
+  review_rated: 'Ratings of your reviews',
+  review_claim_expired: 'Claims that ran out',
 };

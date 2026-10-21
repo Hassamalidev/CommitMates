@@ -14,6 +14,7 @@ import { matchDailyJob } from './matching/daily';
 import { tuneMatchWeightsJob } from './matching/tune';
 import { suggestListingsJob } from './adoptions/listings';
 import { trackRevivalsJob } from './adoptions/revivals';
+import { expireReviewsJob, verifyReviewJob } from './reviews/settlement';
 import { computeTrustJob } from './safety/trust';
 import { streakCheckJob } from './streaks/judge';
 import { liftSuspensionsJob } from './admin/moderation';
@@ -76,6 +77,8 @@ export const jobHandlers: readonly Registration[] = [
   define(computeTrustJob),
   define(suggestListingsJob),
   define(trackRevivalsJob),
+  define(verifyReviewJob),
+  define(expireReviewsJob),
   define(streakCheckJob),
   define(digestEmailJob),
   define(liftSuspensionsJob),

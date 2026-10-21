@@ -101,6 +101,10 @@ export const reviewRequests = pgTable(
     claimedBy: uuid('claimed_by').references(() => users.id, { onDelete: 'set null' }),
     claimedAt: timestamptz('claimed_at'),
     expiresAt: timestamptz('expires_at').notNull(),
+    /** A reviewer's dispute of an unhelpful rating, for moderators (§8 F15 "Rating and settlement"). */
+    disputedBy: uuid('disputed_by').references(() => users.id, { onDelete: 'set null' }),
+    disputeNote: text('dispute_note'),
+    disputedAt: timestamptz('disputed_at'),
     createdAt: createdAt(),
     updatedAt: updatedAt(),
   },
@@ -109,6 +113,7 @@ export const reviewRequests = pgTable(
     index('review_requests_author_idx').on(table.authorUserId),
     index('review_requests_claimed_by_idx').on(table.claimedBy),
     index('review_requests_expires_idx').on(table.expiresAt),
+    index('review_requests_disputed_by_idx').on(table.disputedBy),
   ],
 ).enableRLS();
 

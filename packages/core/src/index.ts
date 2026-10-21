@@ -217,4 +217,16 @@ export {
   type ClaimableRequest,
   type ReviewsOverview,
 } from './reviews/requests';
+export {
+  disputeRating,
+  expireReviews,
+  listDisputes,
+  markSubmitted,
+  rateReview,
+  resolveDispute,
+  reviewReputation,
+  verifyReview,
+  type ReviewReputation,
+  type VerifyOutcome,
+} from './reviews/settlement';
 export type { AdoptionView } from '@commitmates/db';

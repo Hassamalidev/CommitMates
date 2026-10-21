@@ -1,7 +1,7 @@
 import { and, eq, sql } from 'drizzle-orm';
 
 import { getDb, type DbOrTx, type Tx } from '../client';
-import { reviewRequests } from '../schema';
+import { reviewRequests, reviews } from '../schema';
 
 export type ReviewRequestStatus = 'open' | 'claimed' | 'submitted' | 'settled_helpful' | 'settled_unhelpful' | 'expired' | 'disputed';
 
@@ -203,4 +203,105 @@ export async function lockReviewRequest(requestId: string, tx: Tx): Promise<{ st
 
 export async function setReviewRequestStatus(requestId: string, status: ReviewRequestStatus, tx: DbOrTx): Promise<void> {
   await tx.update(reviewRequests).set({ status }).where(eq(reviewRequests.id, requestId));
+}
+
+/** Records the review GitHub showed for a claim and moves the request to `submitted`. */
+export async function insertVerifiedReview(
+  review: { requestId: string; reviewerUserId: string; ghReviewIds: number[]; lineCommentCount: number; verifiedAt: Date },
+  tx: Tx,
+): Promise<void> {
+  await tx.insert(reviews).values(review).onConflictDoNothing();
+  await tx.update(reviewRequests).set({ status: 'submitted' }).where(eq(reviewRequests.id, review.requestId));
+}
+
+export type ReviewRecord = { reviewerUserId: string; rating: 'helpful' | 'unhelpful' | null; ratedAt: Date | null; verifiedAt: Date };
+
+/** The verified review of a request, if any. */
+export async function getReviewOf(requestId: string, db: DbOrTx = getDb()): Promise<ReviewRecord | null> {
+  const [row] = await db
+    .select({ reviewerUserId: reviews.reviewerUserId, rating: reviews.rating, ratedAt: reviews.ratedAt, verifiedAt: reviews.verifiedAt })
+    .from(reviews)
+    .where(eq(reviews.requestId, requestId));
+  return row ?? null;
+}
+
+/** Records the author's rating and the request's settled status. */
+export async function recordRating(requestId: string, rating: 'helpful' | 'unhelpful' | null, status: ReviewRequestStatus, now: Date, tx: Tx): Promise<void> {
+  if (rating !== null) await tx.update(reviews).set({ rating, ratedAt: now }).where(eq(reviews.requestId, requestId));
+  await tx.update(reviewRequests).set({ status }).where(eq(reviewRequests.id, requestId));
+}
+
+/** Marks a request disputed by its reviewer, with their note. */
+export async function recordDispute(requestId: string, reviewerId: string, note: string, now: Date, tx: Tx): Promise<void> {
+  await tx.update(reviewRequests).set({ status: 'disputed', disputedBy: reviewerId, disputeNote: note, disputedAt: now }).where(eq(reviewRequests.id, requestId));
+}
+
+/** Ids of requests the hourly `expire_reviews` run has to act on (CLAUDE.md §8 F15). */
+export async function reviewRequestsDue(
+  now: Date,
+  rules: { claimTtlHours: number; autoSettleDays: number },
+  db: DbOrTx = getDb(),
+): Promise<{ claimsEnded: string[]; openExpired: string[]; autoSettle: string[]; orphaned: string[] }> {
+  const at = now.toISOString();
+  const [claims, open, settle, orphaned] = await Promise.all([
+    db.execute<{ id: string }>(sql`
+      select id from review_requests
+      where status = 'claimed' and (claimed_by is null or claimed_at + make_interval(hours => ${rules.claimTtlHours}) <= ${at}::timestamptz)`),
+    db.execute<{ id: string }>(sql`select id from review_requests where status = 'open' and expires_at <= ${at}::timestamptz`),
+    db.execute<{ id: string }>(sql`
+      select rr.id from review_requests rr join reviews rv on rv.request_id = rr.id
+      where rr.status = 'submitted' and rv.rating is null and rv.verified_at + make_interval(days => ${rules.autoSettleDays}) <= ${at}::timestamptz`),
+    // A reviewer who deleted their account takes their review with them; the request waits for someone else.
+    db.execute<{ id: string }>(sql`
+      select rr.id from review_requests rr
+      where rr.status = 'submitted' and not exists (select 1 from reviews rv where rv.request_id = rr.id)`),
+  ]);
+  return { claimsEnded: claims.map((row) => row.id), openExpired: open.map((row) => row.id), autoSettle: settle.map((row) => row.id), orphaned: orphaned.map((row) => row.id) };
+}
+
+/** Puts a request back to open with no claim, from `claimed` or an orphaned `submitted`. */
+export async function reopenReviewRequest(requestId: string, from: ReviewRequestStatus, tx: DbOrTx): Promise<boolean> {
+  const rows = await tx
+    .update(reviewRequests)
+    .set({ status: 'open', claimedBy: null, claimedAt: null })
+    .where(and(eq(reviewRequests.id, requestId), eq(reviewRequests.status, from)))
+    .returning({ id: reviewRequests.id });
+  return rows.length > 0;
+}
+
+export type DisputedRequest = ReviewRequestRow & { disputeNote: string | null; disputedAt: Date | null; reviewerUserId: string | null };
+
+/** Disputed requests, oldest first; only those at the given universities unless `universityIds` is null. */
+export async function disputedReviewRequests(universityIds: readonly string[] | null, db: DbOrTx = getDb()): Promise<DisputedRequest[]> {
+  if (universityIds?.length === 0) return [];
+  const scope =
+    universityIds === null
+      ? sql``
+      : sql`and rr.university_id in (${sql.join(
+          universityIds.map((id) => sql`${id}::uuid`),
+          sql`, `,
+        )})`;
+  const rows = await db.execute<RawRequest & { dispute_note: string | null; disputed_at: string | null; reviewer_user_id: string | null }>(sql`
+    select ${requestColumns}, rr.dispute_note, rr.disputed_at, rv.reviewer_user_id
+    from review_requests rr ${requestJoins}
+    where rr.status = 'disputed' ${scope}
+    order by rr.disputed_at`);
+  return rows.map((row) => ({
+    ...toRequest(row),
+    disputeNote: row.dispute_note,
+    disputedAt: row.disputed_at === null ? null : new Date(row.disputed_at),
+    reviewerUserId: row.reviewer_user_id,
+  }));
+}
+
+/** Helpful reviews of each verified member at a university, members without any included as 0. */
+export async function helpfulReviewCounts(universityId: string, db: DbOrTx = getDb()): Promise<Map<string, number>> {
+  const rows = await db.execute<{ user_id: string; helpful: number }>(sql`
+    select p.user_id, count(rr.id)::int as helpful
+    from profiles p
+    left join reviews rv on rv.reviewer_user_id = p.user_id
+    left join review_requests rr on rr.id = rv.request_id and rr.status = 'settled_helpful'
+    where p.university_id = ${universityId} and p.verified_at is not null
+    group by p.user_id`);
+  return new Map(rows.map((row) => [row.user_id, row.helpful]));
 }
