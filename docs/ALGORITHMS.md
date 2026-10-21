@@ -283,6 +283,20 @@ All algorithms live in `packages/algorithms` and are pure: no I/O, no clock, no 
 - Tests: `packages/core/src/crawler/crawler.test.ts`
 - Spec: CLAUDE.md §8 F18
 
+## Leaderboards
+
+### Weekly boards
+
+- Code: `packages/algorithms/src/leaderboard/score.ts`, `packages/core/src/leaderboard/service.ts` (job `leaderboard_weekly` on Mondays at 00:00 UTC for the week that just ended, queueing `leaderboard_university` per university: `leaderboard:<universityId>:<week Monday>`), queries in `packages/db/src/queries/leaderboard.ts`
+- Eligibility: universities with at least `unlock.leaderboard.minMembers` verified members
+- Active days: per verified, active member, the days of the week with at least one contribution in GitHub's contribution calendar (a day counts once), read with their own token when valid; an account GitHub no longer knows counts zero. A run that nears its deadline continues with the days counted so far in its payload (nothing per member is stored).
+- Metrics: activeRatio = members with at least `leaderboard.minActiveDays` active days ÷ verified members; medianActiveDays; revivals = adoptions revived in the week by adopters there; helpfulReviews = reviews by members there whose request settled as helpful in the week (dated by the request's last change)
+- Scores: each metric min-max normalized among the board's entries (all equal → 1 above zero, else 0), weighted by `leaderboard.weights`; competition ranks (ties share a rank)
+- Boards: universities within their country; departments with at least `leaderboard.minDeptMembers` verified members within their university; opted-in members within their university by active days, ties broken by helpful reviews. Each run re-ranks its boards under an advisory lock with whatever rows exist, so the boards are complete once every university's run is done. Leaving the individual board deletes the member's rows.
+- Settings: `unlock.leaderboard.minMembers` (15), `leaderboard.minActiveDays` (3), `leaderboard.minDeptMembers` (5), `leaderboard.weights` ({activeRatio 0.5, medianActiveDays 0.3, revivals 0.1, helpfulReviews 0.1})
+- Tests: `packages/algorithms/src/leaderboard/score.test.ts`, `packages/core/src/leaderboard/leaderboard.test.ts`
+- Spec: CLAUDE.md §8 F19
+
 ## Information retrieval
 
 ### YAKE keyphrases

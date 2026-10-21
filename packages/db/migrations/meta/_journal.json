@@ -449,6 +449,13 @@
       "when": 1792563726897,
       "tag": "0063_country_index",
       "breakpoints": true
+    },
+    {
+      "idx": 64,
+      "version": "7",
+      "when": 1792567708474,
+      "tag": "0064_schedule_leaderboard",
+      "breakpoints": true
     }
   ]
 }

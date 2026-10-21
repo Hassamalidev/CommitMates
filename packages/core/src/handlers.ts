@@ -16,6 +16,7 @@ import { suggestListingsJob } from './adoptions/listings';
 import { trackRevivalsJob } from './adoptions/revivals';
 import { expireReviewsJob, verifyReviewJob } from './reviews/settlement';
 import { crawlCountryJob, crawlReposJob } from './crawler/service';
+import { leaderboardUniversityJob, leaderboardWeeklyJob } from './leaderboard/service';
 import { legacyRefreshJob } from './legacy/service';
 import { memberOssContribsJob } from './oss/campus';
 import { proposeSwapsJob } from './swaps/service';
@@ -88,6 +89,8 @@ export const jobHandlers: readonly Registration[] = [
   define(legacyRefreshJob),
   define(crawlCountryJob),
   define(crawlReposJob),
+  define(leaderboardWeeklyJob),
+  define(leaderboardUniversityJob),
   define(streakCheckJob),
   define(digestEmailJob),
   define(liftSuspensionsJob),
