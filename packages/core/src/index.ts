@@ -232,5 +232,5 @@ export {
   type ReviewReputation,
   type VerifyOutcome,
 } from './reviews/settlement';
-export { SWAP_PROPOSALS_SHOWN, getSwaps, proposeSwaps, respondToProposal, setOffers, setWants, swapSummary, type SwapView } from './swaps/service';
+export { SWAP_NOTE_PREFIX, SWAP_PROPOSALS_SHOWN, getSwaps, proposeSwaps, respondToProposal, setOffers, setWants, swapNote, type SwapView } from './swaps/service';
 export type { AdoptionView } from '@commitmates/db';

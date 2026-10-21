@@ -225,10 +225,15 @@ export async function getSwaps(actor: Actor): Promise<SwapView> {
   };
 }
 
-/** The system message of a swap's group thread: who helps whom with what (§8 F16 "Accepting"). */
-export function swapSummary(edges: readonly { from: string; to: string; tag: string }[], logins: Readonly<Record<string, string | null>>): string {
-  const name = (id: string) => (logins[id] ? `@${logins[id]}` : 'a member');
-  return `Skill swap: ${edges.map((edge) => `${name(edge.from)} helps ${name(edge.to)} with ${edge.tag}`).join('; ')}.`;
+/** Prefix of the system message that opens a swap's group thread. */
+export const SWAP_NOTE_PREFIX = 'swap:';
+
+/**
+ * The system message of a swap's group thread (§8 F16 "Accepting"): who helps whom with what, as data
+ * the chat view words (system messages are keys, like the other notes), with logins at that moment.
+ */
+export function swapNote(edges: readonly { from: string; to: string; tag: string }[], logins: Readonly<Record<string, string | null>>): string {
+  return SWAP_NOTE_PREFIX + JSON.stringify(edges.map((edge) => ({ from: logins[edge.from] ?? null, to: logins[edge.to] ?? null, tag: edge.tag })));
 }
 
 export const respondSchema = z.object({ proposalId: z.uuid(), response: z.enum(['accept', 'decline']) });
@@ -258,7 +263,7 @@ export async function respondToProposal(actor: Pick<Member, 'id'>, raw: unknown,
     await setSwapProposalStatus(proposalId, 'accepted', tx);
     const logins = Object.fromEntries(await Promise.all(proposal.members.map(async (id) => [id, await getLogin(id, tx)] as const)));
     const threadId = await createThread('swap', proposal.members, null, tx);
-    await insertMessage({ threadId, authorUserId: null, kind: 'system', body: swapSummary(proposal.edges, logins) }, tx);
+    await insertMessage({ threadId, authorUserId: null, kind: 'system', body: swapNote(proposal.edges, logins) }, tx);
     for (const [index, a] of proposal.members.entries()) for (const b of proposal.members.slice(index + 1)) await addConnection(a, b, 'swap', tx);
     return { status: 'accepted' as const, proposal, threadId };
   });

@@ -472,7 +472,8 @@ k-means with silhouette selection arrives in P6-T06.
 - Pool: verified, active members with a skill vector, not in ghost mode or hidden, and not already in a proposal that waits for answers
 - Cycles: every simple cycle of 2 to `swap.maxCycleLength` members by depth-limited search from each member, visiting only members after the start so each cycle is found once; score = mean edge quality
 - Selection: greedy by score, shorter cycles first on ties, then member order; no member in two proposals. Proposals expire after `swap.proposalTtlDays`.
-- Answers: one decline ends the proposal (the others are told); when everyone accepts, a `swap` group thread opens with a system message saying who helps whom with what, and every pair is connected (`swap`)
+- Answers: one decline ends the proposal (the others are told); when everyone accepts, a `swap` group thread opens with a system message saying who helps whom with what (stored as `swap:` plus the steps as JSON with the logins at that moment, worded by the chat view like the other system notes), and every pair is connected (`swap`)
+- Page: `/swaps` shows proposals (accept or decline while open), verified offers with their level, self-declared offers (comma-separated) and wants (a skill and a priority per row, learning goals included)
 - Settings: `unlock.swap.minMembers`, `swap.minTeachLevel` (0.5), `swap.maxCycleLength` (3), `swap.selfDeclaredFactor` (0.5), `swap.maxPriority` (3), `swap.goalPriority` (2), `swap.proposalTtlDays` (7), `swap.maxSelfDeclared` (10), `swap.maxWants` (10)
 - Tests: `packages/algorithms/src/graph/cycles.test.ts`, `packages/core/src/swaps/swaps.test.ts`
 - Spec: CLAUDE.md §8 F16

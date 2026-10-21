@@ -3,7 +3,7 @@ import { insertTestUser, useTestDatabase, withSettings, type TestDatabase } from
 import pino from 'pino';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
-import { getSwaps, proposeSwaps, respondToProposal, setOffers, setWants, swapSummary } from './service';
+import { getSwaps, proposeSwaps, respondToProposal, setOffers, setWants, swapNote } from './service';
 
 let database: TestDatabase;
 let counter = 0;
@@ -82,7 +82,9 @@ describe('proposeSwaps', () => {
     });
     expect((await proposeSwaps(uni, new Date())).proposed).toBe(1);
     expect((await proposals(uni))[0]?.members).toHaveLength(3);
-    expect(swapSummary((await proposals(uni))[0]!.edges, { [a.id]: a.login, [b.id]: b.login, [c.id]: c.login })).toMatch(/^Skill swap: @swapper-\d+ helps @swapper-\d+ with \w+; .+; .+\.$/);
+    const note = swapNote((await proposals(uni))[0]!.edges, { [a.id]: a.login, [b.id]: b.login, [c.id]: c.login });
+    expect(JSON.parse(note.slice('swap:'.length))).toHaveLength(3);
+    expect(note).toContain(`"from":"${a.login}"`);
 
     const blockedUni = await university();
     const x = await member(blockedUni, { react: 0.9 }, { goals: ['go'] });
@@ -117,7 +119,7 @@ describe('answers', () => {
     expect((await database.sql`select user_id from thread_members where thread_id = ${done.threadId}`).length).toBe(2);
     const [message] = await database.sql<{ kind: string; body: string }[]>`select kind, body from messages where thread_id = ${done.threadId}`;
     expect(message?.kind).toBe('system');
-    expect(message?.body).toContain(`@${one.login} helps @${two.login} with react`);
+    expect(message?.body).toContain(`{"from":"${one.login}","to":"${two.login}","tag":"react"}`);
     const [a, b] = [one.id, two.id].sort();
     expect(await database.sql`select source from connections where user_a = ${a!} and user_b = ${b!}`).toEqual([{ source: 'swap' }]);
     await expect(respondToProposal(one, { proposalId, response: 'decline' })).rejects.toMatchObject({ code: 'swap.closed' });

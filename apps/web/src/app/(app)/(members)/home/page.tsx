@@ -1,4 +1,4 @@
-import { campusUnlocks, describeNotification, getCredits, getStreaks, getUniversity, listClaimable, recentNotifications, unreadCount } from '@commitmates/core';
+import { campusUnlocks, describeNotification, getCredits, getStreaks, getSwaps, getUniversity, listClaimable, recentNotifications, unreadCount } from '@commitmates/core';
 import { Card, buttonStyles } from '@commitmates/ui';
 import type { Metadata } from 'next';
 import Link from 'next/link';
@@ -8,6 +8,7 @@ import { campusCopy, homeNotificationsCopy } from '@/copy/campus';
 import { chatCopy } from '@/copy/chat';
 import { notificationsCopy } from '@/copy/notifications';
 import { reviewsCopy } from '@/copy/reviews';
+import { swapsCopy } from '@/copy/swaps';
 import { streaksCopy } from '@/copy/streaks';
 import { homeCopy } from '@/copy/onboarding';
 import { formatUtc } from '@/lib/format';
@@ -37,6 +38,9 @@ export default async function HomePage() {
   const matching = progress.unlocks.find((unlock) => unlock.key === 'matching');
   const reviewsUnlock = progress.unlocks.find((unlock) => unlock.key === 'reviews');
   const reviews = reviewsUnlock?.unlocked ? await Promise.all([getCredits(member.id), listClaimable(member)]) : null;
+  const swapUnlock = progress.unlocks.find((unlock) => unlock.key === 'swap');
+  const swaps = swapUnlock?.unlocked ? await getSwaps(member) : null;
+  const waitingSwaps = swaps?.proposals.filter((proposal) => proposal.status === 'proposed' && !proposal.responses.some((response) => response.userId === member.id)).length ?? 0;
   const next = progress.unlocks
     .filter((unlock) => !unlock.unlocked && unlock.metric === 'members')
     .sort((a, b) => a.required - b.required)[0];
@@ -91,6 +95,14 @@ export default async function HomePage() {
             </p>
             <Link href="/reviews" className={buttonStyles({ variant: 'secondary', size: 'md', className: 'self-start' })}>
               {reviewsCopy.home.link}
+            </Link>
+          </Card>
+        ) : null}
+        {swapUnlock ? (
+          <Card title={swapsCopy.home.title} className="flex flex-col gap-3">
+            <p className="type-body">{swaps ? swapsCopy.home.summary(waitingSwaps) : swapsCopy.home.locked(swapUnlock.current, swapUnlock.required)}</p>
+            <Link href="/swaps" className={buttonStyles({ variant: waitingSwaps > 0 ? 'primary' : 'secondary', size: 'md', className: 'self-start' })}>
+              {swapsCopy.home.link}
             </Link>
           </Card>
         ) : null}

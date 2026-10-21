@@ -48,6 +48,8 @@ export const chatCopy = {
     system: {
       memberLeft: 'A member left this conversation.',
       left: (login: string) => (login ? `@${login} left this conversation.` : 'Someone left this conversation.'),
+      swap: (steps: readonly { from: string | null; to: string | null; tag: string }[]) =>
+        `Skill swap: ${steps.map((step) => `${step.from ? `@${step.from}` : 'a member'} helps ${step.to ? `@${step.to}` : 'a member'} with ${step.tag}`).join('; ')}.`,
     },
     live: 'New messages appear here as they arrive.',
   },
