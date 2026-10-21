@@ -18,12 +18,13 @@ const core = {
   listRepo: vi.fn<(...args: unknown[]) => Promise<string>>(),
   withdrawRepo: vi.fn<(...args: unknown[]) => Promise<void>>(),
   dismissSuggestion: vi.fn<(...args: unknown[]) => Promise<void>>(),
+  relistRepo: vi.fn<(...args: unknown[]) => Promise<void>>(),
 };
 vi.mock('@commitmates/core', () => ({ ...core, AppError, ValidationError: class extends AppError {}, getLogger: () => ({ error: vi.fn() }) }));
 vi.mock('next/cache', () => ({ revalidatePath: vi.fn() }));
 vi.mock('next/navigation', () => ({ unstable_rethrow: vi.fn() }));
 
-const { dismissSuggestionAction, listRepoAction, withdrawListingAction } = await import('./projects');
+const { dismissSuggestionAction, listRepoAction, relistAction, withdrawListingAction } = await import('./projects');
 
 const form = (values: Record<string, string>) => {
   const data = new FormData();
@@ -46,7 +47,9 @@ describe('project actions', () => {
     expect(core.withdrawRepo).toHaveBeenCalledWith(member, { listingId: 'listing-1' });
     await dismissSuggestionAction(null, form({ repoGithubId: '43' }));
     expect(core.dismissSuggestion).toHaveBeenCalledWith(member, { repoGithubId: '43' });
-    expect(guardWriteRate).toHaveBeenCalledTimes(3);
+    await relistAction(null, form({ listingId: 'listing-1' }));
+    expect(core.relistRepo).toHaveBeenCalledWith(member, { listingId: 'listing-1' });
+    expect(guardWriteRate).toHaveBeenCalledTimes(4);
   });
 
   it('returns errors inline and refuses members who are not verified', async () => {

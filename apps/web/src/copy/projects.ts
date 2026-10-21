@@ -35,4 +35,11 @@ export const projectsCopy = {
   noLicenseAdopter: 'This project has no license yet, so its code cannot be reused freely. Ask the owner to add one before you build on it.',
   noLicenseOwner: (name: string) => `${name} was adopted but has no license, so the adopter cannot reuse its code freely. Add one on GitHub.`,
   addLicense: (name: string) => `Add a license to ${name}`,
+  revivedBadge: 'Revived',
+  revivedOwner: 'Someone picked this up and it is moving again.',
+  revivedAdopter: 'You brought this project back. Nice work.',
+  droppedOwner: 'Its adoption ended without new commits. Put it up for adoption again?',
+  relistLabel: (name: string) => `List ${name} for adoption again`,
+  relisted: 'Listed again.',
+  droppedAdopter: 'This adoption ended because its fork had no new commits for a while.',
 } as const;

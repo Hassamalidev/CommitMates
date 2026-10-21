@@ -98,7 +98,14 @@ export async function withdrawListing(ownerUserId: string, listingId: string, db
   return rows.length > 0;
 }
 
-export type ListingView = OwnRepo & { listingId: string; status: 'listed' | 'adopted' | 'withdrawn'; note: string | null; listedAt: Date };
+export type ListingView = OwnRepo & {
+  listingId: string;
+  status: 'listed' | 'adopted' | 'withdrawn';
+  note: string | null;
+  listedAt: Date;
+  /** The status of the listing's latest adoption, if anyone asked. */
+  adoptionStatus: 'requested' | 'active' | 'revived' | 'dropped' | null;
+};
 
 /** A member's listings that are listed or adopted, newest first. */
 export async function memberListings(ownerUserId: string, db: DbOrTx = getDb()): Promise<ListingView[]> {
@@ -109,6 +116,8 @@ export async function memberListings(ownerUserId: string, db: DbOrTx = getDb()):
       status: graveyardListings.status,
       note: graveyardListings.note,
       listedAt: graveyardListings.listedAt,
+      adoptionStatus: sql<ListingView['adoptionStatus']>`(
+        select a.status from adoptions a where a.listing_id = ${graveyardListings.id} order by a.created_at desc limit 1)`,
     })
     .from(graveyardListings)
     .innerJoin(ghRepos, eq(ghRepos.githubId, graveyardListings.repoGithubId))
@@ -248,7 +257,7 @@ export async function insertAdoption(adoption: { listingId: string | null; repoG
 export async function activateAdoption(adoptionId: string, db: DbOrTx = getDb()): Promise<boolean> {
   const [row] = await db
     .update(adoptions)
-    .set({ status: 'active' })
+    .set({ status: 'active', activatedAt: sql`now()` })
     .where(and(eq(adoptions.id, adoptionId), eq(adoptions.status, 'requested')))
     .returning({ listingId: adoptions.listingId });
   if (!row) return false;
@@ -290,4 +299,144 @@ export async function memberAdoptions(adopterUserId: string, db: DbOrTx = getDb(
     forkFullName: row.fork_full_name,
     createdAt: new Date(row.created_at),
   }));
+}
+
+/** Adoptions revival tracking still follows: asked for or under way (CLAUDE.md §8 F14 "Revival tracking"). */
+export async function trackableAdoptionIds(db: DbOrTx = getDb()): Promise<string[]> {
+  const rows = await db.select({ id: adoptions.id }).from(adoptions).where(sql`${adoptions.status} in ('requested', 'active')`).orderBy(adoptions.createdAt);
+  return rows.map((row) => row.id);
+}
+
+export type TrackedAdoption = {
+  id: string;
+  status: AdoptionView['status'];
+  listingId: string | null;
+  repoGithubId: number;
+  repoFullName: string | null;
+  adopterUserId: string;
+  adopterLogin: string | null;
+  /** The listing's owner, or the repository's owner when they are a member (never the adopter). */
+  ownerUserId: string | null;
+  forkFullName: string | null;
+  createdAt: Date;
+  activatedAt: Date | null;
+  /** The status of the message request that asked the owner, for a listing adoption. */
+  requestStatus: 'pending' | 'accepted' | 'declined' | 'expired' | null;
+};
+
+/** One adoption with what revival tracking needs about it. */
+export async function getTrackedAdoption(adoptionId: string, db: DbOrTx = getDb()): Promise<TrackedAdoption | null> {
+  const rows = await db.execute<{
+    id: string;
+    status: AdoptionView['status'];
+    listing_id: string | null;
+    repo_github_id: string;
+    full_name: string | null;
+    adopter_user_id: string;
+    adopter_login: string | null;
+    owner_user_id: string | null;
+    fork_full_name: string | null;
+    created_at: string;
+    activated_at: string | null;
+    request_status: TrackedAdoption['requestStatus'];
+  }>(sql`
+    select a.id, a.status, a.listing_id, a.repo_github_id, r.full_name, a.adopter_user_id, adopter.login as adopter_login,
+           coalesce(l.owner_user_id, owner.user_id) as owner_user_id, a.fork_full_name, a.created_at, a.activated_at,
+           (select mr.status from message_requests mr where mr.context_kind = 'adoption' and mr.context_id = a.id::text
+            order by mr.created_at desc limit 1) as request_status
+    from adoptions a
+    left join gh_repos r on r.github_id = a.repo_github_id
+    left join graveyard_listings l on l.id = a.listing_id
+    left join github_identities adopter on adopter.user_id = a.adopter_user_id
+    left join github_identities owner on owner.github_id = r.owner_github_id
+    where a.id = ${adoptionId}`);
+  const row = rows[0];
+  if (!row) return null;
+  return {
+    id: row.id,
+    status: row.status,
+    listingId: row.listing_id,
+    repoGithubId: Number(row.repo_github_id),
+    repoFullName: row.full_name,
+    adopterUserId: row.adopter_user_id,
+    adopterLogin: row.adopter_login,
+    ownerUserId: row.owner_user_id === row.adopter_user_id ? null : row.owner_user_id,
+    forkFullName: row.fork_full_name,
+    createdAt: new Date(row.created_at),
+    activatedAt: row.activated_at === null ? null : new Date(row.activated_at),
+    requestStatus: row.request_status,
+  };
+}
+
+/**
+ * Records a fork found for an adoption. One asked for from a global result becomes active with it;
+ * an active one keeps its status. False when the adoption was in neither state.
+ */
+export async function recordDetectedFork(adoptionId: string, forkFullName: string, db: DbOrTx = getDb()): Promise<boolean> {
+  const rows = await db.execute<{ id: string }>(sql`
+    update adoptions
+    set fork_full_name = ${forkFullName},
+        status = case when status = 'requested' then 'active'::adoption_status else status end,
+        activated_at = coalesce(activated_at, now())
+    where id = ${adoptionId} and (status = 'active' or (status = 'requested' and listing_id is null))
+    returning id`);
+  return rows.length > 0;
+}
+
+/** An active adoption whose fork has enough new commits becomes revived. False when it was not active. */
+export async function markAdoptionRevived(adoptionId: string, now: Date, db: DbOrTx = getDb()): Promise<boolean> {
+  const rows = await db
+    .update(adoptions)
+    .set({ status: 'revived', revivedAt: now })
+    .where(and(eq(adoptions.id, adoptionId), eq(adoptions.status, 'active')))
+    .returning({ id: adoptions.id });
+  return rows.length > 0;
+}
+
+/**
+ * Ends an adoption that went nowhere. Its listing stays as it is: an adopted listing returns to the
+ * Graveyard only when its owner lists it again (§8 F14 "if the owner agrees").
+ */
+export async function markAdoptionDropped(adoptionId: string, db: DbOrTx = getDb()): Promise<boolean> {
+  const rows = await db
+    .update(adoptions)
+    .set({ status: 'dropped' })
+    .where(and(eq(adoptions.id, adoptionId), sql`${adoptions.status} in ('requested', 'active')`))
+    .returning({ id: adoptions.id });
+  return rows.length > 0;
+}
+
+/** Lists an adopted project again after its adoption was dropped. False when it is not the owner's or not dropped. */
+export async function relistDroppedListing(ownerUserId: string, listingId: string, db: DbOrTx = getDb()): Promise<boolean> {
+  const rows = await db.execute<{ id: string }>(sql`
+    update graveyard_listings l set status = 'listed'
+    where l.id = ${listingId} and l.owner_user_id = ${ownerUserId} and l.status = 'adopted'
+      and not exists (select 1 from adoptions a where a.listing_id = l.id and a.status in ('requested', 'active', 'revived'))
+    returning l.id`);
+  return rows.length > 0;
+}
+
+/**
+ * Whether the member with this GitHub id took part in a revival, as adopter or owner: the "Revived"
+ * badge and the companion's `reviver` trait (§8 F14, §9.5).
+ */
+export async function hasRevivalBadge(githubId: number, db: DbOrTx = getDb()): Promise<boolean> {
+  const rows = await db.execute<{ found: boolean }>(sql`
+    select exists (
+      select 1
+      from adoptions a
+      left join graveyard_listings l on l.id = a.listing_id
+      left join gh_repos r on r.github_id = a.repo_github_id
+      join github_identities gi on gi.github_id = ${githubId}
+      where a.status = 'revived'
+        and (a.adopter_user_id = gi.user_id or l.owner_user_id = gi.user_id or r.owner_github_id = ${githubId})
+    ) as found`);
+  return rows[0]?.found ?? false;
+}
+
+/** Revivals so far, and those since `since` (CLAUDE.md §1.7 "Revivals"). */
+export async function countRevivals(since: Date, db: DbOrTx = getDb()): Promise<{ total: number; recent: number }> {
+  const rows = await db.execute<{ total: string; recent: string }>(sql`
+    select count(*) as total, count(*) filter (where revived_at >= ${since.toISOString()}::timestamptz) as recent from adoptions where status = 'revived'`);
+  return { total: Number(rows[0]?.total ?? 0), recent: Number(rows[0]?.recent ?? 0) };
 }

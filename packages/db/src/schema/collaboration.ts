@@ -73,6 +73,8 @@ export const adoptions = pgTable(
     status: adoptionStatus('status').notNull().default('requested'),
     createdAt: createdAt(),
     updatedAt: updatedAt(),
+    /** When the adoption became active: the owner accepted, or the adopter's fork was found. */
+    activatedAt: timestamptz('activated_at'),
     revivedAt: timestamptz('revived_at'),
   },
   (table) => [

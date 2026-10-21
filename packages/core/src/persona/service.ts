@@ -17,6 +17,7 @@ import {
   getMemberProfileByGithubId,
   getPackageTags,
   getSetting,
+  hasRevivalBadge,
   metricRank,
   recordMetricSamples,
 } from '@commitmates/db';
@@ -153,11 +154,19 @@ export async function buildDevCard(snapshot: ProfileSnapshot): Promise<DevCard> 
       speciesKey: tags[0]?.tag ?? topLanguage?.name ?? profile.login.toLowerCase(),
       paletteHex: topLanguage?.color ?? null,
       stage: companionStage(score, stageCuts),
-      // Traits come from badges (reviews, revivals, streaks), which members earn from Phase 4 on.
-      traits: [],
+      // Traits come from badges members earn (§9.5); people who have not signed up have none.
+      traits: snapshot.isMember ? await memberTraits(profile.githubId) : [],
     },
     calendar90,
   };
+}
+
+/**
+ * A member's companion traits from the badges they earned (CLAUDE.md §9.5): `reviver` for taking part
+ * in a revival (§8 F14). Reviews, streaks, open source and mentoring add theirs as those features land.
+ */
+export async function memberTraits(githubId: number): Promise<string[]> {
+  return (await hasRevivalBadge(githubId)) ? ['reviver'] : [];
 }
 
 /**

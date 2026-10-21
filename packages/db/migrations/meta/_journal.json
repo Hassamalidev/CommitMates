@@ -386,6 +386,13 @@
       "when": 1792540296419,
       "tag": "0054_settings_listings",
       "breakpoints": true
+    },
+    {
+      "idx": 55,
+      "version": "7",
+      "when": 1792543720078,
+      "tag": "0055_adoption_activation",
+      "breakpoints": true
     }
   ]
 }

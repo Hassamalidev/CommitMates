@@ -1,6 +1,6 @@
 'use server';
 
-import { dismissSuggestion, listRepo, withdrawRepo } from '@commitmates/core';
+import { dismissSuggestion, listRepo, relistRepo, withdrawRepo } from '@commitmates/core';
 import { revalidatePath } from 'next/cache';
 
 import { withAction, type ActionResult } from '@/server/action';
@@ -40,6 +40,16 @@ export const dismissSuggestionAction: FormAction = async (_previous, formData) =
     const member = await requireVerified();
     await guardWriteRate(member.id);
     await dismissSuggestion(member, { repoGithubId: field(formData, 'repoGithubId') });
+    revalidatePath('/settings/projects');
+    return null;
+  })();
+
+/** Puts an adopted project back up for adoption after its adoption ended (CLAUDE.md §8 F14 "Revival tracking"). */
+export const relistAction: FormAction = async (_previous, formData) =>
+  withAction('projects.relist', async () => {
+    const member = await requireVerified();
+    await guardWriteRate(member.id);
+    await relistRepo(member, { listingId: field(formData, 'listingId') });
     revalidatePath('/settings/projects');
     return null;
   })();

@@ -192,4 +192,5 @@ export {
 export { dismissSuggestion, getProjects, listRepo, weekStart, withdrawRepo } from './adoptions/listings';
 export type { ListingView, OwnRepo, SuggestionView } from '@commitmates/db';
 export { getAdoptions, linkFork, recordAdoptionInterest, requestAdoption, type AdoptionsOverview } from './adoptions/flow';
+export { relistRepo, trackAdoption } from './adoptions/revivals';
 export type { AdoptionView } from '@commitmates/db';

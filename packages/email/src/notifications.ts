@@ -64,6 +64,22 @@ const describers: Readonly<Record<string, (data: Record<string, unknown>) => Not
       : 'Your shared streak is paused after a few missed days. Check in with your partner, or start one with someone new.',
     path: '/streaks',
   }),
+  adoption_revived: (data) => ({
+    title: 'A project was revived',
+    line:
+      text(data.role) === 'owner'
+        ? `${text(data.repo) || 'Your project'} is being worked on again in ${text(data.fork) || 'its new fork'}. You both earned the Revived badge.`
+        : `Your work brought ${text(data.repo) || 'the project you adopted'} back to life. You earned the Revived badge.`,
+    path: '/settings/projects',
+  }),
+  adoption_dropped: (data) => ({
+    title: 'An adoption ended',
+    line:
+      text(data.role) === 'owner'
+        ? `The adoption of ${text(data.repo) || 'your project'} ended without new commits. You can put it up for adoption again.`
+        : `Your adoption of ${text(data.repo) || 'a project'} ended because its fork had no new commits for a while.`,
+    path: '/settings/projects',
+  }),
   github_reconnect: () => ({
     title: 'Sign in with GitHub again',
     line: 'Your GitHub sign-in has expired, so a streak day was skipped instead of counted. Sign in again to keep it going.',
@@ -104,4 +120,6 @@ export const MUTABLE_NOTIFICATIONS: Readonly<Record<string, string>> = {
   pair_accepted: 'Accepted streak invitations',
   pair_ended: 'Ended streaks',
   pair_paused: 'Paused streaks',
+  adoption_revived: 'Revived projects',
+  adoption_dropped: 'Ended adoptions',
 };

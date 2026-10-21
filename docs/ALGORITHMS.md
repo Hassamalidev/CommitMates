@@ -408,6 +408,20 @@ TF-IDF arrives in P4-T02.
 - Tests: `packages/core/src/adoptions/flow.test.ts`, `apps/web/src/components/graveyard/graveyard.test.tsx`, `e2e/projects.spec.ts`
 - Spec: CLAUDE.md §8 F7 (uni scope, "Members"), §8 F14 "Adoption flow"
 
+### Revival tracking
+
+- Code: `packages/core/src/adoptions/revivals.ts` (job `track_revivals`, daily at 05:00 UTC: one check per adoption that is requested or active, `revival:<adoptionId>:<UTC day>`), queries in `packages/db/src/queries/adoptions.ts`; GitHub readers `listForks`, `listCommits` with `since`, `fetchRepositoryById`
+- Identity: the adopter's own token when valid, else the server token (public reads only)
+- Requested through a listing: dropped once the message request is declined or expired (quietly); only the owner's acceptance starts it
+- Requested from a global result: the repository's current name is read by id when it is not cached; when a fork owned by the adopter (login compared case-insensitively) appears among the repository's forks (newest first, `github.maxPages.default` pages), the adoption becomes active with that fork; still without a fork after `adoptions.dropAfterDays` days it is dropped quietly
+- Active: the fork is the linked one, or found the same way. Commits on the fork's default branch dated at or after the adoption's start (`since` = when it was asked for) are counted up to `adoptions.reviveMinCommits`; reaching it makes the adoption revived (`revived_at`), notifies adopter and owner (`adoption_revived`), and gives both the "Revived" badge. With fewer, the last activity is the newest such commit or the activation time, whichever is later; after `adoptions.dropAfterDays` days of none the adoption is dropped and both are notified (`adoption_dropped`). A deleted fork counts as no commits.
+- Listing after a drop: stays adopted until its owner lists it again from `/settings/projects` (allowed only when no adoption of it is requested, active or revived)
+- Badge and trait: a member who adopted, listed or owns a revived adoption's repository has the "Revived" badge; their Dev Card companion wears the `reviver` trait (§9.5) from its next refresh
+- Metric: revivals in all and in the last 30 days on `/admin/metrics` (§1.7)
+- Settings: `adoptions.reviveMinCommits` (3), `adoptions.dropAfterDays` (90), `github.maxPages.default`
+- Tests: `packages/core/src/adoptions/revivals.test.ts`, `packages/github/src/queries/repos.test.ts`
+- Spec: CLAUDE.md §8 F14 "Revival tracking"
+
 ## Clustering, graphs and assignment
 
 No entries yet. k-means with silhouette selection arrives in P6-T06; cycle search in P5-T06.

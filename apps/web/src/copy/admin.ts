@@ -212,7 +212,12 @@ export const adminCopy = {
       value: (days: number, pairs: number) => `${days.toFixed(1)} days across ${pairs === 1 ? '1 active pair' : `${pairs} active pairs`}`,
       none: 'No active shared streaks yet.',
     },
-    later: 'Activation, revivals, review quality and alumni responsiveness appear here as those features ship.',
+    revivals: {
+      title: 'Revivals',
+      line: 'Adoptions whose fork received new commits after the adoption.',
+      value: (total: number, recent: number, days: number) => `${total} in all, ${recent} in the last ${days} days`,
+    },
+    later: 'Activation, review quality and alumni responsiveness appear here as those features ship.',
   },
   settings: {
     metaTitle: 'Settings',

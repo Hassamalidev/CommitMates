@@ -1,5 +1,5 @@
 import { getAdoptions, getProjects } from '@commitmates/core';
-import { Card, Input, Select, StateChip, buttonStyles } from '@commitmates/ui';
+import { Card, Chip, Input, Select, StateChip, buttonStyles } from '@commitmates/ui';
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import { redirect } from 'next/navigation';
@@ -9,7 +9,7 @@ import { projectsCopy } from '@/copy/projects';
 import { formatUtc } from '@/lib/format';
 import { licenseChooserUrl } from '@/lib/graveyard';
 import { linkForkAction } from '@/server/actions/adoptions';
-import { dismissSuggestionAction, listRepoAction, withdrawListingAction } from '@/server/actions/projects';
+import { dismissSuggestionAction, listRepoAction, relistAction, withdrawListingAction } from '@/server/actions/projects';
 import { getCurrentMember } from '@/server/auth';
 
 export function generateMetadata(): Metadata {
@@ -62,7 +62,9 @@ export default async function ProjectsPage() {
                     {listing.fullName}
                   </a>
                   <StateChip state={STATUS_STATE[listing.status]} label={copy.status[listing.status]} />
+                  {listing.adoptionStatus === 'revived' ? <Chip>{copy.revivedBadge}</Chip> : null}
                 </span>
+                {listing.adoptionStatus === 'revived' ? <p className="type-small text-fg-muted">{copy.revivedOwner}</p> : null}
                 {listing.note ? <p className="type-small break-words">{listing.note}</p> : null}
                 {needsLicense.has(listing.listingId) ? (
                   <p className="type-small">
@@ -71,6 +73,12 @@ export default async function ProjectsPage() {
                       {copy.addLicense(listing.fullName)}
                     </a>
                   </p>
+                ) : null}
+                {listing.status === 'adopted' && listing.adoptionStatus === 'dropped' ? (
+                  <>
+                    <p className="type-small text-fg-muted">{copy.droppedOwner}</p>
+                    <ActionForm action={relistAction} values={{ listingId: listing.listingId }} submitLabel={copy.relistLabel(listing.fullName)} successMessage={copy.relisted} />
+                  </>
                 ) : null}
                 {listing.status === 'listed' ? (
                   <ActionForm action={withdrawListingAction} values={{ listingId: listing.listingId }} submitLabel={copy.withdrawLabel(listing.fullName)} variant="ghost" />
@@ -106,6 +114,8 @@ export default async function ProjectsPage() {
                     <StateChip state={ADOPTION_STATE[adoption.status]} label={copy.adoptionStatus[adoption.status]} />
                   </span>
                   {adoption.forkFullName ? <p className="type-small">{copy.forkLinked(adoption.forkFullName)}</p> : null}
+                  {adoption.status === 'revived' ? <p className="type-small text-fg-muted">{copy.revivedAdopter}</p> : null}
+                  {adoption.status === 'dropped' ? <p className="type-small text-fg-muted">{copy.droppedAdopter}</p> : null}
                   {adoption.status === 'active' && adoption.fullName && adoption.licenseSpdx === null ? (
                     <p className="type-small text-fg-muted">{copy.noLicenseAdopter}</p>
                   ) : null}

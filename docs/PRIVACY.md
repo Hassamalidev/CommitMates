@@ -107,7 +107,7 @@ Shared streaks between two members: invitations sent from a conversation, daily 
 
 ### `graveyard_listings`, `listing_suggestions`, `adoptions` (class A)
 
-Repositories a member put up for adoption with an optional note, private suggestions of their own repositories to list (shown only to them), and adoptions they asked for with the fork they work in. Listings are visible only inside the member's university. Deleted by cascade.
+Repositories a member put up for adoption with an optional note, private suggestions of their own repositories to list (shown only to them), and adoptions they asked for with the fork they work in, when it started and whether it was revived. Revival tracking reads only the public fork's commit list and the repository's public fork list. Listings are visible only inside the member's university. Deleted by cascade.
 
 ### `review_requests`, `reviews`, `credit_ledger`, `ledger_locks` (class A)
 

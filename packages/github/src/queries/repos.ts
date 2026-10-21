@@ -55,7 +55,15 @@ export type Repository = {
 
 /** One repository's metadata. Throws `GitHubNotFoundError` for a missing or private repository. */
 export async function fetchRepository(client: GitHubClient, owner: string, repo: string, options: RequestOptions = {}): Promise<Repository> {
-  const data = await client.get('GET /repos/{owner}/{repo}', { owner, repo }, repositorySchema, { ...options, what: `${owner}/${repo}` });
+  return toRepository(await client.get('GET /repos/{owner}/{repo}', { owner, repo }, repositorySchema, { ...options, what: `${owner}/${repo}` }));
+}
+
+/** A repository by its GitHub id, which survives renames and transfers. */
+export async function fetchRepositoryById(client: GitHubClient, githubId: number, options: RequestOptions = {}): Promise<Repository> {
+  return toRepository(await client.get('GET /repositories/{id}', { id: githubId }, repositorySchema, { ...options, what: `repository ${githubId}` }));
+}
+
+function toRepository(data: z.infer<typeof repositorySchema>): Repository {
   return {
     githubId: data.id,
     fullName: data.full_name,
@@ -148,16 +156,20 @@ export type CommitSummary = {
 /** GitHub's largest page. */
 const COMMITS_PER_PAGE = 100;
 
-/** The most recent commits on the default branch, newest first, up to `limit`. */
+/**
+ * The most recent commits on the default branch, newest first, up to `limit`; with `since` (an ISO
+ * timestamp), only commits dated at or after it.
+ */
 export async function listCommits(
   client: GitHubClient,
   owner: string,
   repo: string,
-  options: RequestOptions & { limit: number },
+  options: RequestOptions & { limit: number; since?: string },
 ): Promise<{ commits: CommitSummary[]; truncated: boolean }> {
   if (options.limit <= 0) return { commits: [], truncated: false };
   const perPage = Math.min(COMMITS_PER_PAGE, options.limit);
-  const page = await client.paginate('GET /repos/{owner}/{repo}/commits', { owner, repo }, commitSchema, {
+  const params = options.since === undefined ? { owner, repo } : { owner, repo, since: options.since };
+  const page = await client.paginate('GET /repos/{owner}/{repo}/commits', params, commitSchema, {
     ...options,
     what: `${owner}/${repo}`,
     perPage,
@@ -196,4 +208,22 @@ export async function fetchCommitFiles(
     what: `${owner}/${repo}@${sha.slice(0, 7)}`,
   });
   return (data.files ?? []).map((file) => ({ path: file.filename, additions: file.additions, deletions: file.deletions }));
+}
+
+const forkSchema = z.object({ full_name: z.string(), owner: z.object({ login: z.string() }), created_at: z.string().nullish() });
+
+export type ForkSummary = { fullName: string; ownerLogin: string; createdAt: string | null };
+
+/** A repository's forks, newest first, up to the page cap (`github.maxPages.default` unless given). */
+export async function listForks(
+  client: GitHubClient,
+  owner: string,
+  repo: string,
+  options: RequestOptions & { maxPages?: number } = {},
+): Promise<{ forks: ForkSummary[]; truncated: boolean }> {
+  const page = await client.paginate('GET /repos/{owner}/{repo}/forks', { owner, repo, sort: 'newest' }, forkSchema, { ...options, what: `${owner}/${repo}` });
+  return {
+    forks: page.items.map((item) => ({ fullName: item.full_name, ownerLogin: item.owner.login, createdAt: item.created_at ?? null })),
+    truncated: page.truncated,
+  };
 }

@@ -37,10 +37,13 @@ export {
   fetchCommitFiles,
   fetchContributorStats,
   fetchRepository,
+  fetchRepositoryById,
   listCommits,
+  listForks,
   type CommitFile,
   type CommitSummary,
   type ContributorStats,
+  type ForkSummary,
   type Repository,
 } from './queries/repos';
 export { countTopicRepositories, searchRepositories, searchUsers, type SearchRepo, type SearchUser } from './queries/search';
