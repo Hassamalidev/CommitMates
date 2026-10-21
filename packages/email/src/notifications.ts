@@ -125,6 +125,21 @@ const describers: Readonly<Record<string, (data: Record<string, unknown>) => Not
           : 'A moderator kept your unhelpful rating.',
     path: '/reviews',
   }),
+  swap_proposed: (data) => ({
+    title: 'A skill swap for you',
+    line: data.size === 3 ? 'Two classmates and you could each teach the next one something. Take a look.' : 'A classmate could teach you something you want to learn, and you them. Take a look.',
+    path: '/swaps',
+  }),
+  swap_declined: () => ({
+    title: 'A skill swap did not happen',
+    line: 'Someone passed on a skill swap you were part of. We will look for another one tomorrow.',
+    path: '/swaps',
+  }),
+  swap_accepted: (data) => ({
+    title: 'Your skill swap is on',
+    line: 'Everyone accepted. Say hello in your group conversation.',
+    path: isUuid(text(data.threadId)) ? `/inbox/${text(data.threadId)}` : '/inbox',
+  }),
   github_reconnect: () => ({
     title: 'Sign in with GitHub again',
     line: 'Your GitHub sign-in has expired, so a streak day was skipped instead of counted. Sign in again to keep it going.',
@@ -172,4 +187,7 @@ export const MUTABLE_NOTIFICATIONS: Readonly<Record<string, string>> = {
   review_submitted: 'Reviews to rate',
   review_rated: 'Ratings of your reviews',
   review_claim_expired: 'Claims that ran out',
+  swap_proposed: 'Skill swap proposals',
+  swap_declined: 'Skill swaps that did not happen',
+  swap_accepted: 'Skill swaps everyone accepted',
 };

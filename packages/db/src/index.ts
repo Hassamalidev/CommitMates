@@ -27,6 +27,7 @@ export * from './queries/verification';
 export * from './queries/security';
 export * from './queries/safety';
 export * from './queries/streaks';
+export * from './queries/swaps';
 export * from './settings';
 export { getLogger, hashUserId, setLogger, type Logger } from './logger';
 export { decrypt, encrypt, keyVersionOf, type EncryptionKeys } from './crypto';

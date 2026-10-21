@@ -461,7 +461,21 @@ TF-IDF arrives in P4-T02.
 
 ## Clustering, graphs and assignment
 
-No entries yet. k-means with silhouette selection arrives in P6-T06; cycle search in P5-T06.
+k-means with silhouette selection arrives in P6-T06.
+
+### Skill swap cycles
+
+- Code: `packages/algorithms/src/graph/cycles.ts` (`swapEdges`, `findSwapCycles`, `selectSwapCycles`), `packages/algorithms/src/matching/teach.ts` (`teachLevels`), orchestration in `packages/core/src/swaps/service.ts` (job `propose_swaps`, nightly at 03:30 UTC, one run per university where `unlock.swap.minMembers` verified members have joined: `swaps:<universityId>:<UTC day>`)
+- Teaching level: a member's skill-vector weight for a tag as a percentile rank among all members of the university with a vector (those without the tag count as 0). Tags at or above `swap.minTeachLevel` are verified offers, rewritten into `swap_offers` every run. Self-declared offers are the member's own, from the tag vocabulary, at most `swap.maxSelfDeclared`, stored at level `swap.minTeachLevel`.
+- Wants: the member's ranked wants (priority 1 to `swap.maxPriority`, at most `swap.maxWants`) plus their learning goals they did not rank, at `swap.goalPriority`; priority is normalized by `swap.maxPriority`
+- Edges: A→B for each tag A offers and B wants; quality = level × normalized priority, × `swap.selfDeclaredFactor` for a self-declared offer; only the best edge per ordered pair is kept (ties by tag); no edge across a block either way
+- Pool: verified, active members with a skill vector, not in ghost mode or hidden, and not already in a proposal that waits for answers
+- Cycles: every simple cycle of 2 to `swap.maxCycleLength` members by depth-limited search from each member, visiting only members after the start so each cycle is found once; score = mean edge quality
+- Selection: greedy by score, shorter cycles first on ties, then member order; no member in two proposals. Proposals expire after `swap.proposalTtlDays`.
+- Answers: one decline ends the proposal (the others are told); when everyone accepts, a `swap` group thread opens with a system message saying who helps whom with what, and every pair is connected (`swap`)
+- Settings: `unlock.swap.minMembers`, `swap.minTeachLevel` (0.5), `swap.maxCycleLength` (3), `swap.selfDeclaredFactor` (0.5), `swap.maxPriority` (3), `swap.goalPriority` (2), `swap.proposalTtlDays` (7), `swap.maxSelfDeclared` (10), `swap.maxWants` (10)
+- Tests: `packages/algorithms/src/graph/cycles.test.ts`, `packages/core/src/swaps/swaps.test.ts`
+- Spec: CLAUDE.md §8 F16
 
 ## Scoring
 

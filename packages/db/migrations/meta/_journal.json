@@ -407,6 +407,13 @@
       "when": 1792547694233,
       "tag": "0057_review_disputes",
       "breakpoints": true
+    },
+    {
+      "idx": 58,
+      "version": "7",
+      "when": 1792550656235,
+      "tag": "0058_settings_swaps",
+      "breakpoints": true
     }
   ]
 }
