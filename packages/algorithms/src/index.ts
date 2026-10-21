@@ -174,3 +174,4 @@ export {
 export { componentMeans, evenLevels, stageDaysFrom, tuneModeWeights } from './matching/tune';
 export { findSwapCycles, selectSwapCycles, swapEdges, type SwapCycle, type SwapEdge, type SwapOffer, type SwapWant } from './graph/cycles';
 export { teachLevels } from './matching/teach';
+export { markdownExcerpt, markdownToText } from './text/markdown';

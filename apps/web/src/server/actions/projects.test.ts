@@ -19,12 +19,14 @@ const core = {
   withdrawRepo: vi.fn<(...args: unknown[]) => Promise<void>>(),
   dismissSuggestion: vi.fn<(...args: unknown[]) => Promise<void>>(),
   relistRepo: vi.fn<(...args: unknown[]) => Promise<void>>(),
+  addLegacyEntry: vi.fn<(...args: unknown[]) => Promise<string>>(),
+  removeLegacyEntry: vi.fn<(...args: unknown[]) => Promise<void>>(),
 };
 vi.mock('@commitmates/core', () => ({ ...core, AppError, ValidationError: class extends AppError {}, getLogger: () => ({ error: vi.fn() }) }));
 vi.mock('next/cache', () => ({ revalidatePath: vi.fn() }));
 vi.mock('next/navigation', () => ({ unstable_rethrow: vi.fn() }));
 
-const { dismissSuggestionAction, listRepoAction, relistAction, withdrawListingAction } = await import('./projects');
+const { addLegacyEntryAction, dismissSuggestionAction, listRepoAction, relistAction, removeLegacyEntryAction, withdrawListingAction } = await import('./projects');
 
 const form = (values: Record<string, string>) => {
   const data = new FormData();
@@ -58,5 +60,19 @@ describe('project actions', () => {
     requireVerified.mockRejectedValue(new AppError('auth.unverified', 'Verify first.'));
     expect(await listRepoAction(null, form({ repoGithubId: '9' }))).toMatchObject({ ok: false });
     expect(core.listRepo).toHaveBeenCalledTimes(1);
+  });
+
+  it('showcases and removes entries, reading the questions checkbox', async () => {
+    const form = (values: Record<string, string>) => {
+      const data = new FormData();
+      for (const [key, value] of Object.entries(values)) data.set(key, value);
+      return data;
+    };
+    await addLegacyEntryAction(null, form({ repoGithubId: '7', blurb: 'Maps', acceptsQuestions: 'on' }));
+    expect(core.addLegacyEntry).toHaveBeenCalledWith(member, { repoGithubId: '7', blurb: 'Maps', acceptsQuestions: true });
+    await addLegacyEntryAction(null, form({ repoGithubId: '8', blurb: '' }));
+    expect(core.addLegacyEntry).toHaveBeenLastCalledWith(member, { repoGithubId: '8', blurb: '', acceptsQuestions: false });
+    await removeLegacyEntryAction(null, form({ entryId: 'e1' }));
+    expect(core.removeLegacyEntry).toHaveBeenCalledWith(member, { entryId: 'e1' });
   });
 });

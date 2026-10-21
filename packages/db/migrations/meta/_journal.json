@@ -428,6 +428,13 @@
       "when": 1792554945454,
       "tag": "0060_settings_oss_campus",
       "breakpoints": true
+    },
+    {
+      "idx": 61,
+      "version": "7",
+      "when": 1792556191463,
+      "tag": "0061_settings_legacy",
+      "breakpoints": true
     }
   ]
 }

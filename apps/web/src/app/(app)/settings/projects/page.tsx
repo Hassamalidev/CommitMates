@@ -1,4 +1,4 @@
-import { getAdoptions, getProjects } from '@commitmates/core';
+import { getAdoptions, getProjects, getShowcase } from '@commitmates/core';
 import { Card, Chip, Input, Select, StateChip, buttonStyles } from '@commitmates/ui';
 import type { Metadata } from 'next';
 import Link from 'next/link';
@@ -9,7 +9,7 @@ import { projectsCopy } from '@/copy/projects';
 import { formatUtc } from '@/lib/format';
 import { licenseChooserUrl } from '@/lib/graveyard';
 import { linkForkAction } from '@/server/actions/adoptions';
-import { dismissSuggestionAction, listRepoAction, relistAction, withdrawListingAction } from '@/server/actions/projects';
+import { addLegacyEntryAction, dismissSuggestionAction, listRepoAction, relistAction, removeLegacyEntryAction, withdrawListingAction } from '@/server/actions/projects';
 import { getCurrentMember } from '@/server/auth';
 
 export function generateMetadata(): Metadata {
@@ -41,7 +41,7 @@ export default async function ProjectsPage() {
       </div>
     );
   }
-  const [{ listings, suggestions, others, noteMaxChars }, { adopting, adoptedFromMe }] = await Promise.all([getProjects(member), getAdoptions(member)]);
+  const [{ listings, suggestions, others, noteMaxChars }, { adopting, adoptedFromMe }, showcase] = await Promise.all([getProjects(member), getAdoptions(member), getShowcase(member)]);
   // Adopted listings without a license: the adopter cannot reuse the code until the owner adds one (§8 F14 step 2).
   const needsLicense = new Set(adoptedFromMe.filter((listing) => listing.licenseSpdx === null).map((listing) => listing.listingId));
   const noteField = <Input label={copy.note} name="note" maxLength={noteMaxChars} description={copy.noteHelp(noteMaxChars)} />;
@@ -185,6 +185,46 @@ export default async function ProjectsPage() {
               className="w-full"
             />
             {noteField}
+          </ActionForm>
+        )}
+      </Card>
+
+      <Card title={copy.showcaseTitle} titleAs="h2" className="flex flex-col gap-3">
+        <p className="type-small text-fg-muted">{copy.showcaseIntro}</p>
+        {showcase.entries.length === 0 ? (
+          <p className="type-small text-fg-muted">{copy.showcaseEmpty}</p>
+        ) : (
+          <ul className="flex flex-col gap-3">
+            {showcase.entries.map((entry) => (
+              <li key={entry.id} className="flex flex-col gap-1 border-b border-line pb-3 last:border-0 last:pb-0">
+                <span className="flex flex-wrap items-center gap-2">
+                  <a href={`https://github.com/${entry.fullName}`} className="type-body font-semibold break-words underline" rel="noopener noreferrer" target="_blank">
+                    {entry.fullName}
+                  </a>
+                  <Chip>{entry.acceptsQuestions ? copy.showcaseTakesQuestions : copy.showcaseNoQuestions}</Chip>
+                </span>
+                {entry.blurb ? <p className="type-small break-words">{entry.blurb}</p> : null}
+                <ActionForm action={removeLegacyEntryAction} values={{ entryId: entry.id }} submitLabel={copy.showcaseRemoveLabel(entry.fullName)} variant="ghost" />
+              </li>
+            ))}
+          </ul>
+        )}
+        {showcase.repos.length === 0 ? (
+          <p className="type-small text-fg-muted">{copy.showcaseNoRepos}</p>
+        ) : (
+          <ActionForm action={addLegacyEntryAction} submitLabel={copy.showcaseAdd} successMessage={copy.showcaseAdded} variant="secondary" className="flex flex-col items-start gap-3">
+            <Select
+              label={copy.showcaseRepo}
+              name="repoGithubId"
+              required
+              options={showcase.repos.map((repo) => ({ value: String(repo.githubId), label: repo.fullName }))}
+              className="w-full"
+            />
+            <Input label={copy.showcaseBlurb} name="blurb" maxLength={showcase.blurbMaxChars} description={copy.showcaseBlurbHelp(showcase.blurbMaxChars)} />
+            <label className="type-small flex min-h-11 items-center gap-2">
+              <input type="checkbox" name="acceptsQuestions" defaultChecked />
+              {copy.showcaseQuestions}
+            </label>
           </ActionForm>
         )}
       </Card>

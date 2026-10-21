@@ -1,6 +1,6 @@
 'use server';
 
-import { dismissSuggestion, listRepo, relistRepo, withdrawRepo } from '@commitmates/core';
+import { addLegacyEntry, dismissSuggestion, listRepo, relistRepo, removeLegacyEntry, withdrawRepo } from '@commitmates/core';
 import { revalidatePath } from 'next/cache';
 
 import { withAction, type ActionResult } from '@/server/action';
@@ -50,6 +50,26 @@ export const relistAction: FormAction = async (_previous, formData) =>
     const member = await requireVerified();
     await guardWriteRate(member.id);
     await relistRepo(member, { listingId: field(formData, 'listingId') });
+    revalidatePath('/settings/projects');
+    return null;
+  })();
+
+/** Showcases one of the member's repositories in Senior's Legacy (CLAUDE.md §8 F17 "Showcase"). */
+export const addLegacyEntryAction: FormAction = async (_previous, formData) =>
+  withAction('projects.showcase', async () => {
+    const member = await requireVerified();
+    await guardWriteRate(member.id);
+    await addLegacyEntry(member, { repoGithubId: field(formData, 'repoGithubId'), blurb: field(formData, 'blurb'), acceptsQuestions: formData.get('acceptsQuestions') === 'on' });
+    revalidatePath('/settings/projects');
+    return null;
+  })();
+
+/** Removes a showcase entry. */
+export const removeLegacyEntryAction: FormAction = async (_previous, formData) =>
+  withAction('projects.unshowcase', async () => {
+    const member = await requireVerified();
+    await guardWriteRate(member.id);
+    await removeLegacyEntry(member, { entryId: field(formData, 'entryId') });
     revalidatePath('/settings/projects');
     return null;
   })();

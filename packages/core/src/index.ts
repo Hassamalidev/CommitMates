@@ -234,5 +234,16 @@ export {
 } from './reviews/settlement';
 export { askGapHelper, gapHelpers, type GapHelper, type GapHelpers } from './gap/campus';
 export { askOssContributor, ossCampus, refreshMemberContribs, type OssCampus } from './oss/campus';
+export {
+  addLegacyEntry,
+  askLegacyAuthor,
+  getLegacy,
+  getLegacyDetail,
+  getShowcase,
+  removeLegacyEntry,
+  standingOf,
+  type LegacyDetail,
+  type LegacyView,
+} from './legacy/service';
 export { SWAP_NOTE_PREFIX, SWAP_PROPOSALS_SHOWN, getSwaps, proposeSwaps, respondToProposal, setOffers, setWants, swapNote, type SwapView } from './swaps/service';
 export type { AdoptionView } from '@commitmates/db';

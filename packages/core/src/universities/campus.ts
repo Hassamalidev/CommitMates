@@ -1,6 +1,7 @@
 import {
   campusCounts,
   campusTopics,
+  countLegacyEntries,
   getOrCreateInvite,
   getSetting,
   getUniversityBySlug,
@@ -44,8 +45,7 @@ export type Campus = { university: UniversitySummary; members: number; alumni: n
 /** Progress of every campus feature at a university, with thresholds read from settings. */
 export async function campusUnlocks(universityId: string): Promise<{ members: number; alumni: number; unlocks: Unlock[] }> {
   const counts = await campusCounts(universityId);
-  // Senior's Legacy entries arrive with F17 (P5-T09); until then a university has none.
-  const metrics: Record<UnlockMetric, number> = { members: counts.members, alumni: counts.alumni, legacyProjects: 0 };
+  const metrics: Record<UnlockMetric, number> = { members: counts.members, alumni: counts.alumni, legacyProjects: await countLegacyEntries(universityId) };
   const required = await Promise.all(UNLOCKS.map((unlock) => getSetting(unlock.setting)));
   const unlocks = UNLOCKS.map((unlock, index) => {
     const threshold = Number(required[index]);

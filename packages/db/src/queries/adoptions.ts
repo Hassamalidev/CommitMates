@@ -11,6 +11,7 @@ export type OwnRepo = {
   isArchived: boolean;
   licenseSpdx: string | null;
   stars: number;
+  topics: string[];
 };
 
 const ownRepoColumns = {
@@ -21,6 +22,7 @@ const ownRepoColumns = {
   isArchived: ghRepos.isArchived,
   licenseSpdx: ghRepos.licenseSpdx,
   stars: ghRepos.stars,
+  topics: ghRepos.topics,
 };
 
 /** A member's own repositories that are not forks, most recently pushed first. */

@@ -237,6 +237,22 @@ All algorithms live in `packages/algorithms` and are pure: no I/O, no clock, no 
 - Tests: `packages/core/src/oss/campus.test.ts`, `apps/web/src/components/oss/oss-campus.test.tsx`
 - Spec: CLAUDE.md §8 F8 step 5
 
+## Senior's Legacy
+
+### Library, search and refresh
+
+- Code: `packages/core/src/legacy/service.ts` (job `legacy_refresh`, weekly on Wednesday 06:00 UTC, continuing across runs), queries in `packages/db/src/queries/legacy.ts`, excerpts by `markdownExcerpt` in `packages/algorithms/src/text/markdown.ts`
+- Entries: a verified member showcases one of their own non-fork repositories with an optional blurb (at most `legacy.blurbMaxChars`) and whether they take questions; tags = the repository's topics plus its dependencies' derived tags, normalized; the graduation year is the member's. FYP projects join with F22 (P6-T07).
+- Unlock: entries of active members whose profile is not hidden count toward `unlock.legacy.minProjects`
+- Search: entries at the member's university from active, not hidden owners, never across a block. A query matches the repository's search text or the blurb (`websearch_to_tsquery`, `simple`), or entries whose tags share a topic of the query's cached taxonomy expansion (an uncached query is queued for expansion and searched by its words); relevance = text rank + shared topics. Filters: tag, graduation-year range, department. Sort: relevance (then stars) or stars.
+- Labels: alumni by role; seniors when the graduation year is at most this year + `legacy.minGradYearsAgo`; others by year
+- Detail: the README's start as plain text (fenced code, HTML, images and link targets removed), at most `legacy.excerptChars`; only members of the entry's university, never across a block
+- Ask the author: a message request with `context_kind = 'legacy'` when the author takes questions; alumni with questions off are reached through Alumni Quick Asks once F20 exists (P6-T05)
+- Refresh: each entry's repository is read again by id; private, deleted, or transferred away from the owner → the entry leaves; otherwise its metadata and tags are updated
+- Settings: `unlock.legacy.minProjects` (5), `legacy.minGradYearsAgo` (0), `legacy.blurbMaxChars` (280), `legacy.excerptChars` (600), `legacy.listLimit` (50)
+- Tests: `packages/core/src/legacy/legacy.test.ts`, `packages/algorithms/src/text/markdown.test.ts`
+- Spec: CLAUDE.md §8 F17
+
 ## Information retrieval
 
 ### YAKE keyphrases
