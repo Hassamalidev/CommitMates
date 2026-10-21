@@ -99,6 +99,8 @@ test.describe('shared streaks (e2e flow 7)', () => {
         // Judge as soon as a day is over (the default grace is 6 hours after midnight).
         await sql`update settings set override_value = '0'::jsonb where key = 'streaks.graceHours'`;
       });
+      // Other in-process tests in this worker may have cached the settings table; read it fresh.
+      db.clearSettingsCache();
       restoreFetch = stubGitHub({ [inviter.login]: { [dayOne]: 3, [dayTwo]: 2 }, [partner.login]: { [dayOne]: 1, [dayTwo]: 0 } });
       core.registerAllHandlers();
       const dispatch = await jobs.enqueue('streak_check', {}, { idempotencyKey: `e2e-streaks:${suffix}` });

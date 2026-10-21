@@ -67,9 +67,10 @@ test.describe('Skill Swap (P5-T06)', () => {
 
       await secondPage.goto('/inbox');
       await secondPage.getByRole('link', { name: new RegExp(`@${first.login}`) }).click();
-      await expect(secondPage.getByRole('log', { name: 'Messages' }).getByText(`Skill swap: @${first.login} helps @${second.login} with typescript`, { exact: false })).toBeVisible(
-        ACTION_TIMEOUT,
-      );
+      // The note lists each step; which comes first depends on the cycle's starting member.
+      const log = secondPage.getByRole('log', { name: 'Messages' });
+      await expect(log.getByText(new RegExp(`^Skill swap: .*@${first.login} helps @${second.login} with typescript`))).toBeVisible(ACTION_TIMEOUT);
+      await expect(log.getByText(new RegExp(`@${second.login} helps @${first.login} with go`))).toBeVisible();
     } finally {
       await db.closeDb();
       await secondContext.close();
