@@ -46,6 +46,15 @@ export {
   type ForkSummary,
   type Repository,
 } from './queries/repos';
+export {
+  fetchPullRequest,
+  listPullRequestFiles,
+  listPullRequestReviewComments,
+  listPullRequestReviews,
+  type PullRequest,
+  type PullReview,
+  type PullReviewComment,
+} from './queries/pulls';
 export { countTopicRepositories, searchRepositories, searchUsers, type SearchRepo, type SearchUser } from './queries/search';
 export {
   fetchCommitEstimate,

@@ -34,6 +34,8 @@ describe('notification words', () => {
       'pair_paused',
       'adoption_revived',
       'adoption_dropped',
+      'review_claimed',
+      'review_refunded',
     ]);
     expect(Object.keys(MUTABLE_NOTIFICATIONS)).not.toContain('account_hidden');
     expect(Object.keys(MUTABLE_NOTIFICATIONS)).not.toContain('github_reconnect');

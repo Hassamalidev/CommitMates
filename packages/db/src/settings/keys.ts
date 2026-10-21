@@ -164,6 +164,8 @@ export const SettingKeys = {
   'reviews.claimTtlHours': 'integer',
   'reviews.requestTtlDays': 'integer',
   'reviews.autoSettleDays': 'integer',
+  'reviews.maxLanguages': 'integer',
+  'reviews.listLimit': 'integer',
   'swap.maxCycleLength': 'integer',
   'swap.minTeachLevel': 'number',
   'legacy.minGradYearsAgo': 'integer',

@@ -435,6 +435,18 @@ TF-IDF arrives in P4-T02.
 - Tests: `packages/core/src/reviews/ledger.test.ts` (50 concurrent escrows against 3 credits: exactly 3 succeed, the running balance never drops below 0), `packages/db/src/schema/collaboration.test.ts` (append-only)
 - Spec: CLAUDE.md §8 F15 "Credits", §5.10 "Credit-ledger manipulation"
 
+### Review requests and claims
+
+- Code: `packages/core/src/reviews/requests.ts`, queries in `packages/db/src/queries/reviews.ts`, GitHub readers in `packages/github/src/queries/pulls.ts`
+- Gate: verified members at a university where `unlock.reviews.minMembers` verified members have joined
+- Request: the link must name a pull request (`parseGitHubUrl` with a number); the pull request must exist, be open and in a public repository, and the member must have opened it or own its repository (organization membership and collaborator status of others cannot be read without extra scopes, §2.7). One live request (open, claimed, submitted or disputed) per pull request. The request and a one-credit escrow are written in one transaction; it expires after `reviews.requestTtlDays`.
+- Languages: extensions of changed files (`.ts`) matched case-insensitively against Linguist's `languages.extensions`; an extension several languages share counts for each; ranked by file count then name, at most `reviews.maxLanguages`
+- Listing: open, unexpired requests at the member's university from active members, never their own, never across a block; sorted by language overlap = the sum of the member's skill-vector weights for each language as a tag (lowercase, spaces as hyphens), then newest; at most `reviews.listLimit`
+- Claim: the pull request is read again first; closed, merged, private or missing ends the request (`expired`) with a refund to the author. Claiming is one conditional update (open, unexpired, not the author's), so concurrent claims leave one holder; the author is notified. A holder can give the claim back.
+- Settings: `unlock.reviews.minMembers`, `reviews.requestTtlDays` (14), `reviews.maxLanguages` (5), `reviews.listLimit` (50), `reviews.claimTtlHours` (72, shown with the claim)
+- Tests: `packages/core/src/reviews/requests.test.ts`, `packages/github/src/queries/pulls.test.ts`
+- Spec: CLAUDE.md §8 F15 "Request", "Claim and verify" steps 1–2, "Edge cases"
+
 ## Clustering, graphs and assignment
 
 No entries yet. k-means with silhouette selection arrives in P6-T06; cycle search in P5-T06.

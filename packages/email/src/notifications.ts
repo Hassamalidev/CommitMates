@@ -80,6 +80,19 @@ const describers: Readonly<Record<string, (data: Record<string, unknown>) => Not
         : `Your adoption of ${text(data.repo) || 'a project'} ended because its fork had no new commits for a while.`,
     path: '/settings/projects',
   }),
+  review_claimed: (data) => ({
+    title: 'Your pull request was claimed',
+    line: `${text(data.login) ? `@${text(data.login)}` : 'A classmate'} will review ${text(data.repo) ? `${text(data.repo)}#${text(data.number)}` : 'your pull request'}.`,
+    path: '/reviews',
+  }),
+  review_refunded: (data) => ({
+    title: 'Review request ended',
+    line:
+      text(data.reason) === 'expired'
+        ? 'Nobody reviewed your pull request in time, so the request ended and your credit is back.'
+        : 'Your pull request was closed or is no longer public, so the request ended and your credit is back.',
+    path: '/reviews',
+  }),
   github_reconnect: () => ({
     title: 'Sign in with GitHub again',
     line: 'Your GitHub sign-in has expired, so a streak day was skipped instead of counted. Sign in again to keep it going.',
@@ -122,4 +135,6 @@ export const MUTABLE_NOTIFICATIONS: Readonly<Record<string, string>> = {
   pair_paused: 'Paused streaks',
   adoption_revived: 'Revived projects',
   adoption_dropped: 'Ended adoptions',
+  review_claimed: 'Claimed review requests',
+  review_refunded: 'Ended review requests',
 };

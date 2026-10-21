@@ -393,6 +393,13 @@
       "when": 1792543720078,
       "tag": "0055_adoption_activation",
       "breakpoints": true
+    },
+    {
+      "idx": 56,
+      "version": "7",
+      "when": 1792546713199,
+      "tag": "0056_settings_reviews",
+      "breakpoints": true
     }
   ]
 }

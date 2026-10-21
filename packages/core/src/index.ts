@@ -203,4 +203,18 @@ export {
   settleEscrow,
   type CreditOverview,
 } from './reviews/ledger';
+export {
+  claimDeadline,
+  claimRequest,
+  closeWithRefund,
+  createReviewRequest,
+  extensionOf,
+  getReviewsOverview,
+  languageOverlap,
+  listClaimable,
+  mayRequestReview,
+  unclaimRequest,
+  type ClaimableRequest,
+  type ReviewsOverview,
+} from './reviews/requests';
 export type { AdoptionView } from '@commitmates/db';

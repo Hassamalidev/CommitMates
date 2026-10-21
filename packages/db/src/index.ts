@@ -19,6 +19,7 @@ export * from './queries/onboarding';
 export * from './queries/privacy';
 export * from './queries/persona';
 export * from './queries/recruiter';
+export * from './queries/reviews';
 export * from './queries/taxonomy';
 export * from './queries/universities';
 export * from './queries/university-requests';
