@@ -58,7 +58,7 @@ export type ReviewRequestRow = {
   expiresAt: Date;
   createdAt: Date;
   /** The verified review, once there is one. */
-  review: { lineComments: number; verifiedAt: Date; rating: 'helpful' | 'unhelpful' | null } | null;
+  review: { lineComments: number; verifiedAt: Date; rating: 'helpful' | 'unhelpful' | null; ratedAt: Date | null } | null;
 };
 
 type RawRequest = {
@@ -79,12 +79,13 @@ type RawRequest = {
   line_comment_count: number | null;
   verified_at: string | null;
   rating: 'helpful' | 'unhelpful' | null;
+  rated_at: string | null;
 };
 
 const requestColumns = sql`
   rr.id, rr.author_user_id, author.login as author_login, rr.university_id, rr.pr_url, rr.repo_full_name, rr.pr_number,
   rr.languages, rr.status, rr.claimed_by, claimer.login as claimer_login, rr.claimed_at, rr.expires_at, rr.created_at,
-  rv.line_comment_count, rv.verified_at, rv.rating`;
+  rv.line_comment_count, rv.verified_at, rv.rating, rv.rated_at`;
 const requestJoins = sql`
   left join github_identities author on author.user_id = rr.author_user_id
   left join github_identities claimer on claimer.user_id = rr.claimed_by
@@ -108,7 +109,12 @@ const toRequest = (row: RawRequest): ReviewRequestRow => ({
   review:
     row.verified_at === null
       ? null
-      : { lineComments: row.line_comment_count ?? 0, verifiedAt: new Date(row.verified_at), rating: row.rating },
+      : {
+          lineComments: row.line_comment_count ?? 0,
+          verifiedAt: new Date(row.verified_at),
+          rating: row.rating,
+          ratedAt: row.rated_at === null ? null : new Date(row.rated_at),
+        },
 });
 
 /** One request with its author, claimer and verified review. */

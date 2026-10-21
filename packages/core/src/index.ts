@@ -213,8 +213,11 @@ export {
   languageOverlap,
   listClaimable,
   mayRequestReview,
+  reviewsAccess,
   unclaimRequest,
+  withdrawReviewRequest,
   type ClaimableRequest,
+  type ReviewsAccess,
   type ReviewsOverview,
 } from './reviews/requests';
 export {

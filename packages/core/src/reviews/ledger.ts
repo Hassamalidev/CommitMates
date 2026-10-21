@@ -2,6 +2,7 @@ import {
   ForbiddenError,
   ValidationError,
   appendLedgerEntry,
+  findMemberByLogin,
   getDb,
   getSetting,
   hasLedgerEntry,
@@ -88,7 +89,7 @@ export async function getCredits(userId: string): Promise<CreditOverview> {
 }
 
 export const adjustCreditsSchema = z.object({
-  userId: z.uuid(),
+  login: z.string().trim().min(1, 'Enter the member’s GitHub login.'),
   delta: z.coerce
     .number()
     .int()
@@ -103,15 +104,18 @@ export const adjustCreditsSchema = z.object({
 export async function adjustCredits(actor: Pick<Member, 'id' | 'roles'>, raw: unknown): Promise<number> {
   if (!hasRole(actor, 'admin')) throw new ForbiddenError('reviews.adjust_forbidden', 'Only admins can adjust credits.');
   const input = adjustCreditsSchema.parse(raw);
+  const target = await findMemberByLogin(input.login.replace(/^@/, ''));
+  if (!target) throw new ValidationError('reviews.adjust_unknown', 'No member has that GitHub login.', { field: 'login' });
+  const userId = target.userId;
   return getDb().transaction(async (tx) => {
-    await lockLedger(input.userId, tx);
-    const balance = await ledgerBalance(input.userId, tx);
+    await lockLedger(userId, tx);
+    const balance = await ledgerBalance(userId, tx);
     if (balance + input.delta < 0) {
       throw new ValidationError('reviews.adjust_negative', `That would leave ${balance + input.delta} credits; the balance cannot go below 0.`, { field: 'delta' });
     }
-    const id = await appendLedgerEntry({ userId: input.userId, delta: input.delta, reason: 'admin_adjust', requestId: null }, tx);
+    const id = await appendLedgerEntry({ userId, delta: input.delta, reason: 'admin_adjust', requestId: null }, tx);
     await writeAudit(
-      { actorUserId: actor.id, action: 'credits.adjusted', targetType: 'user', targetId: input.userId, data: { delta: input.delta, note: input.note, ledgerId: id } },
+      { actorUserId: actor.id, action: 'credits.adjusted', targetType: 'user', targetId: userId, data: { delta: input.delta, note: input.note, ledgerId: id } },
       tx,
     );
     return balance + input.delta;

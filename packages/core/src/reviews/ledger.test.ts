@@ -112,13 +112,16 @@ describe('settlement', () => {
 describe('admin adjustments', () => {
   it('lets admins correct a balance with an audit entry, never below zero', async () => {
     const [admin, someone] = [await member(), await member()];
+    await database.sql`insert into github_identities (user_id, github_id, login) values (${someone}, 990001, 'credited-member')`;
+    await database.sql`insert into profiles (user_id, timezone) values (${someone}, 'UTC')`;
     const actor = { id: admin, roles: [{ role: 'admin' as const, universityId: null }] };
-    await expect(adjustCredits({ id: admin, roles: [] }, { userId: someone, delta: 2, note: 'Dispute' })).rejects.toMatchObject({
+    await expect(adjustCredits({ id: admin, roles: [] }, { login: 'credited-member', delta: 2, note: 'Dispute' })).rejects.toMatchObject({
       code: 'reviews.adjust_forbidden',
     });
-    expect(await adjustCredits(actor, { userId: someone, delta: '2', note: 'Dispute settled for the reviewer' })).toBe(2);
-    await expect(adjustCredits(actor, { userId: someone, delta: -3, note: 'Too much' })).rejects.toMatchObject({ code: 'reviews.adjust_negative' });
-    await expect(adjustCredits(actor, { userId: someone, delta: 0, note: 'Nothing' })).rejects.toThrow();
+    expect(await adjustCredits(actor, { login: '@credited-member', delta: '2', note: 'Dispute settled for the reviewer' })).toBe(2);
+    await expect(adjustCredits(actor, { login: 'credited-member', delta: -3, note: 'Too much' })).rejects.toMatchObject({ code: 'reviews.adjust_negative' });
+    await expect(adjustCredits(actor, { login: 'credited-member', delta: 0, note: 'Nothing' })).rejects.toThrow();
+    await expect(adjustCredits(actor, { login: 'nobody-here', delta: 1, note: 'Typo' })).rejects.toMatchObject({ code: 'reviews.adjust_unknown' });
     expect(await balance(someone)).toBe(2);
     const [audit] = await database.sql`select action, actor_user_id, data from audit_log where target_id = ${someone}`;
     expect(audit).toMatchObject({ action: 'credits.adjusted', actor_user_id: admin, data: { delta: 2, note: 'Dispute settled for the reviewer' } });

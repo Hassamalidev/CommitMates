@@ -16,7 +16,9 @@ import {
   listClaimable,
   mayRequestReview,
   pullRequestLanguages,
+  reviewsAccess,
   unclaimRequest,
+  withdrawReviewRequest,
 } from './requests';
 
 const API = 'https://api.github.com';
@@ -190,23 +192,30 @@ describe('claims', () => {
     await expect(open(() => claimRequest(author, { requestId }))).rejects.toMatchObject({ code: 'reviews.own' });
   });
 
-  it('ends a request with a refund when its pull request closed before anyone claimed it', async () => {
+  it('lets the author withdraw an unclaimed request and get the credit back, without notifying them', async () => {
     const [author, reviewer] = [await member(), await member()];
-    servePull(author.login, 'merged', 9, author.login);
-    const requestId = await open(() => createReviewRequest(author, { prUrl: `https://github.com/${author.login}/merged/pull/9` }));
-    expect(await balance(author.id)).toBe(0);
-    servePull(author.login, 'merged', 9, author.login, [], { state: 'closed', merged: true });
-    await expect(open(() => claimRequest(reviewer, { requestId }))).rejects.toMatchObject({ code: 'reviews.pull_gone' });
+    servePull(author.login, 'withdrawn', 9, author.login);
+    const requestId = await open(() => createReviewRequest(author, { prUrl: `https://github.com/${author.login}/withdrawn/pull/9` }));
+    await expect(withdrawReviewRequest(reviewer, { requestId })).rejects.toMatchObject({ code: 'reviews.not_withdrawable' });
+    await withdrawReviewRequest(author, { requestId });
     expect((await database.sql`select status from review_requests where id = ${requestId}`)[0]?.status).toBe('expired');
     expect(await balance(author.id)).toBe(1);
-    expect((await database.sql`select kind from notifications where user_id = ${author.id}`).map((row) => row.kind)).toContain('review_refunded');
+    expect(await database.sql`select kind from notifications where user_id = ${author.id}`).toEqual([]);
+    await expect(withdrawReviewRequest(author, { requestId })).rejects.toMatchObject({ code: 'reviews.not_withdrawable' });
+  });
+
+  it('tells the page whether the Review Exchange is open, locked or needs verification', async () => {
+    const someone = await member();
+    expect(await open(() => reviewsAccess(someone))).toEqual({ state: 'open' });
+    expect(await withSettings({ 'unlock.reviews.minMembers': 10_000 }, () => reviewsAccess(someone))).toMatchObject({ state: 'locked', required: 10_000 });
+    expect(await reviewsAccess({ verified: false, universityId: null })).toEqual({ state: 'unverified' });
   });
 
   it('shows the page’s overview with the balance and the rules from settings', async () => {
     const someone = await member(uni, 2);
     const overview = await open(() => getReviewsOverview(someone));
     expect(overview.credits.balance).toBe(2);
-    expect(overview.rules).toEqual({ minLineComments: 3, claimTtlHours: 72, requestTtlDays: 14, autoSettleDays: 7 });
+    expect(overview.rules).toEqual({ minLineComments: 3, claimTtlHours: 72, requestTtlDays: 14, autoSettleDays: 7, disputeWindowDays: 7, disputeNoteMaxChars: 500 });
     expect(overview.mine).toEqual([]);
   });
 });

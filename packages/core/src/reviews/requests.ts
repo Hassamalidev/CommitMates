@@ -156,22 +156,48 @@ export const requestIdSchema = z.object({ requestId: z.uuid() });
  * Ends a request whose pull request can no longer be reviewed (closed, merged, or gone private):
  * it expires and its author gets the credit back (§8 F15 "Edge cases").
  */
-export async function closeWithRefund(requestId: string, reason: 'pull_closed' | 'pull_missing' | 'expired'): Promise<boolean> {
+export async function closeWithRefund(
+  requestId: string,
+  reason: 'pull_closed' | 'pull_missing' | 'expired' | 'withdrawn',
+  options: { authorId?: string; from?: readonly ('open' | 'claimed')[] } = {},
+): Promise<boolean> {
+  const from = options.from ?? ['open', 'claimed'];
   const closed = await getDb().transaction(async (tx) => {
     const request = await lockReviewRequest(requestId, tx);
-    if (!request || (request.status !== 'open' && request.status !== 'claimed')) return null;
+    if (!request || !(from as readonly string[]).includes(request.status)) return null;
+    if (options.authorId !== undefined && request.authorUserId !== options.authorId) return null;
     await setReviewRequestStatus(requestId, 'expired', tx);
     await settleEscrow(tx, { authorId: request.authorUserId, requestId, outcome: 'refund' });
     return request.authorUserId;
   });
   if (closed === null) return false;
-  await insertNotification(closed, 'review_refunded', { requestId, reason });
+  // Withdrawing is the author's own doing; everything else is news to them.
+  if (reason !== 'withdrawn') await insertNotification(closed, 'review_refunded', { requestId, reason });
   return true;
 }
 
+/** The author takes back a request nobody has claimed yet; the credit returns to them. */
+export async function withdrawReviewRequest(actor: Pick<Member, 'id'>, raw: unknown): Promise<void> {
+  const { requestId } = requestIdSchema.parse(raw);
+  if (!(await closeWithRefund(requestId, 'withdrawn', { authorId: actor.id, from: ['open'] }))) {
+    throw new NotFoundError('reviews.not_withdrawable', 'Only your own requests that nobody has claimed can be withdrawn.');
+  }
+}
+
+export type ReviewsAccess = { state: 'open' } | { state: 'locked'; current: number; required: number } | { state: 'unverified' };
+
+/** Whether the member can use the Review Exchange, and the unlock progress when not yet (CLAUDE.md §1.4). */
+export async function reviewsAccess(actor: Pick<Member, 'verified' | 'universityId'>): Promise<ReviewsAccess> {
+  if (!actor.verified || actor.universityId === null) return { state: 'unverified' };
+  const unlock = (await campusUnlocks(actor.universityId)).unlocks.find((entry) => entry.key === 'reviews');
+  if (!unlock || unlock.unlocked) return { state: 'open' };
+  return { state: 'locked', current: unlock.current, required: unlock.required };
+}
+
 /**
- * Claims an open request (§8 F15 "Claim and verify" step 2). The pull request is checked first: a
- * closed or vanished one ends the request with a refund instead. The author is told who claimed it.
+ * Claims an open request (§8 F15 "Claim and verify" step 2). Claiming reads nothing from GitHub, so
+ * it is instant; a pull request that closed or vanished meanwhile is caught by `verify_review`, which
+ * refunds the author. The author is told who claimed it.
  */
 export async function claimRequest(actor: Actor, raw: unknown, now: Date = new Date()): Promise<{ claimTtlHours: number }> {
   const universityId = await requireReviewsOpen(actor);
@@ -182,19 +208,6 @@ export async function claimRequest(actor: Actor, raw: unknown, now: Date = new D
   }
   if (request.authorUserId === actor.id) throw new ValidationError('reviews.own', 'You cannot review your own pull request.');
   if (await isBlockedEitherWay(actor.id, request.authorUserId)) throw new NotFoundError('reviews.not_open', 'That request is no longer open.');
-
-  const [owner, repo] = request.repoFullName.split('/');
-  let pull: PullRequest | null = null;
-  try {
-    pull = await fetchPullRequest(githubFor(SERVER_IDENTITY), owner ?? '', repo ?? '', request.prNumber);
-  } catch (error) {
-    if (!(error instanceof GitHubNotFoundError)) throw error;
-  }
-  if (pull?.state !== 'open' || pull.isPrivate) {
-    await closeWithRefund(requestId, pull === null ? 'pull_missing' : 'pull_closed');
-    throw new ValidationError('reviews.pull_gone', 'That pull request was closed, so the request has ended and its author got the credit back.');
-  }
-
   if (!(await claimReviewRequest(requestId, actor.id, now))) throw new ConflictError('reviews.taken', 'Someone else just claimed that request.');
   await insertNotification(request.authorUserId, 'review_claimed', { requestId, login: actor.login ?? '', repo: request.repoFullName, number: request.prNumber });
   return { claimTtlHours: await getSetting('reviews.claimTtlHours') };
@@ -214,14 +227,21 @@ export type ReviewsOverview = {
   claimable: ClaimableRequest[];
   mine: ReviewRequestRow[];
   claimed: ReviewRequestRow[];
-  rules: { minLineComments: number; claimTtlHours: number; requestTtlDays: number; autoSettleDays: number };
+  rules: {
+    minLineComments: number;
+    claimTtlHours: number;
+    requestTtlDays: number;
+    autoSettleDays: number;
+    disputeWindowDays: number;
+    disputeNoteMaxChars: number;
+  };
 };
 
 /** Everything the Review Exchange page shows a member whose university has it open. */
 export async function getReviewsOverview(actor: Actor): Promise<ReviewsOverview> {
   await requireReviewsOpen(actor);
   const limit = await getSetting('reviews.listLimit');
-  const [credits, claimable, mine, claimed, minLineComments, claimTtlHours, requestTtlDays, autoSettleDays] = await Promise.all([
+  const [credits, claimable, mine, claimed, minLineComments, claimTtlHours, requestTtlDays, autoSettleDays, disputeWindowDays, disputeNoteMaxChars] = await Promise.all([
     getCredits(actor.id),
     listClaimable(actor),
     authoredReviewRequests(actor.id, limit),
@@ -230,6 +250,8 @@ export async function getReviewsOverview(actor: Actor): Promise<ReviewsOverview>
     getSetting('reviews.claimTtlHours'),
     getSetting('reviews.requestTtlDays'),
     getSetting('reviews.autoSettleDays'),
+    getSetting('reviews.disputeWindowDays'),
+    getSetting('reviews.disputeNoteMaxChars'),
   ]);
-  return { credits, claimable, mine, claimed, rules: { minLineComments, claimTtlHours, requestTtlDays, autoSettleDays } };
+  return { credits, claimable, mine, claimed, rules: { minLineComments, claimTtlHours, requestTtlDays, autoSettleDays, disputeWindowDays, disputeNoteMaxChars } };
 }

@@ -1,4 +1,4 @@
-import { campusUnlocks, describeNotification, getStreaks, getUniversity, recentNotifications, unreadCount } from '@commitmates/core';
+import { campusUnlocks, describeNotification, getCredits, getStreaks, getUniversity, listClaimable, recentNotifications, unreadCount } from '@commitmates/core';
 import { Card, buttonStyles } from '@commitmates/ui';
 import type { Metadata } from 'next';
 import Link from 'next/link';
@@ -7,6 +7,7 @@ import { redirect } from 'next/navigation';
 import { campusCopy, homeNotificationsCopy } from '@/copy/campus';
 import { chatCopy } from '@/copy/chat';
 import { notificationsCopy } from '@/copy/notifications';
+import { reviewsCopy } from '@/copy/reviews';
 import { streaksCopy } from '@/copy/streaks';
 import { homeCopy } from '@/copy/onboarding';
 import { formatUtc } from '@/lib/format';
@@ -34,6 +35,8 @@ export default async function HomePage() {
   const copy = homeCopy;
   const open = progress.unlocks.filter((unlock) => unlock.unlocked).length;
   const matching = progress.unlocks.find((unlock) => unlock.key === 'matching');
+  const reviewsUnlock = progress.unlocks.find((unlock) => unlock.key === 'reviews');
+  const reviews = reviewsUnlock?.unlocked ? await Promise.all([getCredits(member.id), listClaimable(member)]) : null;
   const next = progress.unlocks
     .filter((unlock) => !unlock.unlocked && unlock.metric === 'members')
     .sort((a, b) => a.required - b.required)[0];
@@ -81,6 +84,16 @@ export default async function HomePage() {
             {chatCopy.home.link}
           </Link>
         </Card>
+        {reviewsUnlock ? (
+          <Card title={reviewsCopy.home.title} className="flex flex-col gap-3">
+            <p className="type-body">
+              {reviews ? reviewsCopy.home.summary(reviews[0].balance, reviews[1].length) : reviewsCopy.home.locked(reviewsUnlock.current, reviewsUnlock.required)}
+            </p>
+            <Link href="/reviews" className={buttonStyles({ variant: 'secondary', size: 'md', className: 'self-start' })}>
+              {reviewsCopy.home.link}
+            </Link>
+          </Card>
+        ) : null}
         <Card title={streaksCopy.home.title} className="flex flex-col gap-3">
           <p className="type-body">
             {activePairs.length === 0
