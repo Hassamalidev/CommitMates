@@ -1477,20 +1477,20 @@ The schema is split into nine groups. This section is the contract; the exact de
 
 | Table | Columns |
 | --- | --- |
-| `crawl_cursors` | `id`, `seed`, `created_from date`, `created_to date`, `page int`, `total_count int`, `status enum(pending, splitting, running, done)`, `updated_at` |
+| `crawl_cursors` | `id`, `seed`, `country_code char(2)`, `created_from date`, `created_to date`, `page int`, `total_count int`, `status enum(pending, splitting, running, done)`, `crawled_at null`, `updated_at`; unique `(seed, country_code, created_from, created_to)` |
 | `crawl_optouts` | `github_login citext pk`, `created_at` |
-| `leaderboard_snapshots` | `id`, `scope enum(university, department)`, `scope_id`, `week_start date`, `metrics jsonb`, `rank int`; unique `(scope, scope_id, week_start)` |
+| `leaderboard_snapshots` | `id`, `scope enum(university, department, member)`, `scope_id`, `group_id` (country code or university id it is ranked within), `week_start date`, `metrics jsonb`, `score real`, `rank int`; unique `(scope, scope_id, week_start)` |
 | `leaderboard_optins` | `user_id pk`, `opted_in_at` |
-| `alumni_questions` | `id`, `asker_user_id`, `university_id`, `body`, `tags text[]`, `anonymous boolean`, `status enum(open, answered, closed, expired)`, `round smallint`, `answered_at` |
+| `alumni_questions` | `id`, `asker_user_id`, `university_id`, `body`, `tags text[]`, `anonymous boolean`, `status enum(open, answered, closed, expired)`, `round smallint`, `answered_by null`, `thread_id null`, `answered_at` |
 | `question_routes` | `question_id`, `alumni_user_id`, `round smallint`, `routed_at`, `responded_at null`, `status enum(pending, answered, passed, expired)`; pk `(question_id, alumni_user_id)` |
 | `events` | `id`, `creator_user_id`, `title`, `description`, `visibility enum(university, country, public)`, `university_id null`, `country_code null`, `starts_at`, `ends_at`, `team_size smallint`, `status enum(open, forming, finalized, closed)` |
 | `event_participants` | `event_id`, `user_id`, `availability jsonb`, `locked_group_key null`, `joined_at`; pk `(event_id, user_id)` |
-| `squads` | `id`, `event_id`, `version int`, `status enum(proposed, final)`, `created_at` |
+| `squads` | `id`, `event_id`, `version int`, `status enum(proposed, final)`, `thread_id null`, `created_at` |
 | `squad_members` | `squad_id`, `user_id`, `role_label`; pk `(squad_id, user_id)` |
 | `squad_swap_requests` | `id`, `event_id`, `from_user`, `to_squad_id`, `status enum(pending, done, rejected)`, `created_at` |
-| `fyp_ideas` | `id`, `university_id`, `author_user_id`, `title`, `description`, `keyphrases text[]`, `status enum(open, team_forming, taken, archived)`, `search_tsv tsvector` (generated); GIN index |
-| `fyp_projects` | `id`, `university_id`, `repo_github_id`, `year smallint null`, `submitted_by null`, `auto_detected boolean`, `confirmed boolean` |
-| `fyp_supervisors` | `user_id`, `university_id`, `approved_by`, `areas text[]`, `approved_at`; pk `(user_id, university_id)` |
+| `fyp_ideas` | `id`, `university_id`, `author_user_id`, `title`, `description`, `keyphrases text[]`, `supervisor_idea boolean`, `status enum(open, team_forming, taken, archived)`, `thread_id null`, `search_tsv tsvector` (generated); GIN index |
+| `fyp_projects` | `id`, `university_id`, `repo_github_id`, `owner_user_id null`, `year smallint null`, `submitted_by null`, `auto_detected boolean`, `confirmed boolean`; unique `(university_id, repo_github_id)` |
+| `fyp_supervisors` | `user_id`, `university_id`, `approved_by`, `areas text[]`, `approved_at` (null while the application waits); pk `(user_id, university_id)` |
 | `fyp_interest` | `idea_id`, `user_id`, `message`, `created_at`; pk `(idea_id, user_id)` |
 
 ## 8. Feature specifications
@@ -3212,7 +3212,7 @@ Branch `phase/5-campus-collab`. Goal: adoptions, verified reviews, skill swaps, 
 
 Branch `phase/6-crowd`. Goal: the country index, leaderboards, alumni, squads and the FYP board.
 
-- [ ] **P6-T01 Crowd schema.** Spec: §7.9.
+- [x] **P6-T01 Crowd schema.** Spec: §7.9.
   - Crawl, leaderboard, alumni, events, squads and FYP tables with RLS.
   - Done when: migrations apply cleanly.
 - [ ] **P6-T02 Country crawler and opt-out.** Spec: §8 F18.
@@ -3272,6 +3272,7 @@ Branch `phase/7-launch`. Goal: secure, fast, accessible, documented, deployed.
 
 Newest first, one line per completed task or subtask: `YYYY-MM-DD — <task id> — <what was done>`. A `BLOCKED:` line, when present, is always the first line (§13). Spec fixes made under §0.9 are logged here too.
 
+- 2026-10-21 — P6-T01 — Crowd schema: crawl_cursors, crawl_optouts, leaderboard_snapshots, leaderboard_optins, alumni_questions, question_routes, events, event_participants, squads, squad_members, squad_swap_requests, fyp_ideas (generated full-text vector over title, description and keyphrases), fyp_projects, fyp_supervisors and fyp_interest, each with RLS and no browser policies, foreign keys indexed, updated_at triggers on the mutable ones. Spec additions (§7.9), each needed by its feature: crawl_cursors gains country_code, crawled_at and a unique slice; leaderboard_snapshots gains a member scope (the opt-in board), group_id and score; alumni_questions gains answered_by and thread_id; squads and fyp_ideas gain thread_id and fyp_ideas supervisor_idea; fyp_projects gains owner_user_id (who confirms a detected project) and is unique per university and repository; a pending supervisor application is a row without approved_at. The member export and account deletion cover every new member table (member leaderboard rows have no foreign key and are deleted explicitly), and PRIVACY.md documents them.
 - 2026-10-21 — P5-T10 — Member profile pages: /u/[login] now shows the member's badges (reviewer with reputation tier, reviver, streak once the longest shared streak reaches the first streaks.companionStageDays value, open source from merged pull requests), their revived projects and their showcased projects (linked to Senior's Legacy for classmates); the companion wears a trait for every earned badge (reviewer, reviver, streak, oss) from the Dev Card's next refresh. `country` visibility now compares the countries of the two members' universities instead of falling back to the same university (the Phase 2 placeholder). Every visibility level is tested in core and in e2e against a classmate, a member in the same country, a member abroad and a visitor. Also: CI retries starting the local Supabase stack once, after an e2e run failed while pulling its images (no test had run).
 - 2026-10-21 — P5-T09b — Senior's Legacy page (P5-T09 complete): /legacy shows the Unlock card with showcased-project progress until unlock.legacy.minProjects, then a search form (topic, tag, department, graduation years, sort) whose results show each project with its owner's companion, alumni/senior label, class year, department, stars, blurb and tags (a tag opens its results), and the topics the search also matched; /legacy/<id> shows the project, the start of its README as plain text, language and tags, and Ask the author when they take questions (the inbox shows "About your project in Senior’s Legacy"); /home gains a library card. The README excerpt is skipped when GitHub cannot be read. E2e: a member finds an alumnus's project by a word in its description, opens it and asks the author, who sees the request in their inbox.
 - 2026-10-21 — P5-T09a — Legacy library engine (P5-T09 split in two): members showcase their own repositories with a blurb (new legacy.blurbMaxChars) and a take-questions switch from /settings/projects; tags come from the repository's topics and its dependencies' derived tags; entries of active, visible members now count toward unlock.legacy.minProjects on the campus page. Search runs within the university (never hidden owners or across blocks) by text and blurb, by topics of the query's cached taxonomy expansion (uncached queries are queued), with tag, graduation-year and department filters and relevance or star sorting (new legacy.listLimit); authors are labelled alumni or senior; the detail view shows the README's start as plain text (new legacy.excerptChars, new markdownExcerpt); Ask the author sends a message request with context_kind 'legacy' when they take questions. legacy_refresh (weekly) refreshes metadata and tags and removes entries whose repository is gone, private or transferred. Alumni routing for authors with questions off waits for F20.

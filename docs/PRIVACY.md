@@ -125,6 +125,26 @@ Projects a member chose to showcase for their university, or confirmed final-yea
 
 How many pull requests a verified member got merged into public repositories, refreshed weekly from GitHub's public search, for the "seniors from your university contributed here" panel. Deleted by cascade.
 
+### `leaderboard_optins`, `leaderboard_snapshots` (class A for members)
+
+Whether a member chose to appear on their university's individual leaderboard, and the weekly rows ranking them there (active days only). University and department rows of `leaderboard_snapshots` hold only aggregates of verified members and are class D. A member's own rows are deleted with their account; the opt-in goes by cascade.
+
+### `alumni_questions`, `question_routes` (class A)
+
+Short questions a member asked their university's alumni (with whether they asked anonymously, which hides their name until an alumnus answers), and the questions routed to an alumnus with their answer state. Deleted by cascade; an answer's conversation follows the rules for threads.
+
+### `events`, `event_participants`, `squads`, `squad_members`, `squad_swap_requests` (class A)
+
+Events a member organizes, the events they joined with the weekly hours they said they are free and any group they formed beforehand, the teams they were placed in and the moves they asked for. Deleted by cascade; deleting an organizer's account deletes their events.
+
+### `fyp_ideas`, `fyp_interest`, `fyp_supervisors`, `fyp_projects` (class A)
+
+Final-year project ideas a member posted, their interest in joining others' teams (with a short message), supervisor applications with their areas, and past projects they submitted or that were detected in their repositories (detected ones wait for their confirmation). Deleted by cascade; a project someone else submitted keeps the project but drops the link to the person who left.
+
+### `crawl_cursors`, `crawl_optouts` (class E)
+
+The country index's crawl progress (a location seed and a date range per cursor, no personal data) and the GitHub logins that asked never to be crawled, kept so the opt-out is honored on every later crawl.
+
 ### `notifications`, `notification_prefs` (class A)
 
 In-app notifications and the member's email preferences: whether they want a daily digest and which kinds they muted. A digest goes to the email address of their sign-in account (from GitHub, stored by Supabase Auth); it lists unread notifications not emailed before and records when each went out (`emailed_at`), so none is sent twice. Muted kinds are never emailed and not counted in the unread badge. Deleted by cascade from `users`.

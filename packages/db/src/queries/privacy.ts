@@ -4,17 +4,26 @@ import { getDb, type DbOrTx } from '../client';
 import { hashUserId } from '../logger';
 import {
   adoptions,
+  alumniQuestions,
   analysisCache,
   blocks,
   connections,
   creditLedger,
   emailVerifications,
+  eventParticipants,
+  events,
   feedback,
+  fypIdeas,
+  fypInterest,
+  fypProjects,
+  fypSupervisors,
   ghRepos,
   ghUsers,
   githubIdentities,
   graveyardListings,
   invites,
+  leaderboardOptins,
+  leaderboardSnapshots,
   ledgerLocks,
   legacyEntries,
   listingSuggestions,
@@ -30,6 +39,7 @@ import {
   pairs,
   personaSnapshots,
   profiles,
+  questionRoutes,
   recruiterReports,
   reports,
   repoDependencies,
@@ -38,6 +48,9 @@ import {
   repoManifests,
   roles,
   skillVectors,
+  squadMembers,
+  squadSwapRequests,
+  squads,
   swapOffers,
   swapProposals,
   swapResponses,
@@ -180,6 +193,25 @@ export async function exportMemberRows(userId: string, db: DbOrTx = getDb()): Pr
       db.select().from(ossMemberContribs).where(eq(ossMemberContribs.userId, userId)),
     ]);
   const pairInviteRows = await db.select().from(pairInvites).where(or(eq(pairInvites.fromUser, userId), eq(pairInvites.toUser, userId)));
+
+  // Crowd rows (CLAUDE.md §7.9): the member's leaderboard entries, questions, events, teams and FYP work.
+  const [optinRows, boardRows, questionRows, routeRows, eventRows, participantRows, squadMemberRows, squadSwapRows, ideaRows, interestRows, supervisorRows, fypProjectRows] =
+    await Promise.all([
+      db.select().from(leaderboardOptins).where(eq(leaderboardOptins.userId, userId)),
+      db.select().from(leaderboardSnapshots).where(sql`${leaderboardSnapshots.scope} = 'member' and ${leaderboardSnapshots.scopeId} = ${userId}`),
+      db.select().from(alumniQuestions).where(eq(alumniQuestions.askerUserId, userId)),
+      db.select().from(questionRoutes).where(eq(questionRoutes.alumniUserId, userId)),
+      db.select().from(events).where(eq(events.creatorUserId, userId)),
+      db.select().from(eventParticipants).where(eq(eventParticipants.userId, userId)),
+      db.select().from(squadMembers).where(eq(squadMembers.userId, userId)),
+      db.select().from(squadSwapRequests).where(eq(squadSwapRequests.fromUser, userId)),
+      db.select().from(fypIdeas).where(eq(fypIdeas.authorUserId, userId)),
+      db.select().from(fypInterest).where(eq(fypInterest.userId, userId)),
+      db.select().from(fypSupervisors).where(eq(fypSupervisors.userId, userId)),
+      db.select().from(fypProjects).where(or(eq(fypProjects.ownerUserId, userId), eq(fypProjects.submittedBy, userId))),
+    ]);
+  const squadIds = squadMemberRows.map((row) => row.squadId);
+  const squadRows = squadIds.length === 0 ? [] : await db.select().from(squads).where(inArray(squads.id, squadIds));
   const threadIds = memberships.map((membership) => membership.threadId);
   const threadRows = threadIds.length === 0 ? [] : await db.select().from(threads).where(inArray(threads.id, threadIds));
 
@@ -212,6 +244,19 @@ export async function exportMemberRows(userId: string, db: DbOrTx = getDb()): Pr
     swap_responses: responseRows,
     legacy_entries: legacyRows,
     oss_member_contribs: contribRows,
+    leaderboard_optins: optinRows,
+    leaderboard_snapshots: boardRows,
+    alumni_questions: questionRows,
+    question_routes: routeRows,
+    events: eventRows,
+    event_participants: participantRows,
+    squads: squadRows,
+    squad_members: squadMemberRows,
+    squad_swap_requests: squadSwapRows,
+    fyp_ideas: ideaRows,
+    fyp_interest: interestRows,
+    fyp_supervisors: supervisorRows,
+    fyp_projects: fypProjectRows,
     users: user,
     github_identities: identityRows,
     profiles: profile,
@@ -262,6 +307,8 @@ export async function deleteMemberData(userId: string, now: Date, db: DbOrTx = g
     }
     // Swap proposals name their members in an array, not by foreign key, so they go explicitly.
     await tx.delete(swapProposals).where(sql`${swapProposals.members} @> array[${userId}]::uuid[]`);
+    // A member's own leaderboard rows are keyed by their id without a foreign key (§8 F19).
+    await tx.delete(leaderboardSnapshots).where(sql`${leaderboardSnapshots.scope} = 'member' and ${leaderboardSnapshots.scopeId} = ${userId}`);
     // Pairs end with the account (rows cascade); the partner is told (§8 F13 "Edge cases").
     for (const partner of await openPairPartners(userId, tx)) await insertNotification(partner, 'pair_ended', {}, tx);
     // Threads shared with others keep going: the member's messages are replaced by one system note

@@ -2,7 +2,6 @@ import { sql } from 'drizzle-orm';
 import {
   bigint,
   boolean,
-  customType,
   index,
   integer,
   jsonb,
@@ -14,15 +13,9 @@ import {
   uniqueIndex,
 } from 'drizzle-orm/pg-core';
 
-import { citext, createdAt, timestamptz } from './columns';
+import { citext, createdAt, timestamptz, tsvector } from './columns';
 
 export const ghAccountType = pgEnum('gh_account_type', ['User', 'Organization', 'Bot']);
-
-const tsvector = customType<{ data: string }>({
-  dataType() {
-    return 'tsvector';
-  },
-});
 
 /**
  * Public GitHub profile fields. Rows about people who are not members carry an
