@@ -143,7 +143,7 @@ Final-year project ideas a member posted, their interest in joining others' team
 
 ### `crawl_cursors`, `crawl_optouts` (class E)
 
-The country index's crawl progress (a location seed and a date range per cursor, no personal data) and the GitHub logins that asked never to be crawled, kept so the opt-out is honored on every later crawl.
+The country index's crawl progress (a location seed and a date range per cursor, no personal data) and the GitHub logins that asked never to be crawled, kept so the opt-out is honored on every later crawl. Crawled people are `gh_users` rows with only their login and id (`in_country_index`, `index_country_code`) and up to `crawler.reposPerUser` of their public repositories as metadata; they carry no expiry, are refreshed by the crawler, leave the index when GitHub no longer has them, and are pruned oldest first at the storage limits. An opt-out deletes them at once.
 
 ### `notifications`, `notification_prefs` (class A)
 

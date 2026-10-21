@@ -264,6 +264,24 @@ All algorithms live in `packages/algorithms` and are pure: no I/O, no clock, no 
 - Tests: `packages/core/src/legacy/legacy.test.ts`, `packages/algorithms/src/text/markdown.test.ts`
 - Spec: CLAUDE.md §8 F17
 
+## Country crawler
+
+### Seeds, cursors and the index
+
+- Code: `packages/core/src/crawler/service.ts` (jobs `crawl_country`, every five minutes at priority CRAWL, and `crawl_repos` per new account, `crawl-repos:<githubId>:<month>`), queries in `packages/db/src/queries/crawler.ts`
+- Seeds: the countries of universities with verified members, and the cities of members' resolved GitHub locations with at least `crawler.minCitySeedMembers` members; each seed is one cursor per country, `location:"<seed>"`
+- Ranges: a seed's first cursor covers account creation from `crawler.earliestAccountDate` to today; when nothing waits, each seed gets one more cursor from the day after its latest covered day to today, so new accounts are found
+- Splitting: a cursor's first page with a total above `crawler.searchCap` splits the range into two halves (the parent is done); a single day that is still too large is crawled up to the cap
+- Paging: 100 accounts per search page; the cursor is done (with `crawled_at`) when the reachable results (the total, at most the cap) are read or a page comes back short
+- Index: accounts are stored with only login and id, flagged `in_country_index` with the cursor's country; an opted-out login is never stored; tool analyses never give indexed rows an expiry
+- Repositories: per new account, one page of its own public non-fork repositories (at most `crawler.reposPerUser`), metadata only; an account GitHub no longer has leaves the index with its repositories
+- Storage guard: before each step and each repository fetch, at `crawler.maxUsers` accounts or `crawler.maxRepos` repositories the index is pruned to `crawler.pruneTargetPct` of both (repositories fetched longest ago with the fewest stars first, then accounts fetched longest ago with the fewest followers, with their repositories), and nothing is added in that step; members' rows are never pruned
+- Refresh: a crawled cursor older than `crawler.refreshDays` is crawled again from its first page
+- Opt-out: the login is recorded and its index rows are deleted at once
+- Settings: `crawler.searchCap` (1000), `crawler.maxUsers` (50000), `crawler.maxRepos` (200000), `crawler.reposPerUser` (30), `crawler.minCitySeedMembers` (2), `crawler.refreshDays` (30), `crawler.pruneTargetPct` (0.95), `crawler.earliestAccountDate` (2008-01-01)
+- Tests: `packages/core/src/crawler/crawler.test.ts`
+- Spec: CLAUDE.md §8 F18
+
 ## Information retrieval
 
 ### YAKE keyphrases

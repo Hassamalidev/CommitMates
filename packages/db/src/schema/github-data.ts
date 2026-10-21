@@ -2,6 +2,7 @@ import { sql } from 'drizzle-orm';
 import {
   bigint,
   boolean,
+  char,
   index,
   integer,
   jsonb,
@@ -40,6 +41,8 @@ export const ghUsers = pgTable(
     ghCreatedAt: timestamptz('gh_created_at'),
     isMember: boolean('is_member').notNull().default(false),
     inCountryIndex: boolean('in_country_index').notNull().default(false),
+    /** The country whose index found this account (§8 F18), for the country scope of search. */
+    indexCountryCode: char('index_country_code', { length: 2 }),
     fetchedAt: timestamptz('fetched_at').notNull(),
     expiresAt: timestamptz('expires_at'),
     createdAt: createdAt(),
@@ -48,6 +51,7 @@ export const ghUsers = pgTable(
     uniqueIndex('gh_users_login_key').on(table.login),
     index('gh_users_expires_idx').on(table.expiresAt),
     index('gh_users_geocode_idx').on(table.geocodeKey),
+    index('gh_users_country_index_idx').on(table.indexCountryCode).where(sql`${table.inCountryIndex}`),
   ],
 ).enableRLS();
 

@@ -28,7 +28,12 @@ export async function upsertGhUser(user: GhUserInput, db: DbOrTx = getDb()): Pro
     .onConflictDoUpdate({
       target: ghUsers.githubId,
       // Membership in the country index is set by the crawler and survives a profile refresh.
-      set: { ...values, inCountryIndex: sql`${ghUsers.inCountryIndex} or excluded.in_country_index` },
+      set: {
+        ...values,
+        inCountryIndex: sql`${ghUsers.inCountryIndex} or excluded.in_country_index`,
+        // An account in the country index is refreshed by the crawler, never purged (§5.12 class E).
+        expiresAt: sql`case when ${ghUsers.inCountryIndex} then null else excluded.expires_at end`,
+      },
     });
 }
 
@@ -72,7 +77,8 @@ export async function upsertGhRepos(repos: readonly GhRepoInput[], db: DbOrTx = 
         ghCreatedAt: sql`excluded.gh_created_at`,
         pushedAt: sql`excluded.pushed_at`,
         fetchedAt: sql`excluded.fetched_at`,
-        expiresAt: sql`excluded.expires_at`,
+        // Repositories of an account in the country index stay with the index (§5.12 class E).
+        expiresAt: sql`case when exists (select 1 from gh_users u where u.github_id = excluded.owner_github_id and u.in_country_index) then null else excluded.expires_at end`,
       },
     });
 }

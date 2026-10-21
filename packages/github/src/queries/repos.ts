@@ -227,3 +227,17 @@ export async function listForks(
     truncated: page.truncated,
   };
 }
+
+/**
+ * A user's own public repositories, most recently pushed first, one page of up to `limit`
+ * (§8 F18 "Crawl" step 4: metadata only). Throws `GitHubNotFoundError` for an account that is gone.
+ */
+export async function listUserRepos(client: GitHubClient, login: string, options: RequestOptions & { limit: number }): Promise<Repository[]> {
+  const page = await client.paginate('GET /users/{username}/repos', { username: login, type: 'owner', sort: 'pushed' }, repositorySchema, {
+    ...options,
+    what: login,
+    perPage: Math.min(COMMITS_PER_PAGE, options.limit),
+    maxPages: 1,
+  });
+  return page.items.slice(0, options.limit).map(toRepository);
+}

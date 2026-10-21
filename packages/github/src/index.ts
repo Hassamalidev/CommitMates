@@ -40,6 +40,7 @@ export {
   fetchRepositoryById,
   listCommits,
   listForks,
+  listUserRepos,
   type CommitFile,
   type CommitSummary,
   type ContributorStats,
@@ -55,7 +56,7 @@ export {
   type PullReview,
   type PullReviewComment,
 } from './queries/pulls';
-export { countTopicRepositories, searchRepositories, searchUsers, type SearchRepo, type SearchUser } from './queries/search';
+export { countTopicRepositories, searchRepositories, searchUsers, searchUsersPage, type SearchRepo, type SearchUser } from './queries/search';
 export {
   fetchCommitEstimate,
   fetchHasReleases,

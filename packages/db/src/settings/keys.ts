@@ -189,6 +189,8 @@ export const SettingKeys = {
   'crawler.maxUsers': 'integer',
   'crawler.maxRepos': 'integer',
   'crawler.reposPerUser': 'integer',
+  'crawler.pruneTargetPct': 'number',
+  'crawler.earliestAccountDate': 'string',
   'crawler.minCitySeedMembers': 'integer',
   'crawler.refreshDays': 'integer',
   'geocoder.minIntervalMs': 'integer',

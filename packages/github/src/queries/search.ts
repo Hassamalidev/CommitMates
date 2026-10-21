@@ -118,3 +118,16 @@ export async function searchUsers(
     .filter((item) => item.type === 'User')
     .map((item) => ({ githubId: item.id, login: item.login, avatarUrl: item.avatar_url, htmlUrl: item.html_url }));
 }
+
+/** One page of a user search with its total (§8 F18 "Crawl"); the crawler splits queries above GitHub's result ceiling. */
+export async function searchUsersPage(
+  client: GitHubClient,
+  query: string,
+  options: RequestOptions & { perPage: number; page: number },
+): Promise<{ totalCount: number; users: { githubId: number; login: string }[] }> {
+  const result = await client.search('GET /search/users', { q: `${query} type:user`, per_page: options.perPage, page: options.page }, userSearchSchema, options);
+  return {
+    totalCount: result.total_count,
+    users: result.items.filter((item) => item.type === 'User').map((item) => ({ githubId: item.id, login: item.login })),
+  };
+}

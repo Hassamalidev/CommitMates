@@ -7,6 +7,7 @@ export * from './queries/adoptions';
 export * from './queries/analysis';
 export * from './queries/campus';
 export * from './queries/chat';
+export * from './queries/crawler';
 export * from './queries/email';
 export * from './queries/gap';
 export * from './queries/github-data';
