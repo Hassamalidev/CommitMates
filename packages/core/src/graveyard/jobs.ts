@@ -1,10 +1,11 @@
 import { createHash } from 'node:crypto';
 
 import { monthsBetween, scoreRevivals, termMatcher } from '@commitmates/algorithms';
-import { getCategoryNumber, getSetting } from '@commitmates/db';
-import { SERVER_IDENTITY, githubFor, searchRepositories, type SearchRepo } from '@commitmates/github';
+import { ValidationError, getCategoryNumber, getSetting, uniListingCandidates } from '@commitmates/db';
+import { SERVER_IDENTITY, githubFor, searchRepositories } from '@commitmates/github';
 import { PRIORITY, type JobHandler } from '@commitmates/jobs';
 
+import { getMember } from '../profiles/service';
 import { computeExpansion } from '../taxonomy/service';
 import { hourBucket, storeToolResult, type ToolDefinition } from '../tools/service';
 
@@ -38,14 +39,24 @@ const normalizedQuery = (q: string) => q.toLowerCase().trim().replace(/\s+/g, ' 
 const queryKey = (input: GraveyardInput) =>
   `${input.scope}:${createHash('sha256').update(normalizedQuery(input.q)).digest('hex').slice(0, QUERY_KEY_LENGTH)}`;
 
+/**
+ * The Graveyard as a tool (CLAUDE.md §5.3). University listings differ by who asks (their university,
+ * their blocks), so the uni scope is cached and queued per member.
+ */
 export const graveyardTool: ToolDefinition<GraveyardInput> = {
   slug: 'graveyard',
   jobType: 'graveyard_search',
   cacheKind: 'graveyard',
   input: graveyardInputSchema,
   subjectKey: (input) => `${input.scope}:${normalizedQuery(input.q)}`,
-  idempotencyKey: (input, now) => `graveyard:${queryKey(input)}:${hourBucket(now)}`,
-  payload: (input) => ({ q: normalizedQuery(input.q), scope: input.scope }),
+  params: (input, context) => (input.scope === 'uni' ? { member: context.userId ?? null } : undefined),
+  idempotencyKey: (input, now, context) =>
+    input.scope === 'uni' ? `graveyard:${queryKey(input)}:${context.userId ?? 'visitor'}:${hourBucket(now)}` : `graveyard:${queryKey(input)}:${hourBucket(now)}`,
+  payload: (input, context) => ({
+    q: normalizedQuery(input.q),
+    scope: input.scope,
+    ...(input.scope === 'uni' && context.userId ? { requestedBy: context.userId } : {}),
+  }),
   ttlSetting: 'cache.searchTtlHours',
 };
 
@@ -56,12 +67,32 @@ function cutoffDate(now: Date, months: number): string {
   return date.toISOString().slice(0, ISO_DATE_LENGTH);
 }
 
+/** What the scoring needs about a candidate, from a GitHub search or a university listing. */
+type Candidate = {
+  githubId: number;
+  fullName: string;
+  description: string | null;
+  topics: string[];
+  stars: number;
+  forks: number;
+  openIssues: number;
+  licenseSpdx: string | null;
+  isArchived: boolean;
+  isFork: boolean;
+  pushedAt: string | null;
+  sizeKb: number | null;
+  relevance: number;
+  listing: GraveyardItem['listing'];
+};
+
 /** Category of a candidate: the expansion's best topic it carries, else the query's slug (§8 F7 step 3). */
-const categoryOf = (repo: SearchRepo, topics: readonly string[], fallback: string) => topics.find((topic) => repo.topics.includes(topic)) ?? fallback;
+const categoryOf = (repo: Candidate, topics: readonly string[], fallback: string) => topics.find((topic) => repo.topics.includes(topic)) ?? fallback;
 
 /**
- * Searches for inactive projects worth reviving (CLAUDE.md §8 F7). Each repository's
- * signals are cached, so a search cut short by the deadline continues where it stopped.
+ * Searches for inactive projects worth reviving (CLAUDE.md §8 F7). Global candidates come from GitHub
+ * search; uni candidates are listings at the searcher's university (§8 F14), which their owners opted
+ * into, so they skip the idle, README and history filters but are scored the same way. Each
+ * repository's signals are cached, so a search cut short by the deadline continues where it stopped.
  */
 export const graveyardSearchJob: JobHandler<GraveyardPayload> = {
   type: 'graveyard_search',
@@ -71,6 +102,15 @@ export const graveyardSearchJob: JobHandler<GraveyardPayload> = {
     const client = githubFor(SERVER_IDENTITY, { now: ctx.now });
     const now = ctx.now();
     const outOfTime = () => Date.now() > ctx.deadline - DEADLINE_MARGIN_MS;
+
+    let universityId: string | null = null;
+    if (payload.scope === 'uni') {
+      const member = payload.requestedBy ? await getMember(payload.requestedBy) : null;
+      if (!member?.verified || member.universityId === null) {
+        throw new ValidationError('graveyard.uni_verify', 'Sign in and verify your university to search its listings.');
+      }
+      universityId = member.universityId;
+    }
 
     await ctx.progress({ step: GRAVEYARD_STEPS.expanding, message: `Learning what “${payload.q}” covers` });
     const expansion = await computeExpansion(payload.q, { client, now, deadline: ctx.deadline });
@@ -90,36 +130,54 @@ export const graveyardSearchJob: JobHandler<GraveyardPayload> = {
     const unfinishedTerms = termMatcher(terms);
 
     await ctx.progress({ step: GRAVEYARD_STEPS.searching });
-    const qualifiers = `fork:false pushed:<${cutoffDate(now, defaultIdle)}`;
-    const ownTopic = topics.includes(slug) ? slug : topics[0];
-    const queries = [
-      `${payload.q} in:name,description,readme ${qualifiers}`,
-      ...[ownTopic, ...topics.filter((topic) => topic !== ownTopic)]
-        .filter((topic): topic is string => topic !== undefined)
-        .slice(0, EXTRA_QUERIES)
-        .map((topic) => `topic:${topic} ${qualifiers}`),
-    ];
-    const candidates = new Map<number, SearchRepo>();
-    for (const query of queries) {
-      if (candidates.size >= MAX_CANDIDATES) break;
-      const { repos } = await searchRepositories(client, query, { perPage: MAX_CANDIDATES, deadline: ctx.deadline });
-      for (const repo of repos) if (candidates.size < MAX_CANDIDATES && !candidates.has(repo.githubId)) candidates.set(repo.githubId, repo);
+    let ordered: Candidate[];
+    if (universityId !== null && payload.requestedBy) {
+      const listings = await uniListingCandidates(universityId, payload.requestedBy, payload.q, topics, MAX_CANDIDATES);
+      const best = Math.max(0, ...listings.map((listing) => listing.relevance));
+      ordered = listings.map((listing) => ({
+        ...listing,
+        isFork: false,
+        pushedAt: listing.pushedAt?.toISOString() ?? null,
+        relevance: best > 0 ? listing.relevance / best : 1,
+        listing: { id: listing.listingId, note: listing.note, ownerLogin: listing.ownerLogin },
+      }));
+    } else {
+      const qualifiers = `fork:false pushed:<${cutoffDate(now, defaultIdle)}`;
+      const ownTopic = topics.includes(slug) ? slug : topics[0];
+      const queries = [
+        `${payload.q} in:name,description,readme ${qualifiers}`,
+        ...[ownTopic, ...topics.filter((topic) => topic !== ownTopic)]
+          .filter((topic): topic is string => topic !== undefined)
+          .slice(0, EXTRA_QUERIES)
+          .map((topic) => `topic:${topic} ${qualifiers}`),
+      ];
+      const found = new Map<number, Candidate>();
+      for (const query of queries) {
+        if (found.size >= MAX_CANDIDATES) break;
+        const { repos } = await searchRepositories(client, query, { perPage: MAX_CANDIDATES, deadline: ctx.deadline });
+        for (const repo of repos) {
+          if (found.size < MAX_CANDIDATES && !found.has(repo.githubId)) found.set(repo.githubId, { ...repo, relevance: 0, listing: null });
+        }
+      }
+      const repos = [...found.values()];
+      // GitHub's own order, as a score from 1 down to 0 (§8 F7 step 8).
+      ordered = repos.map((repo, index) => ({ ...repo, relevance: repos.length <= 1 ? 1 : 1 - index / repos.length }));
     }
-    const ordered = [...candidates.values()];
 
     await ctx.progress({ step: GRAVEYARD_STEPS.reading, message: `Reading ${ordered.length} projects` });
-    const passing: { repo: SearchRepo; signals: RepoSignals; relevance: number; idleMonths: number; category: string }[] = [];
+    const passing: { repo: Candidate; signals: RepoSignals; idleMonths: number; category: string }[] = [];
     const idleByCategory = new Map<string, number>();
-    for (const [index, repo] of ordered.entries()) {
+    for (const repo of ordered) {
       if (outOfTime()) return { kind: 'continue', payload };
-      if (repo.isFork) continue;
+      const optedIn = repo.listing !== null;
+      if (repo.isFork && !optedIn) continue;
       const category = categoryOf(repo, topics, slug);
       if (!idleByCategory.has(category)) idleByCategory.set(category, (await getCategoryNumber('graveyard.idleMonths', category)) ?? defaultIdle);
       const idleMonths = repo.pushedAt ? monthsBetween(new Date(repo.pushedAt), now) : Number.POSITIVE_INFINITY;
-      if (idleMonths < (idleByCategory.get(category) ?? defaultIdle)) continue;
+      if (!optedIn && idleMonths < (idleByCategory.get(category) ?? defaultIdle)) continue;
       const signals = await repoSignals(client, repo.fullName, now, ctx.deadline);
-      if (!signals.hasReadme || signals.commitEstimate < minCommits) continue;
-      passing.push({ repo, signals, relevance: ordered.length <= 1 ? 1 : 1 - index / ordered.length, idleMonths, category });
+      if (!optedIn && (!signals.hasReadme || signals.commitEstimate < minCommits)) continue;
+      passing.push({ repo, signals, idleMonths, category });
     }
 
     // Recent stars cost extra requests: only for the best matches (§8 F7 step 7).
@@ -141,7 +199,7 @@ export const graveyardSearchJob: JobHandler<GraveyardPayload> = {
         idleMonths: Number.isFinite(entry.idleMonths) ? entry.idleMonths : freshMonths + 1,
         hasLicense: entry.repo.licenseSpdx !== null,
         sizeKb: entry.repo.sizeKb ?? 0,
-        relevance: entry.relevance,
+        relevance: entry.repo.relevance,
       })),
       { weights, freshMonths, noLicenseFactor },
     );
@@ -151,6 +209,7 @@ export const graveyardSearchJob: JobHandler<GraveyardPayload> = {
         const score = scores[index];
         const signal = unfinished[index];
         return {
+          githubId: entry.repo.githubId,
           fullName: entry.repo.fullName,
           description: entry.repo.description,
           stars: entry.repo.stars,
@@ -171,6 +230,7 @@ export const graveyardSearchJob: JobHandler<GraveyardPayload> = {
             unfinishedCommits: signal?.commits ?? null,
             noReleases: !entry.signals.hasReleases,
           },
+          listing: entry.repo.listing,
         };
       })
       .sort((a, b) => b.rank - a.rank || a.fullName.localeCompare(b.fullName));
@@ -182,7 +242,12 @@ export const graveyardSearchJob: JobHandler<GraveyardPayload> = {
       items,
       suggestions: items.length === 0 ? topics.filter((topic) => topic !== slug).slice(0, MAX_SUGGESTIONS) : [],
     });
-    const resultRef = await storeToolResult(graveyardTool, { q: payload.q, scope: payload.scope }, result, { isMemberSubject: false, now });
+    // Listings belong to members; global results describe repositories of people who may not be.
+    const resultRef = await storeToolResult(graveyardTool, { q: payload.q, scope: payload.scope }, result, {
+      isMemberSubject: payload.scope === 'uni',
+      now,
+      context: { userId: payload.requestedBy },
+    });
     return { kind: 'done', resultRef };
   },
 };

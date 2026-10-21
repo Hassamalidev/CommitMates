@@ -1,11 +1,14 @@
-import { getProjects } from '@commitmates/core';
-import { Card, Input, Select, StateChip } from '@commitmates/ui';
+import { getAdoptions, getProjects } from '@commitmates/core';
+import { Card, Input, Select, StateChip, buttonStyles } from '@commitmates/ui';
 import type { Metadata } from 'next';
+import Link from 'next/link';
 import { redirect } from 'next/navigation';
 
 import { ActionForm } from '@/components/forms/ActionForm';
 import { projectsCopy } from '@/copy/projects';
 import { formatUtc } from '@/lib/format';
+import { licenseChooserUrl } from '@/lib/graveyard';
+import { linkForkAction } from '@/server/actions/adoptions';
 import { dismissSuggestionAction, listRepoAction, withdrawListingAction } from '@/server/actions/projects';
 import { getCurrentMember } from '@/server/auth';
 
@@ -14,6 +17,7 @@ export function generateMetadata(): Metadata {
 }
 
 const STATUS_STATE = { listed: 'waiting', adopted: 'done', withdrawn: 'idle' } as const;
+const ADOPTION_STATE = { requested: 'waiting', active: 'working', revived: 'done', dropped: 'idle' } as const;
 
 /**
  * The owner's adoption listings and private suggestions (CLAUDE.md §8 F14): suggestions are shown
@@ -37,7 +41,9 @@ export default async function ProjectsPage() {
       </div>
     );
   }
-  const { listings, suggestions, others, noteMaxChars } = await getProjects(member);
+  const [{ listings, suggestions, others, noteMaxChars }, { adopting, adoptedFromMe }] = await Promise.all([getProjects(member), getAdoptions(member)]);
+  // Adopted listings without a license: the adopter cannot reuse the code until the owner adds one (§8 F14 step 2).
+  const needsLicense = new Set(adoptedFromMe.filter((listing) => listing.licenseSpdx === null).map((listing) => listing.listingId));
   const noteField = <Input label={copy.note} name="note" maxLength={noteMaxChars} description={copy.noteHelp(noteMaxChars)} />;
 
   return (
@@ -58,11 +64,75 @@ export default async function ProjectsPage() {
                   <StateChip state={STATUS_STATE[listing.status]} label={copy.status[listing.status]} />
                 </span>
                 {listing.note ? <p className="type-small break-words">{listing.note}</p> : null}
+                {needsLicense.has(listing.listingId) ? (
+                  <p className="type-small">
+                    {copy.noLicenseOwner(listing.fullName)}{' '}
+                    <a href={licenseChooserUrl(listing.fullName)} rel="noopener noreferrer" target="_blank" className="text-accent underline underline-offset-4">
+                      {copy.addLicense(listing.fullName)}
+                    </a>
+                  </p>
+                ) : null}
                 {listing.status === 'listed' ? (
                   <ActionForm action={withdrawListingAction} values={{ listingId: listing.listingId }} submitLabel={copy.withdrawLabel(listing.fullName)} variant="ghost" />
                 ) : null}
               </li>
             ))}
+          </ul>
+        )}
+      </Card>
+
+      <Card title={copy.adoptingTitle} titleAs="h2" className="flex flex-col gap-3">
+        {adopting.length === 0 ? (
+          <div className="flex flex-col items-start gap-3">
+            <p className="type-small text-fg-muted">{copy.adoptingEmpty}</p>
+            <Link href="/tools/graveyard?scope=uni" className={buttonStyles({ variant: 'secondary', size: 'sm' })}>
+              {copy.adoptingBrowse}
+            </Link>
+          </div>
+        ) : (
+          <ul className="flex flex-col gap-3">
+            {adopting.map((adoption) => {
+              const name = adoption.fullName ?? copy.unknownRepo;
+              return (
+                <li key={adoption.id} className="flex flex-col gap-2 border-b border-line pb-3 last:border-0 last:pb-0">
+                  <span className="flex flex-wrap items-center gap-2">
+                    {adoption.fullName ? (
+                      <a href={`https://github.com/${adoption.fullName}`} className="type-body font-semibold break-words underline" rel="noopener noreferrer" target="_blank">
+                        {adoption.fullName}
+                      </a>
+                    ) : (
+                      <span className="type-body font-semibold">{name}</span>
+                    )}
+                    <StateChip state={ADOPTION_STATE[adoption.status]} label={copy.adoptionStatus[adoption.status]} />
+                  </span>
+                  {adoption.forkFullName ? <p className="type-small">{copy.forkLinked(adoption.forkFullName)}</p> : null}
+                  {adoption.status === 'active' && adoption.fullName && adoption.licenseSpdx === null ? (
+                    <p className="type-small text-fg-muted">{copy.noLicenseAdopter}</p>
+                  ) : null}
+                  {adoption.status === 'active' && adoption.fullName && !adoption.forkFullName ? (
+                    <>
+                      <a
+                        href={`https://github.com/${adoption.fullName}/fork`}
+                        rel="noopener noreferrer"
+                        target="_blank"
+                        className={buttonStyles({ variant: 'secondary', size: 'sm', className: 'self-start' })}
+                      >
+                        {copy.forkOpen}
+                      </a>
+                      <ActionForm
+                        action={linkForkAction}
+                        values={{ adoptionId: adoption.id }}
+                        submitLabel={copy.forkLabel(name)}
+                        successMessage={copy.forkSaved}
+                        className="flex flex-col items-start gap-2"
+                      >
+                        <Input label={copy.fork} name="fork" required description={copy.forkHelp} />
+                      </ActionForm>
+                    </>
+                  ) : null}
+                </li>
+              );
+            })}
           </ul>
         )}
       </Card>

@@ -399,6 +399,15 @@ TF-IDF arrives in P4-T02.
 - Tests: `packages/core/src/adoptions/listings.test.ts`, `e2e/projects.spec.ts`
 - Spec: CLAUDE.md §8 F14 "Private suggestions", "Listing"
 
+### Graveyard uni scope and adoptions
+
+- Code: `packages/core/src/graveyard/jobs.ts` (uni branch of `graveyard_search`), `packages/db/src/queries/adoptions.ts` (`uniListingCandidates`), `packages/core/src/adoptions/flow.ts`
+- Candidates: listings with status `listed` at the searcher's university, never the searcher's own, never an owner either side has blocked, matched by full-text search (`simple` configuration, `websearch_to_tsquery`) on the repository or by topic overlap with the taxonomy expansion; relevance = `ts_rank_cd` plus topic overlap, divided by the best in the set. Listings are opted in by their owner, so the idle, README and history filters are skipped; scoring, labels and ranking are the global ones. The uni result is cached and queued per member (the tool's params and idempotency key include the member id), because blocks and the university differ by who asks.
+- Adoption: "Adopt" creates an `adoptions` row (`requested`) and a message request with `context_kind = 'adoption'` in one transaction, under the chat rules; accepting the request sets the adoption `active`, the listing `adopted` and records an `adoption` connection. One open adoption per member and repository. The adopter links a fork in their own account (owner checked against their GitHub login). A verified member following a fork or ask link on a global result records a `requested` adoption without a listing, so a revival can be tracked.
+- Settings: the Graveyard keys above, `chat.minFirstMessageChars`, `chat.newThreadsPerDay.base`
+- Tests: `packages/core/src/adoptions/flow.test.ts`, `apps/web/src/components/graveyard/graveyard.test.tsx`, `e2e/projects.spec.ts`
+- Spec: CLAUDE.md §8 F7 (uni scope, "Members"), §8 F14 "Adoption flow"
+
 ## Clustering, graphs and assignment
 
 No entries yet. k-means with silhouette selection arrives in P6-T06; cycle search in P5-T06.

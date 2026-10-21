@@ -26,10 +26,18 @@ export const graveyardCopy = {
     global: 'Global',
     uni: 'My uni',
     country: 'My country',
-    uniLocked: {
+    uniSignIn: {
       title: 'Projects from your university',
-      line: 'Classmates will be able to put their own projects up for adoption here once university listings open.',
+      line: 'Classmates put their own paused projects up for adoption here. Sign in and verify your university to see them.',
+      action: 'Sign in',
     },
+    uniVerify: {
+      title: 'Projects from your university',
+      line: 'Verify your university to see the projects classmates put up for adoption.',
+      action: 'Verify your university',
+    },
+    uniIntro: 'Projects classmates put up for adoption themselves. Have one of your own?',
+    uniOwn: 'List yours',
     countryLocked: {
       title: 'Projects from your country',
       line: 'This opens once the country index of public developers has been built.',
@@ -70,6 +78,22 @@ export const graveyardCopy = {
       commits: (share: number) => `${Math.round(share * 100)}% of recent commit messages mention unfinished work.`,
       noReleases: 'No release has been published.',
     },
+  },
+  listing: {
+    chip: 'Up for adoption',
+    by: (login: string) => `Listed by @${login}`,
+    lastPush: (date: string) => `Last push ${date}`,
+  },
+  adopt: {
+    trigger: 'Adopt',
+    triggerLabel: (name: string) => `Adopt ${name}`,
+    title: (name: string) => `Adopt ${name}`,
+    line: (login: string) => `Your message goes to @${login} as a message request. If they accept, you can continue the project together.`,
+    message: 'Message',
+    messageHelp: 'Say what you would like to do with it, e.g. which part you would build first.',
+    submit: 'Send request',
+    close: 'Close',
+    sent: (login: string) => `Request sent. @${login}'s reply will appear in your inbox.`,
   },
   actions: {
     fork: 'Fork on GitHub',

@@ -28,6 +28,9 @@ export function filterItems(items: readonly GraveyardItem[], difficulty: Difficu
 /** GitHub's fork page for a repository. */
 export const forkUrl = (fullName: string) => `https://github.com/${fullName}/fork`;
 
+/** GitHub's license chooser for a repository, which opens a pull-request-ready LICENSE file (§8 F14 step 2). */
+export const licenseChooserUrl = (fullName: string) => `https://github.com/${fullName}/community/license/new`;
+
 /** A prefilled new-issue page on the owner's repository (CLAUDE.md §6.1): it opens in the person's own browser. */
 export function askOwnerUrl(fullName: string): string {
   const params = new URLSearchParams({ title: graveyardCopy.issue.title, body: graveyardCopy.issue.body(fullName) });

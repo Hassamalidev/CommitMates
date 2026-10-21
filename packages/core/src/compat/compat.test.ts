@@ -170,7 +170,7 @@ describe('input and tool definition', () => {
   it('treats the same two people in either order as one result', () => {
     expect(compatTool.subjectKey({ a: 'Bob-Dev', b: 'alice-dev' })).toBe('alice-dev:bob-dev');
     expect(compatTool.subjectKey({ a: 'alice-dev', b: 'bob-dev' })).toBe('alice-dev:bob-dev');
-    expect(compatTool.idempotencyKey({ a: 'bob-dev', b: 'Alice-Dev' }, NOW)).toBe('compat:alice-dev:bob-dev:2026-10-14T12');
+    expect(compatTool.idempotencyKey({ a: 'bob-dev', b: 'Alice-Dev' }, NOW, {})).toBe('compat:alice-dev:bob-dev:2026-10-14T12');
     expect(compatTool.payload?.({ a: 'x1', b: 'y1' }, { userId: 'u' })).toEqual({ a: 'x1', b: 'y1', requestedBy: 'u' });
   });
 });

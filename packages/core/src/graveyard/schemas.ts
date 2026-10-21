@@ -12,17 +12,23 @@ export const graveyardInputSchema = z.object({
   scope: z
     .enum(GRAVEYARD_SCOPES)
     .default('global')
-    // The country index and university listings arrive with later phases; their tabs show unlock cards.
-    .refine((scope) => scope === 'global', 'This scope unlocks later. Search everywhere for now.'),
+    // The country index arrives with Phase 6; its tab shows what it needs until then.
+    .refine((scope) => scope !== 'country', 'This scope unlocks later. Search everywhere for now.'),
 });
 export type GraveyardInput = z.infer<typeof graveyardInputSchema>;
 
-export const graveyardPayloadSchema = z.object({ q: z.string().min(1), scope: z.enum(GRAVEYARD_SCOPES) });
+export const graveyardPayloadSchema = z.object({
+  q: z.string().min(1),
+  scope: z.enum(GRAVEYARD_SCOPES),
+  /** The member searching their university's listings (uni scope only). */
+  requestedBy: z.uuid().optional(),
+});
 export type GraveyardPayload = z.infer<typeof graveyardPayloadSchema>;
 
 const share = z.number().min(0).max(1);
 
 export const graveyardItemSchema = z.object({
+  githubId: z.number().int(),
   fullName: z.string(),
   description: z.string().nullable(),
   stars: z.number().int().min(0),
@@ -45,6 +51,8 @@ export const graveyardItemSchema = z.object({
     unfinishedCommits: share.nullable(),
     noReleases: z.boolean(),
   }),
+  /** For the uni scope: the owner's listing (CLAUDE.md §8 F14). */
+  listing: z.object({ id: z.uuid(), note: z.string().nullable(), ownerLogin: z.string() }).nullable().default(null),
 });
 export type GraveyardItem = z.infer<typeof graveyardItemSchema>;
 
