@@ -127,3 +127,51 @@ export async function isLeaderboardOptedIn(userId: string, db: DbOrTx = getDb())
   const [row] = await db.select({ userId: leaderboardOptins.userId }).from(leaderboardOptins).where(eq(leaderboardOptins.userId, userId));
   return row !== undefined;
 }
+
+export type NamedBoardRow = {
+  scopeId: string;
+  name: string;
+  /** The university's slug, for its page; null for departments and members. */
+  slug: string | null;
+  metrics: Record<string, number>;
+  score: number;
+  rank: number;
+  previousRank: number | null;
+  companion: { seed: number; speciesKey: string; paletteHex: string | null; stage: number; traits: string[] } | null;
+};
+
+/**
+ * One board's rows for a week with their display names (§8 F19 "UI"): university names, department
+ * names, or members' logins with their Dev Card companion; and each entry's rank the week before.
+ */
+export async function namedBoardRows(scope: BoardRow['scope'], groupId: string, week: string, previousWeek: string | null, db: DbOrTx = getDb()): Promise<NamedBoardRow[]> {
+  const name =
+    scope === 'university'
+      ? sql`(select u.name from universities u where u.id = s.scope_id)`
+      : scope === 'department'
+        ? sql`(select d.name from departments d where d.id = s.scope_id)`
+        : sql`(select gi.login from github_identities gi where gi.user_id = s.scope_id)`;
+  const slug = scope === 'university' ? sql`(select u.slug from universities u where u.id = s.scope_id)` : sql`null`;
+  const companion = scope === 'member' ? sql`(select ps.companion from persona_snapshots ps where ps.user_id = s.scope_id)` : sql`null`;
+  const rows = await db.execute<{
+    scope_id: string;
+    name: string | null;
+    slug: string | null;
+    metrics: Record<string, number>;
+    score: number;
+    rank: number;
+    previous_rank: number | null;
+    companion: NamedBoardRow['companion'];
+  }>(sql`
+    select s.scope_id, ${name} as name, ${slug} as slug, s.metrics, s.score, s.rank,
+           (select p.rank from leaderboard_snapshots p where p.scope = s.scope and p.scope_id = s.scope_id and p.week_start = ${previousWeek}) as previous_rank,
+           ${companion} as companion
+    from leaderboard_snapshots s
+    where s.scope = ${scope} and s.group_id = ${groupId} and s.week_start = ${week}
+    order by s.rank, name`);
+  return rows.flatMap((row) =>
+    row.name === null
+      ? []
+      : [{ scopeId: row.scope_id, name: row.name, slug: row.slug, metrics: row.metrics, score: row.score, rank: row.rank, previousRank: row.previous_rank, companion: row.companion }],
+  );
+}

@@ -6,7 +6,7 @@ import { HttpResponse, http } from 'msw';
 import pino from 'pino';
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 
-import { lastWeekStart, runUniversityWeek } from './service';
+import { getLeaderboards, lastWeekStart, runUniversityWeek, setLeaderboardOptIn } from './service';
 
 const API = 'https://api.github.com';
 /** The current week, so rows the database stamps with `now()` (settled reviews) fall inside it. */
@@ -138,5 +138,39 @@ describe('runUniversityWeek', () => {
     expect(Object.keys(first.payload.days).length).toBeLessThan(2);
     expect(await runUniversityWeek(first.payload, Date.now() + 30_000)).toEqual({ status: 'done' });
     expect((await rows('university', 'XE'))[0]?.metrics).toMatchObject({ activeRatio: 0.5 });
+  });
+});
+
+describe('getLeaderboards and the opt-in', () => {
+  it('shows a member their country’s universities, their departments and opted-in classmates, and lets them leave', async () => {
+    const uni = await university('LB');
+    const other = await university('LB');
+    const viewer = await member(uni, 5, { optIn: true });
+    await member(uni, 1);
+    await member(other, 0);
+    for (const universityId of [uni, other]) await runUniversityWeek({ universityId, countryCode: 'LB', weekStart: WEEK, days: {} }, Date.now() + 30_000);
+
+    const actor = { id: viewer, verified: true, universityId: uni };
+    await withSettings({ 'unlock.leaderboard.minMembers': 10_000 }, async () => {
+      expect(await getLeaderboards(actor)).toMatchObject({ state: 'locked', required: 10_000 });
+    });
+    const view = await withSettings({ 'unlock.leaderboard.minMembers': 1 }, () => getLeaderboards(actor));
+    expect(view.state).toBe('open');
+    if (view.state !== 'open') return;
+    expect(view.universities.weekStart).toBe(WEEK);
+    expect(view.universities.entries.map((entry) => [entry.scopeId, entry.rank, entry.isViewer])).toEqual([
+      [uni, 1, true],
+      [other, 2, false],
+    ]);
+    expect(view.universities.entries[0]?.name).toMatch(/^Board Uni /);
+    expect(view.universities.entries[0]?.companion.stage).toBe(0);
+    expect(view.members.entries.map((entry) => [entry.name, entry.isViewer])).toEqual([[expect.stringMatching(/^board-/), true]]);
+    expect(view.optedIn).toBe(true);
+    expect(view.rules.weights.activeRatio).toBe(0.5);
+
+    expect(await setLeaderboardOptIn(actor, { optIn: false })).toBe(false);
+    const after = await withSettings({ 'unlock.leaderboard.minMembers': 1 }, () => getLeaderboards(actor));
+    expect(after.state === 'open' ? [after.optedIn, after.members.entries.length] : null).toEqual([false, 0]);
+    expect(await getLeaderboards({ id: viewer, verified: false, universityId: null })).toEqual({ state: 'unverified' });
   });
 });

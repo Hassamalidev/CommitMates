@@ -1,7 +1,13 @@
-import { activeDays, boardMetrics, boardScores, competitionRanks, type BoardMetrics } from '@commitmates/algorithms';
+import { activeDays, boardMetrics, boardScores, competitionRanks, seedFrom, type BoardMetrics } from '@commitmates/algorithms';
 import {
   boardMembers,
   boardRows,
+  getProfileDetails,
+  getUniversity,
+  isLeaderboardOptedIn,
+  latestBoardWeeks,
+  namedBoardRows,
+  setLeaderboardOptin,
   getDb,
   getSetting,
   leaderboardUniversities,
@@ -10,6 +16,7 @@ import {
   weeklyContributions,
   type BoardMember,
   type BoardRow,
+  type NamedBoardRow,
 } from '@commitmates/db';
 import { GitHubAuthError, GitHubNotFoundError, SERVER_IDENTITY, fetchContributionDays, githubFor } from '@commitmates/github';
 import { PRIORITY, enqueue, type JobHandler } from '@commitmates/jobs';
@@ -17,6 +24,8 @@ import { z } from 'zod';
 
 import { weekStart } from '../adoptions/listings';
 import { utcDay } from '../notifications/email';
+import type { Member } from '../profiles/schemas';
+import { campusUnlocks } from '../universities/campus';
 
 const MS_PER_DAY = 24 * 60 * 60 * 1000; // allowed-literal: unit conversion
 const DAYS_PER_WEEK = 7; // allowed-literal: unit conversion
@@ -186,3 +195,70 @@ export const leaderboardWeeklyJob: JobHandler<z.infer<typeof emptyPayload>> = {
     return { kind: 'done', resultRef: { queued: universities.length, weekStart: week } };
   },
 };
+
+type Companion = NonNullable<NamedBoardRow['companion']>;
+export type BoardEntry = Omit<NamedBoardRow, 'companion'> & { companion: Companion; isViewer: boolean };
+export type Board = { weekStart: string | null; entries: BoardEntry[] };
+
+export type LeaderboardsView =
+  | { state: 'unverified' }
+  | { state: 'locked'; current: number; required: number }
+  | {
+      state: 'open';
+      countryCode: string;
+      universityId: string;
+      universities: Board;
+      departments: Board;
+      members: Board;
+      optedIn: boolean;
+      rules: { minActiveDays: number; minDeptMembers: number; weights: BoardMetrics };
+    };
+
+/** A board's latest week with the week before for rank changes; companions seeded like Discover's (§9.5). */
+async function board(scope: BoardRow['scope'], groupId: string, viewerKey: string): Promise<Board> {
+  const [latest, previous] = await latestBoardWeeks(scope, groupId);
+  if (latest === undefined) return { weekStart: null, entries: [] };
+  const rows = await namedBoardRows(scope, groupId, latest, previous ?? null);
+  return {
+    weekStart: latest,
+    entries: rows.map((row) => ({
+      ...row,
+      // Universities and departments get a companion seeded by their id (§8 F19 "UI").
+      companion: row.companion ?? { seed: seedFrom(row.scopeId), speciesKey: row.name, paletteHex: null, stage: 0, traits: [] },
+      isViewer: row.scopeId === viewerKey,
+    })),
+  };
+}
+
+/**
+ * The leaderboards a member sees (§8 F19 "UI"): universities in their university's country,
+ * departments of their university, and the members of it who opted in. Open once their university has
+ * `unlock.leaderboard.minMembers` verified members.
+ */
+export async function getLeaderboards(actor: Pick<Member, 'id' | 'verified' | 'universityId'>): Promise<LeaderboardsView> {
+  if (!actor.verified || actor.universityId === null) return { state: 'unverified' };
+  const unlock = (await campusUnlocks(actor.universityId)).unlocks.find((entry) => entry.key === 'leaderboard');
+  if (!unlock?.unlocked) return { state: 'locked', current: unlock?.current ?? 0, required: unlock?.required ?? 0 };
+  const [university, details] = await Promise.all([getUniversity(actor.universityId), getProfileDetails(actor.id)]);
+  const countryCode = university?.countryCode ?? '';
+  const [universities, departments, members, optedIn, minActiveDays, minDeptMembers, weights] = await Promise.all([
+    board('university', countryCode, actor.universityId),
+    board('department', actor.universityId, details?.departmentId ?? ''),
+    board('member', actor.universityId, actor.id),
+    isLeaderboardOptedIn(actor.id),
+    getSetting('leaderboard.minActiveDays'),
+    getSetting('leaderboard.minDeptMembers'),
+    getSetting('leaderboard.weights'),
+  ]);
+  return { state: 'open', countryCode, universityId: actor.universityId, universities, departments, members, optedIn, rules: { minActiveDays, minDeptMembers, weights } };
+}
+
+export const optInSchema = z.object({ optIn: z.boolean() });
+
+/** Joins or leaves the individual board (§8 F19 step 6); leaving removes the member's rows from it. */
+export async function setLeaderboardOptIn(actor: Pick<Member, 'id' | 'verified'>, raw: unknown): Promise<boolean> {
+  if (!actor.verified) return false;
+  const { optIn } = optInSchema.parse(raw);
+  await setLeaderboardOptin(actor.id, optIn);
+  return optIn;
+}
