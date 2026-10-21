@@ -48,7 +48,7 @@ export const fypTool: ToolDefinition<FypInput> = {
  * The language of a text, as the stopword list it shares the most words with; English when
  * nothing matches. Data-driven: the lists come from stopwords-iso.
  */
-async function detectLanguage(text: string): Promise<{ language: string; stopwords: Set<string> }> {
+export async function detectLanguage(text: string): Promise<{ language: string; stopwords: Set<string> }> {
   const words = new Set(text.toLowerCase().match(/[\p{L}']+/gu) ?? []);
   const rows = await getDb().select({ language: schema.stopwords.language, words: schema.stopwords.words }).from(schema.stopwords);
   let best = { language: 'en', overlap: 0, words: [] as string[] };
@@ -59,6 +59,16 @@ async function detectLanguage(text: string): Promise<{ language: string; stopwor
   }
   if (best.overlap === 0) return { language: 'en', stopwords: await loadStopwords('en') };
   return { language: best.language, stopwords: new Set(best.words) };
+}
+
+/**
+ * Keyphrases of a short text with YAKE (§8 F9 step 1), in the text's language, capped at
+ * `fyp.yake.maxKeyphrases` phrases of up to `fyp.yake.ngramMax` words. Shared with Alumni Quick Asks.
+ */
+export async function extractKeyphrases(text: string): Promise<string[]> {
+  const [maxKeyphrases, ngramMax] = await Promise.all([getSetting('fyp.yake.maxKeyphrases'), getSetting('fyp.yake.ngramMax')]);
+  const { stopwords } = await detectLanguage(text);
+  return yake(text, { stopwords, ngramMax, top: maxKeyphrases, dedupThreshold: DEDUP_THRESHOLD }).map((entry) => entry.keyphrase);
 }
 
 const quote = (phrase: string) => `"${phrase.replace(/"/g, '')}"`;

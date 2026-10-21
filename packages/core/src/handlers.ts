@@ -1,5 +1,6 @@
 import { registerHandler, type JobHandler } from '@commitmates/jobs';
 
+import { alumniRouteJob, alumniSlaJob, roleTransitionJob } from './alumni/service';
 import { compatCheckJob } from './compat/jobs';
 import { fairnessReportJob } from './fairness/jobs';
 import { fypCheckJob } from './fyp/jobs';
@@ -91,6 +92,9 @@ export const jobHandlers: readonly Registration[] = [
   define(crawlReposJob),
   define(leaderboardWeeklyJob),
   define(leaderboardUniversityJob),
+  define(roleTransitionJob),
+  define(alumniRouteJob),
+  define(alumniSlaJob),
   define(streakCheckJob),
   define(digestEmailJob),
   define(liftSuspensionsJob),

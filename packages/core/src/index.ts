@@ -235,6 +235,17 @@ export {
   type VerifyOutcome,
 } from './reviews/settlement';
 export { askGapHelper, gapHelpers, type GapHelper, type GapHelpers } from './gap/campus';
+export {
+  QUESTION_NOTE_PREFIX,
+  answerQuestion,
+  askQuestion,
+  enforceAlumniSla,
+  passQuestion,
+  questionNote,
+  questionTags,
+  routeQuestion,
+  transitionGraduates,
+} from './alumni/service';
 export { getLeaderboards, lastWeekStart, setLeaderboardOptIn, type Board, type BoardEntry, type LeaderboardsView } from './leaderboard/service';
 export { askOssContributor, ossCampus, refreshMemberContribs, type OssCampus } from './oss/campus';
 export {

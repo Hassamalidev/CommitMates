@@ -4,6 +4,7 @@ export * from './errors';
 export { generateOtp, hashOtp, verifyOtp } from './otp';
 export * from './queries/admin';
 export * from './queries/adoptions';
+export * from './queries/alumni';
 export * from './queries/analysis';
 export * from './queries/campus';
 export * from './queries/chat';

@@ -298,6 +298,22 @@ All algorithms live in `packages/algorithms` and are pure: no I/O, no clock, no 
 - Tests: `packages/algorithms/src/leaderboard/score.test.ts`, `packages/core/src/leaderboard/leaderboard.test.ts`
 - Spec: CLAUDE.md §8 F19
 
+## Alumni Quick Asks
+
+### Role transition, tagging and routing
+
+- Code: `packages/algorithms/src/alumni/route.ts`, `packages/core/src/alumni/service.ts` (jobs `role_transition` daily at 01:30 UTC, `alumni_route` per question and round: `alumni:<questionId>:<round>`, `alumni_sla` hourly), queries in `packages/db/src/queries/alumni.ts`
+- Role transition: cutoff = this year from `alumni.transitionMonth` on, else last year; verified students whose graduation year is earlier than the cutoff become alumni and get a `became_alumni` notification pointing to where they can correct the year
+- Asking: verified members of a university with at least `unlock.alumni.minAlumni` alumni; body trimmed, 1 to `alumni.questionMaxChars` characters; picked topics must be known tags; optional anonymity
+- Tags: the picked tags first, then YAKE keyphrases of the body (same extractor and settings as the FYP checker), each phrase and each of its words normalized like package tags and kept when it is a topic slug, a topic alias (mapped to its topic) or a package-derived tag; at most `alumni.maxQuestionTags`
+- Candidates: verified, active alumni of the university with a skill vector, not hidden, not in ghost mode, not the asker, no block either way, not already sent this question
+- Score: skillOverlap × (1 − open ÷ `alumni.maxOpenPerAlumnus`) × responsiveness; skillOverlap = cosine of the question's tags (weight 1 each) with the alumnus' skill vector; responsiveness = answered ÷ routed over the last `alumni.responsivenessDays` days, 0.5 below 3 routed. Alumni at the cap are left out; the rest are ordered by score, then by availability ((1 − load) × responsiveness), then id, so a question whose tags nobody shares still reaches the alumni most likely to answer. The top `alumni.routeTopK` are routed and notified.
+- Rounds: round 1 on creation. Hourly, pending routes older than `alumni.slaHours` expire; an open question with no pending route left in its round (expired or passed) moves to the next round, at once after a pass. Past `alumni.maxRounds`, or when no candidate is left, the question expires and the asker is told.
+- Answering: a direct conversation with the asker (their existing one if any) opens without a message request, with a system message quoting the question; the other pending routes end as passed; the two members are connected (`alumni`); the asker is notified. An anonymous asker's name is shown to the alumnus only from the answer on.
+- Settings: `unlock.alumni.minAlumni` (5), `alumni.routeTopK` (3), `alumni.slaHours` (48), `alumni.maxOpenPerAlumnus` (3), `alumni.maxRounds` (3), `alumni.transitionMonth` (7), `alumni.questionMaxChars` (600), `alumni.maxQuestionTags` (8), `alumni.responsivenessDays` (90)
+- Tests: `packages/algorithms/src/alumni/route.test.ts`, `packages/core/src/alumni/alumni.test.ts`
+- Spec: CLAUDE.md §8 F20
+
 ## Information retrieval
 
 ### YAKE keyphrases

@@ -50,6 +50,7 @@ export const chatCopy = {
       left: (login: string) => (login ? `@${login} left this conversation.` : 'Someone left this conversation.'),
       swap: (steps: readonly { from: string | null; to: string | null; tag: string }[]) =>
         `Skill swap: ${steps.map((step) => `${step.from ? `@${step.from}` : 'a member'} helps ${step.to ? `@${step.to}` : 'a member'} with ${step.tag}`).join('; ')}.`,
+      question: (body: string) => `Alumni question: “${body}”`,
     },
     live: 'New messages appear here as they arrive.',
   },

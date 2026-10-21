@@ -140,6 +140,26 @@ const describers: Readonly<Record<string, (data: Record<string, unknown>) => Not
     line: 'Everyone accepted. Say hello in your group conversation.',
     path: isUuid(text(data.threadId)) ? `/inbox/${text(data.threadId)}` : '/inbox',
   }),
+  became_alumni: () => ({
+    title: 'Welcome to the alumni',
+    line: 'Your graduation year has passed, so you are now listed as an alumnus. If that is wrong, correct your graduation year on the Alumni page.',
+    path: '/alumni',
+  }),
+  alumni_question: () => ({
+    title: 'A student has a question for you',
+    line: 'A student at your university asked something you know about. A short answer goes a long way.',
+    path: '/alumni',
+  }),
+  alumni_answered: (data) => ({
+    title: 'Your question was answered',
+    line: text(data.login) ? `@${text(data.login)} answered your question. Continue in your conversation.` : 'An alumnus answered your question. Continue in your conversation.',
+    path: isUuid(text(data.threadId)) ? `/inbox/${text(data.threadId)}` : '/alumni',
+  }),
+  alumni_expired: () => ({
+    title: 'Your question got no answer',
+    line: 'No alumnus picked up your question this time. Try posting it on the FYP Board, or ask a classmate directly.',
+    path: '/alumni',
+  }),
   github_reconnect: () => ({
     title: 'Sign in with GitHub again',
     line: 'Your GitHub sign-in has expired, so a streak day was skipped instead of counted. Sign in again to keep it going.',
@@ -190,4 +210,7 @@ export const MUTABLE_NOTIFICATIONS: Readonly<Record<string, string>> = {
   swap_proposed: 'Skill swap proposals',
   swap_declined: 'Skill swaps that did not happen',
   swap_accepted: 'Skill swaps everyone accepted',
+  alumni_question: 'Questions for you as an alumnus',
+  alumni_answered: 'Answers to your questions',
+  alumni_expired: 'Questions that got no answer',
 };

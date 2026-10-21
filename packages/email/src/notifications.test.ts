@@ -42,10 +42,21 @@ describe('notification words', () => {
       'swap_proposed',
       'swap_declined',
       'swap_accepted',
+      'alumni_question',
+      'alumni_answered',
+      'alumni_expired',
     ]);
+    expect(Object.keys(MUTABLE_NOTIFICATIONS)).not.toContain('became_alumni');
     expect(Object.keys(MUTABLE_NOTIFICATIONS)).not.toContain('account_hidden');
     expect(Object.keys(MUTABLE_NOTIFICATIONS)).not.toContain('github_reconnect');
     expect(describeNotification('pair_paused', { login: 'sam' })?.path).toBe('/streaks');
+  });
+
+  it('links an answered alumni question to its conversation only by thread id', () => {
+    const threadId = '6f1c2b8e-4a3d-4c1e-9b7a-2d5e8f0a1b2c';
+    expect(describeNotification('alumni_answered', { login: 'ada', threadId })).toMatchObject({ line: '@ada answered your question. Continue in your conversation.', path: `/inbox/${threadId}` });
+    expect(describeNotification('alumni_answered', { threadId: '../admin' })?.path).toBe('/alumni');
+    expect(describeNotification('alumni_question', {})?.path).toBe('/alumni');
   });
 
   it('words a revival and an ended adoption for the adopter and the owner', () => {

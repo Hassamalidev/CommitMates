@@ -176,3 +176,4 @@ export { findSwapCycles, selectSwapCycles, swapEdges, type SwapCycle, type SwapE
 export { teachLevels } from './matching/teach';
 export { markdownExcerpt, markdownToText } from './text/markdown';
 export { activeDays, boardMetrics, boardScores, competitionRanks, minMaxNormalize, type BoardMetrics, type BoardWeights } from './leaderboard/score';
+export { MIN_ROUTED_FOR_RATE, NEUTRAL_RESPONSIVENESS, alumniCutoffYear, rankAlumni, responsiveness, routeScore, type AlumnusCandidate, type AlumnusLoad } from './alumni/route';
