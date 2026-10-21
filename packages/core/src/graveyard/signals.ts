@@ -1,3 +1,4 @@
+import { adjustedUnfinished, commitUnfinishedSignal, readmeUnfinishedSignal, unfinishedScore } from '@commitmates/algorithms';
 import { getCachedAnalysis, getSetting, putCachedAnalysis } from '@commitmates/db';
 import {
   fetchCommitEstimate,
@@ -93,4 +94,25 @@ export async function withRecentStars(
   const updated = { ...signals, recentStars };
   await store(repo.fullName, updated, now);
   return updated;
+}
+
+export type UnfinishedReading = { score: number; readme: number; unanswered: number | null; commits: number | null };
+
+/**
+ * The adjusted unfinished score of a repository from its signals (CLAUDE.md §8 F7 steps 5–6), with
+ * the parts behind it. Open issues nobody answered stand in for "no comment from the owner".
+ */
+export function unfinishedFromSignals(signals: RepoSignals, unfinishedTerms: RegExp | null): UnfinishedReading {
+  const openIssues = signals.issues.openComments;
+  const readme = readmeUnfinishedSignal(signals.readme, unfinishedTerms);
+  const unanswered = openIssues.length === 0 ? null : openIssues.filter((comments) => comments === 0).length / openIssues.length;
+  const commits = commitUnfinishedSignal(signals.commitMessages, unfinishedTerms);
+  const noReleases = signals.hasReleases ? 0 : 1;
+  const score = adjustedUnfinished(unfinishedScore([readme, unanswered, commits, noReleases]), {
+    hasReleases: signals.hasReleases,
+    allIssuesClosed: signals.issues.allClosed,
+    totalIssues: signals.issues.total,
+    readme: signals.readme,
+  });
+  return { score, readme, unanswered, commits };
 }

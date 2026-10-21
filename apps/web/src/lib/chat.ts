@@ -81,10 +81,32 @@ export function linkify(text: string): TextPart[] {
 }
 
 /** The words for a system message, which the database stores as a key. */
+/** Prefix of a skill swap's opening note (CLAUDE.md §8 F16); its data follows as JSON. */
+const SWAP_PREFIX = 'swap:';
+
+const isRecord = (value: unknown): value is Record<string, unknown> => typeof value === 'object' && value !== null;
+const loginOrNull = (value: unknown) => (typeof value === 'string' ? value : null);
+
+/** The steps of a swap note, or null when the data is not what the server writes. */
+function parseSwapSteps(json: string): { from: string | null; to: string | null; tag: string }[] | null {
+  let value: unknown;
+  try {
+    value = JSON.parse(json);
+  } catch {
+    return null;
+  }
+  if (!Array.isArray(value) || !value.every((step) => isRecord(step) && typeof step.tag === 'string')) return null;
+  return (value as Record<string, unknown>[]).map((step) => ({ from: loginOrNull(step.from), to: loginOrNull(step.to), tag: String(step.tag) }));
+}
+
 export function systemNoteText(body: string): string {
   const copy = chatCopy.conversation.system;
   if (body === 'member_left') return copy.memberLeft;
   if (body.startsWith('left:')) return copy.left(body.slice('left:'.length));
+  if (body.startsWith(SWAP_PREFIX)) {
+    const steps = parseSwapSteps(body.slice(SWAP_PREFIX.length));
+    if (steps) return copy.swap(steps);
+  }
   return copy.memberLeft;
 }
 

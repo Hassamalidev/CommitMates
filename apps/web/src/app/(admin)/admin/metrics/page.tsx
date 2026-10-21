@@ -77,6 +77,14 @@ export default async function AdminMetricsPage() {
         </p>
       </Card>
 
+      <h2 className={sectionTitle}>{copy.revivals.title}</h2>
+      <Card className="flex max-w-reading flex-col gap-2">
+        <p className="type-small text-fg-muted">{copy.revivals.line}</p>
+        <p className="type-h2" data-testid="revivals">
+          {copy.revivals.value(social.revivals.total, social.revivals.recent, social.revivals.days)}
+        </p>
+      </Card>
+
       <p className="type-small mt-8 max-w-reading text-fg-muted">{copy.later}</p>
     </>
   );

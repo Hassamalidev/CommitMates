@@ -90,6 +90,16 @@ All algorithms live in `packages/algorithms` and are pure: no I/O, no clock, no 
 - Tests: `packages/core/src/persona/persona.test.ts`
 - Spec: CLAUDE.md §8 F1
 
+### Member profiles: visibility and badges
+
+- Code: `packages/core/src/profiles/visibility.ts`, `packages/core/src/profiles/badges.ts`, page `apps/web/src/app/u/[login]/page.tsx`
+- Visibility: the member always sees their own page; `public` anyone; `university` verified members of the same university; `country` verified members of a university in the same country (the countries of the two universities compared; the same university always counts, a missing country never matches); `hidden` nobody else; suspended or hidden-for-review accounts nobody else. A page someone may not see answers 404, like a missing one.
+- Badges: reviewer (at least one helpful review, with its reputation tier), reviver (taking part in a revived adoption as adopter or owner), streak (a shared streak whose longest run reached the first value of `streaks.companionStageDays`), open source (merged pull requests to other people's projects, from `oss_member_contribs`); each gives the companion trait of the same name on the member's Dev Card (`mentor` arrives with F20)
+- Page: badges, revived projects and showcased projects (linking to Senior's Legacy for members of the same university), above the Dev Card
+- Settings: `streaks.companionStageDays`, `reviews.reputationTierCuts`
+- Tests: `packages/core/src/profiles/visibility.test.ts`, `packages/core/src/profiles/badges.test.ts`, `e2e/profile.spec.ts` (every visibility level against a classmate, a member in the same country, one abroad and a visitor)
+- Spec: CLAUDE.md §8 F1 "Privacy", §9.5, P5-T10
+
 ## Similarity
 
 ### Cosine, Jaccard and histogram intersection
@@ -201,6 +211,16 @@ All algorithms live in `packages/algorithms` and are pure: no I/O, no clock, no 
 - Tests: `packages/algorithms/src/gap/gap.test.ts`, `packages/core/src/gap/gap.test.ts`
 - Spec: CLAUDE.md §8 F5
 
+### Who at your uni can help (campus layer)
+
+- Code: `packages/core/src/gap/campus.ts`, panel in `apps/web/src/components/gap/GapCampusPanel.tsx`
+- A gap's skill: a dependency tag's name, or the topic a path matches; repository properties have none
+- Helpers: for a signed-in, verified member at a university with `unlock.gapCampus.minMembers` verified members, the members there whose teaching level in the skill (the Skill Swap's percentile rank of skill-vector weights within the university, everyone with a vector counted) reaches `swap.minTeachLevel`, best first, at most `gap.helpersPerGap`; never the member, never hidden or ghost-mode members, never across a block. Skills are matched in the vocabulary's spelling and returned under the spelling asked for.
+- Ask: a message request with `context_kind = 'gap'` and the repository as `context_id`, allowed only to someone the member's own panel lists for that skill; the first message is prefilled from the gap and editable; the chat rules apply
+- Settings: `unlock.gapCampus.minMembers` (10), `swap.minTeachLevel` (0.5), `gap.helpersPerGap` (3), `gap.maxGaps`
+- Tests: `packages/core/src/gap/campus.test.ts`, `apps/web/src/components/gap/gap-campus.test.tsx`
+- Spec: CLAUDE.md §8 F5 step 7
+
 ## Open-Source Starter
 
 ### Responsiveness, gates and rank
@@ -216,6 +236,33 @@ All algorithms live in `packages/algorithms` and are pure: no I/O, no clock, no 
 - Settings: `oss.beginnerLabelTerms`, `oss.maxRepoIdleDays` (60), `oss.maxResponseHours` (168), `oss.maxComments` (3), `oss.responsivenessSample` (20), `cache.searchTtlHours`
 - Tests: `packages/algorithms/src/oss/oss.test.ts`, `packages/core/src/oss/oss.test.ts`
 - Spec: CLAUDE.md §8 F8
+
+### Members who contributed here (campus layer)
+
+- Code: `packages/core/src/oss/campus.ts` (job `member_oss_contribs`, weekly on Tuesday 05:00 UTC, one refresh per verified member and week: `oss-contribs:<userId>:<week Monday>`), queries in `packages/db/src/queries/oss.ts`
+- Refresh: a paced issue search `is:pr is:merged author:<login>` with the member's own token when valid, `oss.memberContribPages` pages of 100; pull requests to the member's own repositories are left out; per project the count and the latest merge time (merge time, else close time) replace the member's previous rows
+- Panel: for a signed-in verified member, each project in the results lists the verified, active members of their university with merged pull requests there, most merged first (then most recent), at most `oss.campusContributorsPerRepo`; never the viewer, never hidden or ghost-mode members, never across a block. Projects are matched case-insensitively and returned under the names asked for.
+- Ask: a message request with `context_kind = 'oss'` and the project as `context_id`, only to someone listed for that project; the first message is prefilled and editable; the chat rules apply
+- Settings: `oss.memberContribPages` (1), `oss.campusContributorsPerRepo` (3)
+- Tests: `packages/core/src/oss/campus.test.ts`, `apps/web/src/components/oss/oss-campus.test.tsx`
+- Spec: CLAUDE.md §8 F8 step 5
+
+## Senior's Legacy
+
+### Library, search and refresh
+
+- Code: `packages/core/src/legacy/service.ts` (job `legacy_refresh`, weekly on Wednesday 06:00 UTC, continuing across runs), queries in `packages/db/src/queries/legacy.ts`, excerpts by `markdownExcerpt` in `packages/algorithms/src/text/markdown.ts`
+- Entries: a verified member showcases one of their own non-fork repositories with an optional blurb (at most `legacy.blurbMaxChars`) and whether they take questions; tags = the repository's topics plus its dependencies' derived tags, normalized; the graduation year is the member's. FYP projects join with F22 (P6-T07).
+- Unlock: entries of active members whose profile is not hidden count toward `unlock.legacy.minProjects`
+- Search: entries at the member's university from active, not hidden owners, never across a block. A query matches the repository's search text or the blurb (`websearch_to_tsquery`, `simple`), or entries whose tags share a topic of the query's cached taxonomy expansion (an uncached query is queued for expansion and searched by its words); relevance = text rank + shared topics. Filters: tag, graduation-year range, department. Sort: relevance (then stars) or stars.
+- Labels: alumni by role; seniors when the graduation year is at most this year + `legacy.minGradYearsAgo`; others by year
+- Detail: the README's start as plain text (fenced code, HTML, images and link targets removed), at most `legacy.excerptChars`; only members of the entry's university, never across a block
+- Ask the author: a message request with `context_kind = 'legacy'` when the author takes questions; alumni with questions off are reached through Alumni Quick Asks once F20 exists (P6-T05)
+- Page: `/legacy` (search form as URL parameters, cards with the owner's companion, a tag links to that tag's results) and `/legacy/<id>` (excerpt, language, tags, Ask); the excerpt is skipped when GitHub cannot be read
+- Refresh: each entry's repository is read again by id; private, deleted, or transferred away from the owner → the entry leaves; otherwise its metadata and tags are updated
+- Settings: `unlock.legacy.minProjects` (5), `legacy.minGradYearsAgo` (0), `legacy.blurbMaxChars` (280), `legacy.excerptChars` (600), `legacy.listLimit` (50)
+- Tests: `packages/core/src/legacy/legacy.test.ts`, `packages/algorithms/src/text/markdown.test.ts`
+- Spec: CLAUDE.md §8 F17
 
 ## Information retrieval
 
@@ -391,9 +438,92 @@ TF-IDF arrives in P4-T02.
 - Tests: `packages/algorithms/src/streaks/judge.test.ts`, `packages/core/src/streaks/judge.test.ts`
 - Spec: CLAUDE.md §8 F13 "Daily judgement", "Edge cases"
 
+### Listing suggestions
+
+- Code: `packages/core/src/adoptions/listings.ts` (job `suggest_listings`, weekly on Monday 04:00 UTC, one run per verified member and week: `listings:<userId>:<week Monday>`); scoring shared with the Graveyard in `packages/core/src/graveyard/signals.ts`
+- Rule: a member's own repositories that are not forks, idle at least `graveyard.idleMonths.default`, with a README and at least `graveyard.minCommits` commits, whose adjusted unfinished score (F7 steps 5–6) is at least `adoptions.suggestMinUnfinished`, and that are not listed or dismissed. Read with the member's own token when valid. A dismissed repository is never suggested again.
+- Settings: `adoptions.suggestMinUnfinished` (0.5), `adoptions.noteMaxChars` (280), `graveyard.idleMonths.default`, `graveyard.minCommits`, `graveyard.unfinishedTerms`
+- Tests: `packages/core/src/adoptions/listings.test.ts`, `e2e/projects.spec.ts`
+- Spec: CLAUDE.md §8 F14 "Private suggestions", "Listing"
+
+### Graveyard uni scope and adoptions
+
+- Code: `packages/core/src/graveyard/jobs.ts` (uni branch of `graveyard_search`), `packages/db/src/queries/adoptions.ts` (`uniListingCandidates`), `packages/core/src/adoptions/flow.ts`
+- Candidates: listings with status `listed` at the searcher's university, never the searcher's own, never an owner either side has blocked, matched by full-text search (`simple` configuration, `websearch_to_tsquery`) on the repository or by topic overlap with the taxonomy expansion; relevance = `ts_rank_cd` plus topic overlap, divided by the best in the set. Listings are opted in by their owner, so the idle, README and history filters are skipped; scoring, labels and ranking are the global ones. The uni result is cached and queued per member (the tool's params and idempotency key include the member id), because blocks and the university differ by who asks.
+- Adoption: "Adopt" creates an `adoptions` row (`requested`) and a message request with `context_kind = 'adoption'` in one transaction, under the chat rules; accepting the request sets the adoption `active`, the listing `adopted` and records an `adoption` connection. One open adoption per member and repository. The adopter links a fork in their own account (owner checked against their GitHub login). A verified member following a fork or ask link on a global result records a `requested` adoption without a listing, so a revival can be tracked.
+- Settings: the Graveyard keys above, `chat.minFirstMessageChars`, `chat.newThreadsPerDay.base`
+- Tests: `packages/core/src/adoptions/flow.test.ts`, `apps/web/src/components/graveyard/graveyard.test.tsx`, `e2e/projects.spec.ts`
+- Spec: CLAUDE.md §8 F7 (uni scope, "Members"), §8 F14 "Adoption flow"
+
+### Revival tracking
+
+- Code: `packages/core/src/adoptions/revivals.ts` (job `track_revivals`, daily at 05:00 UTC: one check per adoption that is requested or active, `revival:<adoptionId>:<UTC day>`), queries in `packages/db/src/queries/adoptions.ts`; GitHub readers `listForks`, `listCommits` with `since`, `fetchRepositoryById`
+- Identity: the adopter's own token when valid, else the server token (public reads only)
+- Requested through a listing: dropped once the message request is declined or expired (quietly); only the owner's acceptance starts it
+- Requested from a global result: the repository's current name is read by id when it is not cached; when a fork owned by the adopter (login compared case-insensitively) appears among the repository's forks (newest first, `github.maxPages.default` pages), the adoption becomes active with that fork; still without a fork after `adoptions.dropAfterDays` days it is dropped quietly
+- Active: the fork is the linked one, or found the same way. Commits on the fork's default branch dated at or after the adoption's start (`since` = when it was asked for) are counted up to `adoptions.reviveMinCommits`; reaching it makes the adoption revived (`revived_at`), notifies adopter and owner (`adoption_revived`), and gives both the "Revived" badge. With fewer, the last activity is the newest such commit or the activation time, whichever is later; after `adoptions.dropAfterDays` days of none the adoption is dropped and both are notified (`adoption_dropped`). A deleted fork counts as no commits.
+- Listing after a drop: stays adopted until its owner lists it again from `/settings/projects` (allowed only when no adoption of it is requested, active or revived)
+- Badge and trait: a member who adopted, listed or owns a revived adoption's repository has the "Revived" badge; their Dev Card companion wears the `reviver` trait (§9.5) from its next refresh
+- Metric: revivals in all and in the last 30 days on `/admin/metrics` (§1.7)
+- Settings: `adoptions.reviveMinCommits` (3), `adoptions.dropAfterDays` (90), `github.maxPages.default`
+- Tests: `packages/core/src/adoptions/revivals.test.ts`, `packages/github/src/queries/repos.test.ts`
+- Spec: CLAUDE.md §8 F14 "Revival tracking"
+
+### Credit ledger
+
+- Code: `packages/core/src/reviews/ledger.ts`, queries in `packages/db/src/queries/ledger.ts`; table `credit_ledger` (append-only by trigger), view `credit_balances`, lock rows in `ledger_locks`
+- Balance: the sum of a member's rows (`credit_balances`)
+- Locking: every write first creates (if needed) and locks the member's `ledger_locks` row `for update` in its transaction; a write that touches two members locks both in sorted id order, so concurrent settlements cannot deadlock
+- Starter: `reviews.starterCredits` credits once per member (`starter` row), granted after email or vouch verification; re-verifying grants nothing; 0 grants nothing
+- Escrow: inside the review request's own transaction, under the author's lock: balance below 1 → "Review someone else's code to earn a credit."; otherwise a `-1 escrow` row tied to the request
+- Settlement: a held escrow (an `escrow` row of the author for the request and no `release` or `refund` row for it) settles once: `+1 release` to the reviewer or `+1 refund` to the author; later attempts return false
+- Admin adjustment: admins only, one `admin_adjust` row with an audit entry (`credits.adjusted`, delta and note), refused when it would leave the balance below 0
+- Settings: `reviews.starterCredits` (1)
+- Tests: `packages/core/src/reviews/ledger.test.ts` (50 concurrent escrows against 3 credits: exactly 3 succeed, the running balance never drops below 0), `packages/db/src/schema/collaboration.test.ts` (append-only)
+- Spec: CLAUDE.md §8 F15 "Credits", §5.10 "Credit-ledger manipulation"
+
+### Review requests and claims
+
+- Code: `packages/core/src/reviews/requests.ts`, queries in `packages/db/src/queries/reviews.ts`, GitHub readers in `packages/github/src/queries/pulls.ts`
+- Gate: verified members at a university where `unlock.reviews.minMembers` verified members have joined
+- Request: the link must name a pull request (`parseGitHubUrl` with a number); the pull request must exist, be open and in a public repository, and the member must have opened it or own its repository (organization membership and collaborator status of others cannot be read without extra scopes, §2.7). One live request (open, claimed, submitted or disputed) per pull request. The request and a one-credit escrow are written in one transaction; it expires after `reviews.requestTtlDays`.
+- Languages: extensions of changed files (`.ts`) matched case-insensitively against Linguist's `languages.extensions`; an extension several languages share counts for each; ranked by file count then name, at most `reviews.maxLanguages`
+- Listing: open, unexpired requests at the member's university from active members, never their own, never across a block; sorted by language overlap = the sum of the member's skill-vector weights for each language as a tag (lowercase, spaces as hyphens), then newest; at most `reviews.listLimit`
+- Claim: one conditional update (open, unexpired, not the author's), so concurrent claims leave one holder; nothing is read from GitHub, so claiming is instant, and a pull request that closed or vanished meanwhile is caught by `verify_review`, which refunds the author. The author is notified. A holder can give the claim back; an author can withdraw a request nobody has claimed (refunded, no notification).
+- Settings: `unlock.reviews.minMembers`, `reviews.requestTtlDays` (14), `reviews.maxLanguages` (5), `reviews.listLimit` (50), `reviews.claimTtlHours` (72, shown with the claim)
+- Tests: `packages/core/src/reviews/requests.test.ts`, `packages/github/src/queries/pulls.test.ts`
+- Spec: CLAUDE.md §8 F15 "Request", "Claim and verify" steps 1–2, "Edge cases"
+
+### Review verification, settlement and reputation
+
+- Code: `packages/core/src/reviews/settlement.ts` (jobs `verify_review` and `expire_reviews`, hourly at :15), queries in `packages/db/src/queries/reviews.ts`
+- Verification: "I've submitted my review" queues one `verify_review` per claim (`review:<requestId>:<claim time>`). It reads the pull request, its reviews and its line comments (the reviewer's own token when valid). Verified when the claimer (login compared case-insensitively) submitted a non-pending review at or after the claim time and wrote at least `reviews.minLineComments` line comments at or after it; the review ids and comment count are stored, the request becomes `submitted` and the author is asked to rate. A missing pull request, or one closed or private without such a review, ends the request with a refund. Otherwise the job waits (no attempt used) for `reviews.verifyRetryMinutes` or until the claim's end, whichever is sooner; at the end the request opens again and the reviewer is told.
+- Rating: helpful → the escrow is released to the reviewer (`settled_helpful`); unhelpful → refunded to the author (`settled_unhelpful`); each settles once
+- Dispute: the reviewer of an unhelpful rating may dispute it within `reviews.disputeWindowDays` with a note (at most `reviews.disputeNoteMaxChars`); the author keeps the refund meanwhile. Admins, or moderators of the request's university, decide: for the reviewer, they receive one credit as an audited `admin_adjust` and the request settles as helpful; for the author, it stays unhelpful. The decision is audited and both are told.
+- Upkeep (hourly): claims older than `reviews.claimTtlHours`, or whose reviewer deleted their account, open again; open requests past their lifetime expire with a refund; verified reviews unrated after `reviews.autoSettleDays` settle as helpful; a submitted request whose review was deleted with its reviewer opens again
+- Reputation: helpful reviews of the member as a percentile rank among the verified members of their university (members with none count as 0); tier = number of `reviews.reputationTierCuts` reached; no helpful review → no percentile, tier 0
+- Settings: `reviews.minLineComments` (3), `reviews.claimTtlHours` (72), `reviews.autoSettleDays` (7), `reviews.verifyRetryMinutes` (60), `reviews.disputeWindowDays` (7), `reviews.disputeNoteMaxChars` (500), `reviews.reputationTierCuts` ([0.5, 0.75, 0.9])
+- Tests: `packages/core/src/reviews/settlement.test.ts`
+- Spec: CLAUDE.md §8 F15 "Claim and verify" step 3, "Rating and settlement", "Reputation", "Edge cases"
+
 ## Clustering, graphs and assignment
 
-No entries yet. k-means with silhouette selection arrives in P6-T06; cycle search in P5-T06.
+k-means with silhouette selection arrives in P6-T06.
+
+### Skill swap cycles
+
+- Code: `packages/algorithms/src/graph/cycles.ts` (`swapEdges`, `findSwapCycles`, `selectSwapCycles`), `packages/algorithms/src/matching/teach.ts` (`teachLevels`), orchestration in `packages/core/src/swaps/service.ts` (job `propose_swaps`, nightly at 03:30 UTC, one run per university where `unlock.swap.minMembers` verified members have joined: `swaps:<universityId>:<UTC day>`)
+- Teaching level: a member's skill-vector weight for a tag as a percentile rank among all members of the university with a vector (those without the tag count as 0). Tags at or above `swap.minTeachLevel` are verified offers, rewritten into `swap_offers` every run. Self-declared offers are the member's own, from the tag vocabulary, at most `swap.maxSelfDeclared`, stored at level `swap.minTeachLevel`.
+- Wants: the member's ranked wants (priority 1 to `swap.maxPriority`, at most `swap.maxWants`) plus their learning goals they did not rank, at `swap.goalPriority`; priority is normalized by `swap.maxPriority`
+- Edges: A→B for each tag A offers and B wants; quality = level × normalized priority, × `swap.selfDeclaredFactor` for a self-declared offer; only the best edge per ordered pair is kept (ties by tag); no edge across a block either way
+- Pool: verified, active members with a skill vector, not in ghost mode or hidden, and not already in a proposal that waits for answers
+- Cycles: every simple cycle of 2 to `swap.maxCycleLength` members by depth-limited search from each member, visiting only members after the start so each cycle is found once; score = mean edge quality
+- Selection: greedy by score, shorter cycles first on ties, then member order; no member in two proposals. Proposals expire after `swap.proposalTtlDays`.
+- Answers: one decline ends the proposal (the others are told); when everyone accepts, a `swap` group thread opens with a system message saying who helps whom with what (stored as `swap:` plus the steps as JSON with the logins at that moment, worded by the chat view like the other system notes), and every pair is connected (`swap`)
+- Page: `/swaps` shows proposals (accept or decline while open), verified offers with their level, self-declared offers (comma-separated) and wants (a skill and a priority per row, learning goals included)
+- Settings: `unlock.swap.minMembers`, `swap.minTeachLevel` (0.5), `swap.maxCycleLength` (3), `swap.selfDeclaredFactor` (0.5), `swap.maxPriority` (3), `swap.goalPriority` (2), `swap.proposalTtlDays` (7), `swap.maxSelfDeclared` (10), `swap.maxWants` (10)
+- Tests: `packages/algorithms/src/graph/cycles.test.ts`, `packages/core/src/swaps/swaps.test.ts`
+- Spec: CLAUDE.md §8 F16
 
 ## Scoring
 

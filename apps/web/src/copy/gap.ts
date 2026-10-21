@@ -50,5 +50,18 @@ export const gapCopy = {
     title: 'Who at your uni can help',
     line: (members: number) =>
       `Members of your university who know these skills appear here once it has ${members} verified members. Sign in and verify to count yourself in.`,
+    verify: 'Verify your university to see classmates who know these skills.',
+    locked: (current: number, required: number) => `This opens at ${required} verified members of your university (${current} so far).`,
+    loading: 'Looking for classmates who know these skills…',
+    failed: 'We could not load this right now. Try again in a moment.',
+    intro: 'Classmates whose code shows these skills more than most members here.',
+    none: 'Nobody here shows these skills in their code yet.',
+    forGap: (label: string) => label,
+    nobodyFor: 'Nobody yet.',
+    ask: {
+      title: (login: string) => `Ask @${login} for help`,
+      prefill: (repo: string, label: string) =>
+        `Hi! Gap Finder says my project ${repo} is missing ${label.charAt(0).toLowerCase()}${label.slice(1)}, and your code shows you know it well. Could you point me in the right direction?`,
+    },
   },
 } as const;

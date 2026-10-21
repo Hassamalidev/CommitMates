@@ -110,6 +110,8 @@ describe('confirmEmailCode', () => {
     expect(count?.member_count).toBeGreaterThanOrEqual(1);
     // Nothing is pending any more.
     await expect(confirmEmailCode(userId, { code })).rejects.toMatchObject({ code: 'verify.no_pending' });
+    // New verified members get their review starter credits once.
+    expect(await database.sql`select delta, reason from credit_ledger where user_id = ${userId}`).toEqual([{ delta: 1, reason: 'starter' }]);
   });
 
   it('moves the member count when a member verifies at another university', async () => {
@@ -117,6 +119,8 @@ describe('confirmEmailCode', () => {
     await confirmEmailCode(userId, { code: await requestCode(userId, 'ada@uni.edu') });
     const [before] = await database.sql<{ member_count: number }[]>`select member_count from universities where id = ${uni}`;
     await confirmEmailCode(userId, { code: await requestCode(userId, 'ada@other.edu') });
+    // Re-verifying elsewhere grants no more starter credits.
+    expect(await database.sql`select reason from credit_ledger where user_id = ${userId}`).toEqual([{ reason: 'starter' }]);
     const counts = await database.sql<{ id: string; member_count: number }[]>`select id, member_count from universities where id in (${uni}, ${other})`;
     expect(counts.find((row) => row.id === uni)?.member_count).toBe(before!.member_count - 1);
     expect(counts.find((row) => row.id === other)?.member_count).toBe(1);

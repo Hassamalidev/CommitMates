@@ -23,10 +23,10 @@ export function parseGap(value: unknown): GapResult | null {
 
 const IDLE: JobState<unknown> = { phase: 'idle' };
 
-export type GapToolProps = { initialRepo?: string | undefined; campusMinMembers: number };
+export type GapToolProps = { initialRepo?: string | undefined; campusMinMembers: number; signedIn?: boolean };
 
 /** The Gap Finder: a repository in, what its successful neighbours have out. */
-export function GapTool({ initialRepo, campusMinMembers }: GapToolProps) {
+export function GapTool({ initialRepo, campusMinMembers, signedIn = false }: GapToolProps) {
   const { state, start } = useJob('gap', parseGap);
   const [repoUrl, setRepoUrl] = useState(initialRepo ?? '');
 
@@ -72,7 +72,7 @@ export function GapTool({ initialRepo, campusMinMembers }: GapToolProps) {
         </form>
         <JobStatus state={fieldError ? IDLE : state} steps={gapCopy.steps} idleLine={gapCopy.idleLine} />
       </Card>
-      {result ? <GapView result={result} campusMinMembers={campusMinMembers} /> : null}
+      {result ? <GapView result={result} campusMinMembers={campusMinMembers} signedIn={signedIn} /> : null}
     </div>
   );
 }

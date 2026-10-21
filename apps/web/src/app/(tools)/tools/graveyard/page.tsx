@@ -5,7 +5,7 @@ import { ToolPage } from '@/components/tools/ToolPage';
 import { graveyardCopy } from '@/copy/graveyard';
 import { getCurrentMember } from '@/server/auth';
 
-type Props = { searchParams: Promise<{ q?: string | string[] }> };
+type Props = { searchParams: Promise<{ q?: string | string[]; scope?: string | string[] }> };
 
 const firstValue = (value: string | string[] | undefined): string | undefined => {
   const raw = (Array.isArray(value) ? value[0] : value)?.trim();
@@ -23,13 +23,16 @@ export async function generateMetadata({ searchParams }: Props): Promise<Metadat
 }
 
 export default async function GraveyardPage({ searchParams }: Props) {
-  const query = firstValue((await searchParams).q);
+  const params = await searchParams;
+  const query = firstValue(params.q);
+  const scope = firstValue(params.scope) === 'uni' ? 'uni' : 'global';
   const member = await getCurrentMember();
+  const viewer = member === null ? 'visitor' : member.verified ? 'verified' : 'member';
   const { page } = graveyardCopy;
 
   return (
     <ToolPage slug="graveyard" eyebrow={page.eyebrow} title={page.title} line={page.line} signedIn={member !== null}>
-      <GraveyardTool initialQuery={query} />
+      <GraveyardTool initialQuery={query} initialScope={scope} viewer={viewer} />
     </ToolPage>
   );
 }

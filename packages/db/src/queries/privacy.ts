@@ -3,20 +3,27 @@ import { eq, inArray, or, sql } from 'drizzle-orm';
 import { getDb, type DbOrTx } from '../client';
 import { hashUserId } from '../logger';
 import {
+  adoptions,
   analysisCache,
   blocks,
   connections,
+  creditLedger,
   emailVerifications,
   feedback,
   ghRepos,
   ghUsers,
   githubIdentities,
+  graveyardListings,
   invites,
+  ledgerLocks,
+  legacyEntries,
+  listingSuggestions,
   matchSuggestions,
   messageRequests,
   messages,
   notificationPrefs,
   notifications,
+  ossMemberContribs,
   pairCompanions,
   pairDays,
   pairInvites,
@@ -26,9 +33,15 @@ import {
   recruiterReports,
   reports,
   repoDependencies,
+  reviewRequests,
+  reviews,
   repoManifests,
   roles,
   skillVectors,
+  swapOffers,
+  swapProposals,
+  swapResponses,
+  swapWants,
   threadMembers,
   threads,
   trustScores,
@@ -149,6 +162,23 @@ export async function exportMemberRows(userId: string, db: DbOrTx = getDb()): Pr
     pairIds.length === 0 ? Promise.resolve([]) : db.select().from(pairCompanions).where(inArray(pairCompanions.pairId, pairIds)),
   ]);
 
+  // Collaboration rows (CLAUDE.md §7.8): listings, adoptions, reviews, credits, swaps, showcase, contributions.
+  const [listingRows, suggestionRows, adoptionRows, requestRowsF15, reviewRows, ledgerRows, lockRows, offerRows, wantRows, proposalRows, responseRows, legacyRows, contribRows] =
+    await Promise.all([
+      db.select().from(graveyardListings).where(eq(graveyardListings.ownerUserId, userId)),
+      db.select().from(listingSuggestions).where(eq(listingSuggestions.ownerUserId, userId)),
+      db.select().from(adoptions).where(eq(adoptions.adopterUserId, userId)),
+      db.select().from(reviewRequests).where(or(eq(reviewRequests.authorUserId, userId), eq(reviewRequests.claimedBy, userId))),
+      db.select().from(reviews).where(eq(reviews.reviewerUserId, userId)),
+      db.select().from(creditLedger).where(eq(creditLedger.userId, userId)),
+      db.select().from(ledgerLocks).where(eq(ledgerLocks.userId, userId)),
+      db.select().from(swapOffers).where(eq(swapOffers.userId, userId)),
+      db.select().from(swapWants).where(eq(swapWants.userId, userId)),
+      db.select().from(swapProposals).where(sql`${swapProposals.members} @> array[${userId}]::uuid[]`),
+      db.select().from(swapResponses).where(eq(swapResponses.userId, userId)),
+      db.select().from(legacyEntries).where(eq(legacyEntries.ownerUserId, userId)),
+      db.select().from(ossMemberContribs).where(eq(ossMemberContribs.userId, userId)),
+    ]);
   const pairInviteRows = await db.select().from(pairInvites).where(or(eq(pairInvites.fromUser, userId), eq(pairInvites.toUser, userId)));
   const threadIds = memberships.map((membership) => membership.threadId);
   const threadRows = threadIds.length === 0 ? [] : await db.select().from(threads).where(inArray(threads.id, threadIds));
@@ -169,6 +199,19 @@ export async function exportMemberRows(userId: string, db: DbOrTx = getDb()): Pr
     pair_days: days,
     pair_companions: companions,
     pair_invites: pairInviteRows,
+    graveyard_listings: listingRows,
+    listing_suggestions: suggestionRows,
+    adoptions: adoptionRows,
+    review_requests: requestRowsF15,
+    reviews: reviewRows,
+    credit_ledger: ledgerRows,
+    ledger_locks: lockRows,
+    swap_offers: offerRows,
+    swap_wants: wantRows,
+    swap_proposals: proposalRows,
+    swap_responses: responseRows,
+    legacy_entries: legacyRows,
+    oss_member_contribs: contribRows,
     users: user,
     github_identities: identityRows,
     profiles: profile,
@@ -217,6 +260,8 @@ export async function deleteMemberData(userId: string, now: Date, db: DbOrTx = g
       await tx.delete(ghRepos).where(eq(ghRepos.ownerGithubId, identity.githubId));
       await tx.delete(ghUsers).where(eq(ghUsers.githubId, identity.githubId));
     }
+    // Swap proposals name their members in an array, not by foreign key, so they go explicitly.
+    await tx.delete(swapProposals).where(sql`${swapProposals.members} @> array[${userId}]::uuid[]`);
     // Pairs end with the account (rows cascade); the partner is told (§8 F13 "Edge cases").
     for (const partner of await openPairPartners(userId, tx)) await insertNotification(partner, 'pair_ended', {}, tx);
     // Threads shared with others keep going: the member's messages are replaced by one system note

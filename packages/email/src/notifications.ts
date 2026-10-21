@@ -64,6 +64,82 @@ const describers: Readonly<Record<string, (data: Record<string, unknown>) => Not
       : 'Your shared streak is paused after a few missed days. Check in with your partner, or start one with someone new.',
     path: '/streaks',
   }),
+  adoption_revived: (data) => ({
+    title: 'A project was revived',
+    line:
+      text(data.role) === 'owner'
+        ? `${text(data.repo) || 'Your project'} is being worked on again in ${text(data.fork) || 'its new fork'}. You both earned the Revived badge.`
+        : `Your work brought ${text(data.repo) || 'the project you adopted'} back to life. You earned the Revived badge.`,
+    path: '/settings/projects',
+  }),
+  adoption_dropped: (data) => ({
+    title: 'An adoption ended',
+    line:
+      text(data.role) === 'owner'
+        ? `The adoption of ${text(data.repo) || 'your project'} ended without new commits. You can put it up for adoption again.`
+        : `Your adoption of ${text(data.repo) || 'a project'} ended because its fork had no new commits for a while.`,
+    path: '/settings/projects',
+  }),
+  review_claimed: (data) => ({
+    title: 'Your pull request was claimed',
+    line: `${text(data.login) ? `@${text(data.login)}` : 'A classmate'} will review ${text(data.repo) ? `${text(data.repo)}#${text(data.number)}` : 'your pull request'}.`,
+    path: '/reviews',
+  }),
+  review_refunded: (data) => ({
+    title: 'Review request ended',
+    line:
+      text(data.reason) === 'expired'
+        ? 'Nobody reviewed your pull request in time, so the request ended and your credit is back.'
+        : 'Your pull request was closed or is no longer public, so the request ended and your credit is back.',
+    path: '/reviews',
+  }),
+  review_submitted: (data) => ({
+    title: 'Your review is in',
+    line: `${text(data.login) ? `@${text(data.login)}` : 'Your reviewer'} reviewed ${text(data.repo) ? `${text(data.repo)}#${text(data.number)}` : 'your pull request'}. Was it helpful?`,
+    path: '/reviews',
+  }),
+  review_rated: (data) => ({
+    title: text(data.rating) === 'helpful' ? 'You earned a credit' : 'Your review was rated',
+    line:
+      text(data.rating) === 'helpful'
+        ? data.automatic === true
+          ? 'Your review settled as helpful, so the credit is yours.'
+          : 'The author found your review helpful, so the credit is yours.'
+        : 'The author did not find your review helpful. You can dispute the rating if you disagree.',
+    path: '/reviews',
+  }),
+  review_claim_expired: (data) => ({
+    title: 'Your claim ran out',
+    line: `Your claim on ${text(data.repo) ? `${text(data.repo)}#${text(data.number)}` : 'a review request'} ran out before a review showed up on GitHub, so it is open again.`,
+    path: '/reviews',
+  }),
+  review_dispute_resolved: (data) => ({
+    title: 'A review dispute was decided',
+    line:
+      text(data.outcome) === 'reviewer'
+        ? text(data.role) === 'reviewer'
+          ? 'A moderator agreed your review was helpful. The credit is yours.'
+          : 'A moderator found the review helpful. Your refund stands.'
+        : text(data.role) === 'reviewer'
+          ? 'A moderator kept the unhelpful rating.'
+          : 'A moderator kept your unhelpful rating.',
+    path: '/reviews',
+  }),
+  swap_proposed: (data) => ({
+    title: 'A skill swap for you',
+    line: data.size === 3 ? 'Two classmates and you could each teach the next one something. Take a look.' : 'A classmate could teach you something you want to learn, and you them. Take a look.',
+    path: '/swaps',
+  }),
+  swap_declined: () => ({
+    title: 'A skill swap did not happen',
+    line: 'Someone passed on a skill swap you were part of. We will look for another one tomorrow.',
+    path: '/swaps',
+  }),
+  swap_accepted: (data) => ({
+    title: 'Your skill swap is on',
+    line: 'Everyone accepted. Say hello in your group conversation.',
+    path: isUuid(text(data.threadId)) ? `/inbox/${text(data.threadId)}` : '/inbox',
+  }),
   github_reconnect: () => ({
     title: 'Sign in with GitHub again',
     line: 'Your GitHub sign-in has expired, so a streak day was skipped instead of counted. Sign in again to keep it going.',
@@ -104,4 +180,14 @@ export const MUTABLE_NOTIFICATIONS: Readonly<Record<string, string>> = {
   pair_accepted: 'Accepted streak invitations',
   pair_ended: 'Ended streaks',
   pair_paused: 'Paused streaks',
+  adoption_revived: 'Revived projects',
+  adoption_dropped: 'Ended adoptions',
+  review_claimed: 'Claimed review requests',
+  review_refunded: 'Ended review requests',
+  review_submitted: 'Reviews to rate',
+  review_rated: 'Ratings of your reviews',
+  review_claim_expired: 'Claims that ran out',
+  swap_proposed: 'Skill swap proposals',
+  swap_declined: 'Skill swaps that did not happen',
+  swap_accepted: 'Skill swaps everyone accepted',
 };

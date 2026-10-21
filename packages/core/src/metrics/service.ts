@@ -1,4 +1,5 @@
 import {
+  countRevivals,
   fairnessReportsPerWeek,
   getSetting,
   markToolConversions,
@@ -51,6 +52,8 @@ const MS_PER_DAY = 24 * 60 * 60 * 1000; // allowed-literal: unit conversion
 export type SocialMetrics = {
   matchQuality: { accepted: number; successful: number; rate: number | null; messages: number; days: number };
   streaks: { activePairs: number; medianDays: number | null };
+  /** Adoptions whose fork received enough commits after adoption, in all and in the last `METRIC_WINDOWS.totalDays`. */
+  revivals: { total: number; recent: number; days: number };
 };
 
 /**
@@ -60,13 +63,12 @@ export type SocialMetrics = {
  */
 export async function getSocialMetrics(now: Date = new Date()): Promise<SocialMetrics> {
   const [messages, days] = await Promise.all([getSetting('matching.successMessages'), getSetting('matching.successWindowDays')]);
-  const [quality, streaks] = await Promise.all([
-    matchQualityCounts(new Date(now.getTime() - METRIC_WINDOWS.totalDays * MS_PER_DAY), messages, days),
-    streakRetention(now),
-  ]);
+  const since = new Date(now.getTime() - METRIC_WINDOWS.totalDays * MS_PER_DAY);
+  const [quality, streaks, revivals] = await Promise.all([matchQualityCounts(since, messages, days), streakRetention(now), countRevivals(since)]);
   return {
     matchQuality: { ...quality, rate: quality.accepted === 0 ? null : quality.successful / quality.accepted, messages, days },
     streaks,
+    revivals: { ...revivals, days: METRIC_WINDOWS.totalDays },
   };
 }
 

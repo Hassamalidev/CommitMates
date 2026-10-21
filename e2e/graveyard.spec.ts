@@ -6,6 +6,7 @@ import { expectNoSeriousA11yViolations } from './helpers/axe';
 import { withAppDatabase } from './helpers/db';
 
 const item = (fullName: string, overrides: Record<string, unknown> = {}) => ({
+  githubId: fullName.length,
   fullName,
   description: 'An object tracker',
   stars: 40,
@@ -21,6 +22,7 @@ const item = (fullName: string, overrides: Record<string, unknown> = {}) => ({
   revivability: 0.62,
   rank: 0.62,
   signals: { readmeUnfinished: true, unansweredIssues: 0.5, unfinishedCommits: 0.25, noReleases: true },
+  listing: null,
   ...overrides,
 });
 

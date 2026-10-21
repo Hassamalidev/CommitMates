@@ -45,8 +45,11 @@ export type ToolDefinition<I> = {
    * results only one person may see, who asked.
    */
   params?(input: I, context: ToolRunContext): unknown;
-  /** The job's idempotency key; the same request inside one bucket shares one job. */
-  idempotencyKey(input: I, now: Date): string;
+  /**
+   * The job's idempotency key; the same request inside one bucket shares one job. A result that
+   * depends on who asks must put the requester in the key too.
+   */
+  idempotencyKey(input: I, now: Date, context: ToolRunContext): string;
   /** The job payload, when it carries more than the input (for example who asked). Defaults to the input. */
   payload?(input: I, context: ToolRunContext): unknown;
   /** Hours a result stays cached. */
@@ -122,7 +125,7 @@ export async function startToolRun(
 
   const payload = tool.payload ? tool.payload(input, { userId: options.userId }) : input;
   const job = await enqueue(tool.jobType, payload, {
-    idempotencyKey: tool.idempotencyKey(input, now),
+    idempotencyKey: tool.idempotencyKey(input, now, { userId: options.userId }),
     priority: PRIORITY.INTERACTIVE,
   });
   return { status: 'queued', jobId: job.id };

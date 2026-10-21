@@ -25,9 +25,38 @@ describe('notification words', () => {
   });
 
   it('lets members mute only social kinds, not account notices', () => {
-    expect(Object.keys(MUTABLE_NOTIFICATIONS)).toEqual(['chat_request', 'chat_request_accepted', 'pair_invite', 'pair_accepted', 'pair_ended', 'pair_paused']);
+    expect(Object.keys(MUTABLE_NOTIFICATIONS)).toEqual([
+      'chat_request',
+      'chat_request_accepted',
+      'pair_invite',
+      'pair_accepted',
+      'pair_ended',
+      'pair_paused',
+      'adoption_revived',
+      'adoption_dropped',
+      'review_claimed',
+      'review_refunded',
+      'review_submitted',
+      'review_rated',
+      'review_claim_expired',
+      'swap_proposed',
+      'swap_declined',
+      'swap_accepted',
+    ]);
     expect(Object.keys(MUTABLE_NOTIFICATIONS)).not.toContain('account_hidden');
     expect(Object.keys(MUTABLE_NOTIFICATIONS)).not.toContain('github_reconnect');
     expect(describeNotification('pair_paused', { login: 'sam' })?.path).toBe('/streaks');
+  });
+
+  it('words a revival and an ended adoption for the adopter and the owner', () => {
+    expect(describeNotification('adoption_revived', { role: 'owner', repo: 'sam/app', fork: 'kim/app' })?.line).toBe(
+      'sam/app is being worked on again in kim/app. You both earned the Revived badge.',
+    );
+    expect(describeNotification('adoption_revived', { role: 'adopter', repo: 'sam/app' })?.line).toBe('Your work brought sam/app back to life. You earned the Revived badge.');
+    expect(describeNotification('adoption_dropped', { role: 'owner', repo: 'sam/app' })).toMatchObject({
+      line: 'The adoption of sam/app ended without new commits. You can put it up for adoption again.',
+      path: '/settings/projects',
+    });
+    expect(describeNotification('adoption_dropped', {})?.line).toBe('Your adoption of a project ended because its fork had no new commits for a while.');
   });
 });

@@ -3,6 +3,7 @@ import {
   ForbiddenError,
   NotFoundError,
   acceptReverseRequest,
+  activateAdoption,
   addConnection,
   countUnread,
   createThread,
@@ -49,7 +50,7 @@ type ChatMember = Pick<Member, 'id'>;
 export const SYSTEM_NOTES = { left: 'left' } as const;
 
 /** Which connection a request's context makes once it is accepted (CLAUDE.md §7.6 `connections.source`). */
-const CONNECTION_SOURCE = { discover: 'match' } as const satisfies Record<RequestContext, 'match'>;
+const CONNECTION_SOURCE = { discover: 'match', adoption: 'adoption', gap: 'match', oss: 'match', legacy: 'legacy' } as const satisfies Record<RequestContext, 'match' | 'adoption' | 'legacy'>;
 
 /** The connection source for a stored context kind; features added later fall back to `match`. */
 const connectionSourceFor = (kind: string) => (Object.hasOwn(CONNECTION_SOURCE, kind) ? CONNECTION_SOURCE[kind as RequestContext] : 'match');
@@ -99,6 +100,8 @@ export async function respondToRequest(member: ChatMember, raw: unknown, now: Da
     await setRequestStatus(request.id, 'accepted', now, tx);
     await acceptReverseRequest(member.id, request.fromUser, now, tx);
     await addConnection(request.fromUser, member.id, connectionSourceFor(request.contextKind), tx);
+    // An accepted adoption request starts the adoption (CLAUDE.md §8 F14 "Adoption flow" step 2).
+    if (request.contextKind === 'adoption' && request.contextId !== null) await activateAdoption(request.contextId, tx);
     await insertNotification(request.fromUser, 'chat_request_accepted', { login: await getLogin(member.id, tx), threadId }, tx);
     return { threadId };
   });

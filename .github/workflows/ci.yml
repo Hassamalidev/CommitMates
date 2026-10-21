@@ -30,7 +30,8 @@ jobs:
       - run: pnpm lint && pnpm typecheck
       - run: pnpm check:hardcoded && pnpm check:licenses && pnpm check:contrast
       - name: Start local Supabase for integration tests
-        run: pnpm exec supabase start
+        # One retry: pulling the stack's images occasionally fails on a fresh runner.
+        run: pnpm exec supabase start || (pnpm exec supabase stop --no-backup && pnpm exec supabase start)
       - name: Apply migrations to the Supabase database
         run: pnpm db:migrate
         env:
@@ -38,10 +39,17 @@ jobs:
       - run: pnpm test
       - run: pnpm build
       - name: Secret scan (gitleaks CLI)
+        # A pinned release, downloaded directly and checked against its published checksum: asking the
+        # API for "latest" is rate-limited on shared runners and failed a run. Upgrade by changing both.
+        env:
+          GITLEAKS_VERSION: 8.30.1
+          GITLEAKS_SHA256: 551f6fc83ea457d62a0d98237cbad105af8d557003051f41f3e7ca7b3f2470eb
         run: |
-          url=$(curl -s https://api.github.com/repos/gitleaks/gitleaks/releases/latest \
-            | grep browser_download_url | grep linux_x64 | cut -d '"' -f 4)
-          curl -sSfL "$url" | tar xz gitleaks
+          set -euo pipefail
+          archive="gitleaks_${GITLEAKS_VERSION}_linux_x64.tar.gz"
+          curl -sSfL -o "$archive" "https://github.com/gitleaks/gitleaks/releases/download/v${GITLEAKS_VERSION}/${archive}"
+          echo "${GITLEAKS_SHA256}  ${archive}" | sha256sum -c -
+          tar xzf "$archive" gitleaks
           ./gitleaks detect --source . --no-banner --redact
 
   e2e:
@@ -59,7 +67,8 @@ jobs:
           cache: pnpm
       - run: pnpm install --frozen-lockfile
       - name: Start local Supabase
-        run: pnpm exec supabase start
+        # One retry: pulling the stack's images occasionally fails on a fresh runner.
+        run: pnpm exec supabase start || (pnpm exec supabase stop --no-backup && pnpm exec supabase start)
       - name: Apply migrations
         run: pnpm db:migrate
         env:

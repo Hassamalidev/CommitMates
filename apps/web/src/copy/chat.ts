@@ -15,7 +15,7 @@ export const chatCopy = {
     decline: 'Decline',
     acceptLabel: (login: string) => `Accept the request from @${login}`,
     declineLabel: (login: string) => `Decline the request from @${login}`,
-    context: { discover: 'From Discover' } as Readonly<Record<string, string>>,
+    context: { discover: 'From Discover', adoption: 'About adopting your project', gap: 'From Gap Finder', oss: 'From Open-Source Starter', legacy: 'About your project in Senior’s Legacy' } as Readonly<Record<string, string>>,
     status: { pending: 'Waiting', accepted: 'Accepted', expired: 'Expired' },
     unread: (count: number) => (count === 1 ? '1 unread message' : `${count} unread messages`),
     muted: 'Muted',
@@ -48,6 +48,8 @@ export const chatCopy = {
     system: {
       memberLeft: 'A member left this conversation.',
       left: (login: string) => (login ? `@${login} left this conversation.` : 'Someone left this conversation.'),
+      swap: (steps: readonly { from: string | null; to: string | null; tag: string }[]) =>
+        `Skill swap: ${steps.map((step) => `${step.from ? `@${step.from}` : 'a member'} helps ${step.to ? `@${step.to}` : 'a member'} with ${step.tag}`).join('; ')}.`,
     },
     live: 'New messages appear here as they arrive.',
   },
@@ -55,5 +57,14 @@ export const chatCopy = {
     title: 'Messages',
     unread: (count: number) => (count === 0 ? 'No unread messages.' : count === 1 ? '1 unread message.' : `${count} unread messages.`),
     link: 'Open inbox',
+  },
+  /** Asking someone a feature found (Gap Finder, Open-Source Starter). */
+  ask: {
+    trigger: (login: string) => `Ask @${login}`,
+    description: 'This goes as a message request; they see it before deciding to reply.',
+    message: 'Message',
+    submit: 'Send request',
+    close: 'Close',
+    sent: (login: string) => `Request sent to @${login}.`,
   },
 } as const;

@@ -1,4 +1,4 @@
-import { campusUnlocks, describeNotification, getStreaks, getUniversity, recentNotifications, unreadCount } from '@commitmates/core';
+import { campusUnlocks, describeNotification, getCredits, getStreaks, getSwaps, getUniversity, listClaimable, recentNotifications, unreadCount } from '@commitmates/core';
 import { Card, buttonStyles } from '@commitmates/ui';
 import type { Metadata } from 'next';
 import Link from 'next/link';
@@ -7,6 +7,9 @@ import { redirect } from 'next/navigation';
 import { campusCopy, homeNotificationsCopy } from '@/copy/campus';
 import { chatCopy } from '@/copy/chat';
 import { notificationsCopy } from '@/copy/notifications';
+import { legacyCopy } from '@/copy/legacy';
+import { reviewsCopy } from '@/copy/reviews';
+import { swapsCopy } from '@/copy/swaps';
 import { streaksCopy } from '@/copy/streaks';
 import { homeCopy } from '@/copy/onboarding';
 import { formatUtc } from '@/lib/format';
@@ -34,6 +37,12 @@ export default async function HomePage() {
   const copy = homeCopy;
   const open = progress.unlocks.filter((unlock) => unlock.unlocked).length;
   const matching = progress.unlocks.find((unlock) => unlock.key === 'matching');
+  const reviewsUnlock = progress.unlocks.find((unlock) => unlock.key === 'reviews');
+  const reviews = reviewsUnlock?.unlocked ? await Promise.all([getCredits(member.id), listClaimable(member)]) : null;
+  const swapUnlock = progress.unlocks.find((unlock) => unlock.key === 'swap');
+  const legacyUnlock = progress.unlocks.find((unlock) => unlock.key === 'legacy');
+  const swaps = swapUnlock?.unlocked ? await getSwaps(member) : null;
+  const waitingSwaps = swaps?.proposals.filter((proposal) => proposal.status === 'proposed' && !proposal.responses.some((response) => response.userId === member.id)).length ?? 0;
   const next = progress.unlocks
     .filter((unlock) => !unlock.unlocked && unlock.metric === 'members')
     .sort((a, b) => a.required - b.required)[0];
@@ -62,6 +71,9 @@ export default async function HomePage() {
             <Link href={`/uni/${university.slug}`} className={buttonStyles({ variant: 'secondary', size: 'md', className: 'self-start' })}>
               {copy.universityLink}
             </Link>
+            <Link href="/settings/projects" className="type-small self-start underline">
+              {copy.projectsLink}
+            </Link>
           </Card>
         ) : null}
         {matching ? (
@@ -78,6 +90,34 @@ export default async function HomePage() {
             {chatCopy.home.link}
           </Link>
         </Card>
+        {reviewsUnlock ? (
+          <Card title={reviewsCopy.home.title} className="flex flex-col gap-3">
+            <p className="type-body">
+              {reviews ? reviewsCopy.home.summary(reviews[0].balance, reviews[1].length) : reviewsCopy.home.locked(reviewsUnlock.current, reviewsUnlock.required)}
+            </p>
+            <Link href="/reviews" className={buttonStyles({ variant: 'secondary', size: 'md', className: 'self-start' })}>
+              {reviewsCopy.home.link}
+            </Link>
+          </Card>
+        ) : null}
+        {swapUnlock ? (
+          <Card title={swapsCopy.home.title} className="flex flex-col gap-3">
+            <p className="type-body">{swaps ? swapsCopy.home.summary(waitingSwaps) : swapsCopy.home.locked(swapUnlock.current, swapUnlock.required)}</p>
+            <Link href="/swaps" className={buttonStyles({ variant: waitingSwaps > 0 ? 'primary' : 'secondary', size: 'md', className: 'self-start' })}>
+              {swapsCopy.home.link}
+            </Link>
+          </Card>
+        ) : null}
+        {legacyUnlock ? (
+          <Card title={legacyCopy.home.title} className="flex flex-col gap-3">
+            <p className="type-body">
+              {legacyUnlock.unlocked ? legacyCopy.home.open(legacyUnlock.current) : legacyCopy.home.locked(legacyUnlock.current, legacyUnlock.required)}
+            </p>
+            <Link href="/legacy" className={buttonStyles({ variant: 'secondary', size: 'md', className: 'self-start' })}>
+              {legacyCopy.home.link}
+            </Link>
+          </Card>
+        ) : null}
         <Card title={streaksCopy.home.title} className="flex flex-col gap-3">
           <p className="type-body">
             {activePairs.length === 0

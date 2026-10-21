@@ -95,6 +95,7 @@ export const homeCopy = {
   openFeatures: (open: number, total: number) => `${open} of ${total} campus features are open.`,
   nextUnlock: (feature: string, current: number, required: number) => `Next: ${feature} at ${required} members (now ${current}).`,
   universityLink: 'See your university',
+  projectsLink: 'Put a paused project up for adoption',
   discoverTitle: 'Find a partner',
   discoverOpen: 'See who fits what you want to build or learn today.',
   discoverLocked: (current: number, required: number) => `Opens at ${required} verified members (now ${current}). Meanwhile, see developers like you on GitHub.`,

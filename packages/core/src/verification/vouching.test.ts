@@ -66,6 +66,7 @@ describe('vouching', () => {
     expect(profile?.verified_at).not.toBeNull();
     const [notification] = await database.sql`select kind from notifications where user_id = ${newcomer.id}`;
     expect(notification?.kind).toBe('verified_by_vouches');
+    expect(await database.sql`select delta, reason from credit_ledger where user_id = ${newcomer.id}`).toEqual([{ delta: 1, reason: 'starter' }]);
     // Verified now: nobody needs to vouch any more.
     expect(await getVouchingStatus(newcomer.id)).toBeNull();
   });

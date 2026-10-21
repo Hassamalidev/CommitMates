@@ -11,3 +11,4 @@ export * from './github-data';
 export * from './analysis';
 export * from './social';
 export * from './streaks';
+export * from './collaboration';

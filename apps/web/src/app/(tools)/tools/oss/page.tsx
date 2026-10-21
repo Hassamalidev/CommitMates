@@ -29,7 +29,7 @@ export default async function OssPage({ searchParams }: Props) {
 
   return (
     <ToolPage slug="oss" eyebrow={page.eyebrow} title={page.title} line={page.line} signedIn={member !== null}>
-      <OssTool initialLogin={login ?? member?.login ?? undefined} languageOptions={languageOptions} />
+      <OssTool initialLogin={login ?? member?.login ?? undefined} languageOptions={languageOptions} signedIn={member !== null} />
     </ToolPage>
   );
 }

@@ -372,6 +372,69 @@
       "when": 1792535733147,
       "tag": "0052_settings_match_tuning",
       "breakpoints": true
+    },
+    {
+      "idx": 53,
+      "version": "7",
+      "when": 1792539051582,
+      "tag": "0053_collaboration",
+      "breakpoints": true
+    },
+    {
+      "idx": 54,
+      "version": "7",
+      "when": 1792540296419,
+      "tag": "0054_settings_listings",
+      "breakpoints": true
+    },
+    {
+      "idx": 55,
+      "version": "7",
+      "when": 1792543720078,
+      "tag": "0055_adoption_activation",
+      "breakpoints": true
+    },
+    {
+      "idx": 56,
+      "version": "7",
+      "when": 1792546713199,
+      "tag": "0056_settings_reviews",
+      "breakpoints": true
+    },
+    {
+      "idx": 57,
+      "version": "7",
+      "when": 1792547694233,
+      "tag": "0057_review_disputes",
+      "breakpoints": true
+    },
+    {
+      "idx": 58,
+      "version": "7",
+      "when": 1792550656235,
+      "tag": "0058_settings_swaps",
+      "breakpoints": true
+    },
+    {
+      "idx": 59,
+      "version": "7",
+      "when": 1792552976036,
+      "tag": "0059_settings_gap_campus",
+      "breakpoints": true
+    },
+    {
+      "idx": 60,
+      "version": "7",
+      "when": 1792554945454,
+      "tag": "0060_settings_oss_campus",
+      "breakpoints": true
+    },
+    {
+      "idx": 61,
+      "version": "7",
+      "when": 1792556191463,
+      "tag": "0061_settings_legacy",
+      "breakpoints": true
     }
   ]
 }

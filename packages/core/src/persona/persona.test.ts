@@ -136,7 +136,7 @@ describe('loginSchema and the tool definition', () => {
 
   it('keys the cache and the job by the lowercased login and hour', () => {
     expect(devCardTool.subjectKey({ login: 'SomeOne' })).toBe('someone');
-    expect(devCardTool.idempotencyKey({ login: 'SomeOne' }, NOW)).toBe('analyze_profile:someone:2026-10-14T12');
+    expect(devCardTool.idempotencyKey({ login: 'SomeOne' }, NOW, {})).toBe('analyze_profile:someone:2026-10-14T12');
     expect(devCardTool.payload?.({ login: 'x' }, {})).toEqual({ login: 'x' });
     expect(devCardTool.payload?.({ login: 'x' }, { userId: 'u1' })).toEqual({ login: 'x', requestedBy: 'u1' });
   });
