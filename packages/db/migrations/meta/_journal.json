@@ -421,6 +421,13 @@
       "when": 1792552976036,
       "tag": "0059_settings_gap_campus",
       "breakpoints": true
+    },
+    {
+      "idx": 60,
+      "version": "7",
+      "when": 1792554945454,
+      "tag": "0060_settings_oss_campus",
+      "breakpoints": true
     }
   ]
 }

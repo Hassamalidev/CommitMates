@@ -15,6 +15,7 @@ import { tuneMatchWeightsJob } from './matching/tune';
 import { suggestListingsJob } from './adoptions/listings';
 import { trackRevivalsJob } from './adoptions/revivals';
 import { expireReviewsJob, verifyReviewJob } from './reviews/settlement';
+import { memberOssContribsJob } from './oss/campus';
 import { proposeSwapsJob } from './swaps/service';
 import { computeTrustJob } from './safety/trust';
 import { streakCheckJob } from './streaks/judge';
@@ -81,6 +82,7 @@ export const jobHandlers: readonly Registration[] = [
   define(verifyReviewJob),
   define(expireReviewsJob),
   define(proposeSwapsJob),
+  define(memberOssContribsJob),
   define(streakCheckJob),
   define(digestEmailJob),
   define(liftSuspensionsJob),

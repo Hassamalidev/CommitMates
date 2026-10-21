@@ -9,6 +9,8 @@ import { ossCopy } from '@/copy/oss';
 import type { JobState } from '@/lib/job-state';
 import { useJob } from '@/lib/use-job';
 
+import { OssCampusLine, useOssCampus } from './OssCampus';
+
 const isRecord = (value: unknown): value is Record<string, unknown> => typeof value === 'object' && value !== null;
 
 /** A structural check of a result that reached the browser; the server validated the full schema. */
@@ -24,12 +26,14 @@ export type OssToolProps = {
   initialLogin?: string | undefined;
   /** Language names from Linguist, offered as suggestions. */
   languageOptions: readonly string[];
+  /** Signed-in members also see classmates who contributed to each project. */
+  signedIn?: boolean;
 };
 
 const IDLE: JobState<unknown> = { phase: 'idle' };
 
 /** The Open-Source Starter (CLAUDE.md §8 F8 "UI"): what you know in, friendly first issues out. */
-export function OssTool({ initialLogin, languageOptions }: OssToolProps) {
+export function OssTool({ initialLogin, languageOptions, signedIn = false }: OssToolProps) {
   const { state, start } = useJob('oss', parseOss);
   const [login, setLogin] = useState(initialLogin ?? '');
   const [languages, setLanguages] = useState('');
@@ -55,6 +59,7 @@ export function OssTool({ initialLogin, languageOptions }: OssToolProps) {
   const fieldError = (field: string) => (state.phase === 'error' && state.field === field ? state.message : undefined);
   const hasFieldError = state.phase === 'error' && state.field !== undefined;
   const result = state.phase === 'done' ? state.result : null;
+  const contributors = useOssCampus(result ? [...new Set(result.issues.map((issue) => issue.repo))] : [], signedIn);
 
   return (
     <div className="flex flex-col gap-6">
@@ -146,6 +151,7 @@ export function OssTool({ initialLogin, languageOptions }: OssToolProps) {
                       <Chip>{issue.responseHours === null ? copy.replyUnknown : copy.reply(issue.responseHours)}</Chip>
                       {issue.skillMatch > 0 ? <Chip>{copy.match(issue.skillMatch)}</Chip> : null}
                     </div>
+                    <OssCampusLine repo={issue.repo} people={contributors?.[issue.repo]} />
                   </Card>
                 </li>
               ))}

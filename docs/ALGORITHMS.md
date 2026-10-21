@@ -227,6 +227,16 @@ All algorithms live in `packages/algorithms` and are pure: no I/O, no clock, no 
 - Tests: `packages/algorithms/src/oss/oss.test.ts`, `packages/core/src/oss/oss.test.ts`
 - Spec: CLAUDE.md §8 F8
 
+### Members who contributed here (campus layer)
+
+- Code: `packages/core/src/oss/campus.ts` (job `member_oss_contribs`, weekly on Tuesday 05:00 UTC, one refresh per verified member and week: `oss-contribs:<userId>:<week Monday>`), queries in `packages/db/src/queries/oss.ts`
+- Refresh: a paced issue search `is:pr is:merged author:<login>` with the member's own token when valid, `oss.memberContribPages` pages of 100; pull requests to the member's own repositories are left out; per project the count and the latest merge time (merge time, else close time) replace the member's previous rows
+- Panel: for a signed-in verified member, each project in the results lists the verified, active members of their university with merged pull requests there, most merged first (then most recent), at most `oss.campusContributorsPerRepo`; never the viewer, never hidden or ghost-mode members, never across a block. Projects are matched case-insensitively and returned under the names asked for.
+- Ask: a message request with `context_kind = 'oss'` and the project as `context_id`, only to someone listed for that project; the first message is prefilled and editable; the chat rules apply
+- Settings: `oss.memberContribPages` (1), `oss.campusContributorsPerRepo` (3)
+- Tests: `packages/core/src/oss/campus.test.ts`, `apps/web/src/components/oss/oss-campus.test.tsx`
+- Spec: CLAUDE.md §8 F8 step 5
+
 ## Information retrieval
 
 ### YAKE keyphrases

@@ -15,7 +15,7 @@ export const chatCopy = {
     decline: 'Decline',
     acceptLabel: (login: string) => `Accept the request from @${login}`,
     declineLabel: (login: string) => `Decline the request from @${login}`,
-    context: { discover: 'From Discover', adoption: 'About adopting your project', gap: 'From Gap Finder' } as Readonly<Record<string, string>>,
+    context: { discover: 'From Discover', adoption: 'About adopting your project', gap: 'From Gap Finder', oss: 'From Open-Source Starter' } as Readonly<Record<string, string>>,
     status: { pending: 'Waiting', accepted: 'Accepted', expired: 'Expired' },
     unread: (count: number) => (count === 1 ? '1 unread message' : `${count} unread messages`),
     muted: 'Muted',
@@ -57,5 +57,14 @@ export const chatCopy = {
     title: 'Messages',
     unread: (count: number) => (count === 0 ? 'No unread messages.' : count === 1 ? '1 unread message.' : `${count} unread messages.`),
     link: 'Open inbox',
+  },
+  /** Asking someone a feature found (Gap Finder, Open-Source Starter). */
+  ask: {
+    trigger: (login: string) => `Ask @${login}`,
+    description: 'This goes as a message request; they see it before deciding to reply.',
+    message: 'Message',
+    submit: 'Send request',
+    close: 'Close',
+    sent: (login: string) => `Request sent to @${login}.`,
   },
 } as const;

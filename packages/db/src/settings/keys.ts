@@ -94,6 +94,8 @@ export const SettingKeys = {
   'oss.maxResponseHours': 'number',
   'oss.maxComments': 'integer',
   'oss.responsivenessSample': 'integer',
+  'oss.memberContribPages': 'integer',
+  'oss.campusContributorsPerRepo': 'integer',
   'fyp.minCorpus': 'integer',
   'fyp.searchTopN': 'integer',
   'fyp.yake.maxKeyphrases': 'integer',

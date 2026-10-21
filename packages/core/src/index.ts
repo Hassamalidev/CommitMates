@@ -233,5 +233,6 @@ export {
   type VerifyOutcome,
 } from './reviews/settlement';
 export { askGapHelper, gapHelpers, type GapHelper, type GapHelpers } from './gap/campus';
+export { askOssContributor, ossCampus, refreshMemberContribs, type OssCampus } from './oss/campus';
 export { SWAP_NOTE_PREFIX, SWAP_PROPOSALS_SHOWN, getSwaps, proposeSwaps, respondToProposal, setOffers, setWants, swapNote, type SwapView } from './swaps/service';
 export type { AdoptionView } from '@commitmates/db';

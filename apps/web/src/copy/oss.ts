@@ -41,4 +41,11 @@ export const ossCopy = {
     age: (days: number) => (days < 1 ? 'Opened today' : `Opened ${Math.round(days)} ${Math.round(days) === 1 ? 'day' : 'days'} ago`),
     comments: (count: number) => `${count} ${count === 1 ? 'comment' : 'comments'}`,
   },
+  campus: {
+    contributed: (count: number) =>
+      count === 1 ? '1 member of your university contributed here.' : `${count} members of your university contributed here.`,
+    merged: (login: string, count: number) => `@${login} · ${count} merged ${count === 1 ? 'pull request' : 'pull requests'}`,
+    askTitle: (login: string) => `Ask @${login} about this project`,
+    prefill: (repo: string) => `Hi! I see you've had pull requests merged into ${repo}. I'm thinking of making my first contribution there. Any tips on how to start?`,
+  },
 } as const;

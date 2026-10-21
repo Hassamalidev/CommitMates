@@ -50,7 +50,7 @@ type ChatMember = Pick<Member, 'id'>;
 export const SYSTEM_NOTES = { left: 'left' } as const;
 
 /** Which connection a request's context makes once it is accepted (CLAUDE.md §7.6 `connections.source`). */
-const CONNECTION_SOURCE = { discover: 'match', adoption: 'adoption', gap: 'match' } as const satisfies Record<RequestContext, 'match' | 'adoption'>;
+const CONNECTION_SOURCE = { discover: 'match', adoption: 'adoption', gap: 'match', oss: 'match' } as const satisfies Record<RequestContext, 'match' | 'adoption'>;
 
 /** The connection source for a stored context kind; features added later fall back to `match`. */
 const connectionSourceFor = (kind: string) => (Object.hasOwn(CONNECTION_SOURCE, kind) ? CONNECTION_SOURCE[kind as RequestContext] : 'match');

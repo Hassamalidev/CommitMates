@@ -59,15 +59,9 @@ export const gapCopy = {
     forGap: (label: string) => label,
     nobodyFor: 'Nobody yet.',
     ask: {
-      trigger: (login: string) => `Ask @${login}`,
       title: (login: string) => `Ask @${login} for help`,
-      description: 'This goes as a message request; they see it before deciding to reply.',
-      message: 'Message',
       prefill: (repo: string, label: string) =>
         `Hi! Gap Finder says my project ${repo} is missing ${label.charAt(0).toLowerCase()}${label.slice(1)}, and your code shows you know it well. Could you point me in the right direction?`,
-      submit: 'Send request',
-      close: 'Close',
-      sent: (login: string) => `Request sent to @${login}.`,
     },
   },
 } as const;

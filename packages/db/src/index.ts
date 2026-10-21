@@ -15,6 +15,7 @@ export * from './queries/matching';
 export * from './queries/metrics';
 export * from './queries/moderation';
 export * from './queries/notifications';
+export * from './queries/oss';
 export * from './queries/onboarding';
 export * from './queries/privacy';
 export * from './queries/persona';

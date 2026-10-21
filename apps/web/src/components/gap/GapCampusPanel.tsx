@@ -1,11 +1,12 @@
 'use client';
 
 import type { GapFacet, GapHelpers, GapResult } from '@commitmates/core';
-import { Button, Card, Dialog, Skeleton, Textarea } from '@commitmates/ui';
-import { useActionState, useEffect, useMemo, useState } from 'react';
+import { Card, Skeleton } from '@commitmates/ui';
+import { useEffect, useMemo, useState } from 'react';
+
+import { AskDialog } from '@/components/chat/AskDialog';
 
 import { gapCopy } from '@/copy/gap';
-import type { ActionResult } from '@/server/action';
 import { askGapHelperAction, gapHelpersAction } from '@/server/actions/gap';
 
 /** The skill tag a gap stands for: a dependency tag, or the topic a path matches; repository properties have none. */
@@ -16,57 +17,6 @@ export function gapTag(gap: Pick<GapFacet, 'kind' | 'name' | 'topic'>): string |
 }
 
 type Props = { result: GapResult; campusMinMembers: number; signedIn: boolean; label: (gap: GapResult['gaps'][number]) => string };
-
-function AskDialog({ helper, repo, tag, label }: { helper: { userId: string; login: string }; repo: string; tag: string; label: string }) {
-  const copy = gapCopy.campus.ask;
-  const [open, setOpen] = useState(false);
-  const [sent, setSent] = useState(false);
-  const [result, action, pending] = useActionState(async (previous: ActionResult<null> | null, formData: FormData) => {
-    const outcome = await askGapHelperAction(previous, formData);
-    if (outcome.ok) {
-      setSent(true);
-      setOpen(false);
-    }
-    return outcome;
-  }, null);
-  const error = result && !result.ok ? result.error : null;
-  if (sent) {
-    return (
-      <p role="status" className="type-small text-state-done">
-        {copy.sent(helper.login)}
-      </p>
-    );
-  }
-  return (
-    <Dialog
-      open={open}
-      onOpenChange={setOpen}
-      trigger={
-        <Button variant="secondary" size="sm">
-          {copy.trigger(helper.login)}
-        </Button>
-      }
-      title={copy.title(helper.login)}
-      description={copy.description}
-      closeLabel={copy.close}
-    >
-      <form action={action} className="flex flex-col gap-3">
-        <input type="hidden" name="toUserId" value={helper.userId} />
-        <input type="hidden" name="repoFullName" value={repo} />
-        <input type="hidden" name="tag" value={tag} />
-        <Textarea label={copy.message} name="message" rows={4} required defaultValue={copy.prefill(repo, label)} error={error?.field === 'message' ? error.message : undefined} />
-        {error && error.field !== 'message' ? (
-          <p role="alert" className="type-small text-state-error">
-            {error.message}
-          </p>
-        ) : null}
-        <Button type="submit" variant="primary" loading={pending} className="self-start">
-          {copy.submit}
-        </Button>
-      </form>
-    </Dialog>
-  );
-}
 
 /**
  * "Who at your uni can help" (CLAUDE.md §8 F5 step 7): for signed-in members, classmates whose code
@@ -120,7 +70,13 @@ export function GapCampusPanel({ result, campusMinMembers, signedIn, label }: Pr
                   <ul className="flex flex-wrap gap-3">
                     {people.map((helper) => (
                       <li key={helper.userId} className="flex items-center gap-2">
-                        <AskDialog helper={helper} repo={result.repo.fullName} tag={tag} label={label(gap)} />
+                        <AskDialog
+                          login={helper.login}
+                          title={copy.ask.title(helper.login)}
+                          values={{ toUserId: helper.userId, repoFullName: result.repo.fullName, tag }}
+                          prefill={copy.ask.prefill(result.repo.fullName, label(gap))}
+                          action={askGapHelperAction}
+                        />
                       </li>
                     ))}
                   </ul>

@@ -14,11 +14,24 @@ const issueSearchSchema = z.object({
       comments: z.number(),
       created_at: z.string(),
       labels: z.array(z.object({ name: z.string() }).or(z.string())).nullish(),
+      closed_at: z.string().nullish(),
+      pull_request: z.object({ merged_at: z.string().nullish() }).nullish(),
     }),
   ),
 });
 
-export type FoundIssue = { repo: string; number: number; title: string; url: string; comments: number; createdAt: string; labels: string[] };
+export type FoundIssue = {
+  repo: string;
+  number: number;
+  title: string;
+  url: string;
+  comments: number;
+  createdAt: string;
+  labels: string[];
+  closedAt: string | null;
+  /** For a pull request: when it was merged, if it was. */
+  mergedAt: string | null;
+};
 
 /** One page of an issue search (CLAUDE.md §8 F8 step 1). Searches are paced like every search. */
 export async function searchIssues(
@@ -38,6 +51,8 @@ export async function searchIssues(
       comments: item.comments,
       createdAt: item.created_at,
       labels: (item.labels ?? []).map((label) => (typeof label === 'string' ? label : label.name)),
+      closedAt: item.closed_at ?? null,
+      mergedAt: item.pull_request?.merged_at ?? null,
     })),
   };
 }
