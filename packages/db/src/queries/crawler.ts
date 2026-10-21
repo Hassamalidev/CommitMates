@@ -211,3 +211,67 @@ export async function crawlerStatus(db: DbOrTx = getDb()): Promise<CrawlerStatus
     optouts: Number(extra?.optouts ?? 0),
   };
 }
+
+export type CountryCandidate = {
+  githubId: number;
+  fullName: string;
+  description: string | null;
+  topics: string[];
+  stars: number;
+  forks: number;
+  openIssues: number;
+  licenseSpdx: string | null;
+  isArchived: boolean;
+  isFork: boolean;
+  pushedAt: Date | null;
+  sizeKb: number | null;
+  relevance: number;
+};
+
+/**
+ * Repositories of a country's indexed developers that match a search (CLAUDE.md §8 F7 step 2,
+ * country scope): full-text match on name, description and topics, or a topic shared with the
+ * query's expansion; relevance = `ts_rank_cd` plus shared topics, best first.
+ */
+export async function countryRepoCandidates(countryCode: string, query: string, topics: readonly string[], limit: number, db: DbOrTx = getDb()): Promise<CountryCandidate[]> {
+  const topicList = topics.length === 0 ? sql`array[]::text[]` : sql`array[${sql.join(topics.map((topic) => sql`${topic}`), sql`, `)}]::text[]`;
+  const text = sql`websearch_to_tsquery('simple', ${query})`;
+  const rows = await db.execute<{
+    github_id: string;
+    full_name: string;
+    description: string | null;
+    topics: string[] | null;
+    stars: number | null;
+    forks: number | null;
+    open_issues: number | null;
+    license_spdx: string | null;
+    is_archived: boolean | null;
+    is_fork: boolean | null;
+    pushed_at: string | null;
+    size_kb: number | null;
+    relevance: number;
+  }>(sql`
+    select r.github_id, r.full_name, r.description, r.topics, r.stars, r.forks, r.open_issues, r.license_spdx, r.is_archived, r.is_fork,
+           r.pushed_at, r.size_kb,
+           (ts_rank_cd(r.search_tsv, ${text}) + cardinality(array(select unnest(coalesce(r.topics, '{}')) intersect select unnest(${topicList}))))::float8 as relevance
+    from gh_repos r join gh_users u on u.github_id = r.owner_github_id
+    where u.in_country_index and u.index_country_code = ${countryCode.toUpperCase()}
+      and (r.search_tsv @@ ${text} or coalesce(r.topics, '{}') && ${topicList})
+    order by relevance desc, r.stars desc nulls last, r.full_name
+    limit ${limit}`);
+  return rows.map((row) => ({
+    githubId: Number(row.github_id),
+    fullName: row.full_name,
+    description: row.description,
+    topics: row.topics ?? [],
+    stars: row.stars ?? 0,
+    forks: row.forks ?? 0,
+    openIssues: row.open_issues ?? 0,
+    licenseSpdx: row.license_spdx,
+    isArchived: row.is_archived ?? false,
+    isFork: row.is_fork ?? false,
+    pushedAt: row.pushed_at === null ? null : new Date(row.pushed_at),
+    sizeKb: row.size_kb,
+    relevance: row.relevance,
+  }));
+}

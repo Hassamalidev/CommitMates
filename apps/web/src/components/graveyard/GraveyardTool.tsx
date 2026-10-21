@@ -12,8 +12,8 @@ import { useJob } from '@/lib/use-job';
 
 import { GraveyardCard } from './GraveyardCard';
 
-export type GraveyardScope = 'global' | 'uni';
-/** Who is looking: the uni tab needs a verified member (CLAUDE.md §8 F7 "Tier"). */
+export type GraveyardScope = 'global' | 'uni' | 'country';
+/** Who is looking: the uni and country tabs need a verified member (CLAUDE.md §8 F7 "Tier"). */
 export type GraveyardViewer = 'visitor' | 'member' | 'verified';
 
 export type GraveyardToolProps = { initialQuery?: string | undefined; initialScope?: GraveyardScope; viewer?: GraveyardViewer };
@@ -24,17 +24,17 @@ const IDLE: JobState<unknown> = { phase: 'idle' };
 export function GraveyardTool({ initialQuery, initialScope = 'global', viewer = 'visitor' }: GraveyardToolProps) {
   const { state, start } = useJob('graveyard', parseGraveyard);
   const verified = viewer === 'verified';
-  const [tab, setTab] = useState<GraveyardScope | 'country'>(initialScope);
+  const [tab, setTab] = useState<GraveyardScope>(initialScope);
   // Radix reports a click as both mousedown and focus before React re-renders; the ref drops the repeat.
   const currentTab = useRef(tab);
-  const scope: GraveyardScope = tab === 'uni' && verified ? 'uni' : 'global';
+  const scope: GraveyardScope = tab !== 'global' && verified ? tab : 'global';
   const [query, setQuery] = useState(initialQuery ?? '');
   const [difficulty, setDifficulty] = useState<DifficultyFilter>('any');
   const [license, setLicense] = useState<LicenseFilter>('any');
   const copy = graveyardCopy;
 
   useEffect(() => {
-    if (initialQuery) start({ q: initialQuery, scope: initialScope === 'uni' && !verified ? 'global' : initialScope });
+    if (initialQuery) start({ q: initialQuery, scope: initialScope !== 'global' && !verified ? 'global' : initialScope });
   }, [initialQuery, initialScope, verified, start]);
 
   const address = (q: string, where: GraveyardScope) => {
@@ -53,7 +53,6 @@ export function GraveyardTool({ initialQuery, initialScope = 'global', viewer = 
     if ((value !== 'global' && value !== 'uni' && value !== 'country') || value === currentTab.current) return;
     currentTab.current = value;
     setTab(value);
-    if (value === 'country') return;
     // The same topic, searched where the member just looked.
     if (query.trim() && (value === 'global' || verified)) search(query, value);
     else address(query.trim(), value);
@@ -72,6 +71,7 @@ export function GraveyardTool({ initialQuery, initialScope = 'global', viewer = 
   const searchPanel = (
     <div className="flex flex-col gap-6">
       <Card className="flex flex-col gap-6">
+        {scope === 'country' ? <p className="type-small text-fg-muted">{copy.scopes.countryIntro}</p> : null}
         {scope === 'uni' ? (
           <p className="type-small text-fg-muted">
             {copy.scopes.uniIntro}{' '}
@@ -188,11 +188,13 @@ export function GraveyardTool({ initialQuery, initialScope = 'global', viewer = 
       ) : null}
     </Card>
   );
-  const uniPanel = verified
-    ? searchPanel
-    : viewer === 'member'
-      ? locked(copy.scopes.uniVerify, { href: '/onboarding', label: copy.scopes.uniVerify.action })
-      : locked(copy.scopes.uniSignIn, { href: `/auth/sign-in?next=${encodeURIComponent('/tools/graveyard?scope=uni')}`, label: copy.scopes.uniSignIn.action });
+  /** The uni and country tabs search for verified members; others are told what it takes. */
+  const memberPanel = (where: 'uni' | 'country', texts: { signIn: { title: string; line: string; action: string }; verify: { title: string; line: string; action: string } }) =>
+    verified
+      ? searchPanel
+      : viewer === 'member'
+        ? locked(texts.verify, { href: '/onboarding', label: texts.verify.action })
+        : locked(texts.signIn, { href: `/auth/sign-in?next=${encodeURIComponent(`/tools/graveyard?scope=${where}`)}`, label: texts.signIn.action });
 
   return (
     <Tabs
@@ -201,8 +203,8 @@ export function GraveyardTool({ initialQuery, initialScope = 'global', viewer = 
       onValueChange={switchTab}
       items={[
         { value: 'global', label: copy.scopes.global, content: tab === 'global' ? searchPanel : null },
-        { value: 'uni', label: copy.scopes.uni, content: tab === 'uni' ? uniPanel : null },
-        { value: 'country', label: copy.scopes.country, content: locked(copy.scopes.countryLocked) },
+        { value: 'uni', label: copy.scopes.uni, content: tab === 'uni' ? memberPanel('uni', { signIn: copy.scopes.uniSignIn, verify: copy.scopes.uniVerify }) : null },
+        { value: 'country', label: copy.scopes.country, content: tab === 'country' ? memberPanel('country', { signIn: copy.scopes.countrySignIn, verify: copy.scopes.countryVerify }) : null },
       ]}
     />
   );

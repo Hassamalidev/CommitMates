@@ -465,6 +465,15 @@ TF-IDF arrives in P4-T02.
 - Tests: `packages/core/src/adoptions/listings.test.ts`, `e2e/projects.spec.ts`
 - Spec: CLAUDE.md §8 F14 "Private suggestions", "Listing"
 
+### Graveyard country scope
+
+- Code: `packages/core/src/graveyard/jobs.ts` (country branch of `graveyard_search`), `countryRepoCandidates` in `packages/db/src/queries/crawler.ts`
+- Candidates: repositories of developers in the country index of the searching member's university's country (`index_country_code`), matched by full text on name, description and topics or by a topic of the query's expansion; relevance = `ts_rank_cd` plus shared topics, divided by the best in the set; at most 200 (the spec's limit)
+- Scoring: exactly the global pipeline (forks dropped, idle threshold per category, README and history filters, signals, revivability, difficulty, rank); only the relevance source differs. Results say "inactive", never "up for adoption".
+- Access: verified members only; the result is cached and queued per member, like the uni scope
+- Tests: `packages/core/src/graveyard/country.test.ts` (the same repositories found through the country index and through GitHub search get the same revivability, unfinished score, difficulty and signals)
+- Spec: CLAUDE.md §8 F7 (country)
+
 ### Graveyard uni scope and adoptions
 
 - Code: `packages/core/src/graveyard/jobs.ts` (uni branch of `graveyard_search`), `packages/db/src/queries/adoptions.ts` (`uniListingCandidates`), `packages/core/src/adoptions/flow.ts`

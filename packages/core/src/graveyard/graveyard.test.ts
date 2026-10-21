@@ -181,8 +181,8 @@ describe('graveyard tool', () => {
     expect(graveyardTool.payload?.({ q: 'Computer  Vision', scope: 'global' }, {})).toEqual({ q: 'computer vision', scope: 'global' });
   });
 
-  it('rejects locked scopes and short queries before queueing', async () => {
-    await expect(startToolRun('graveyard', { q: 'computer vision', scope: 'country' })).rejects.toMatchObject({ field: 'scope' });
+  it('rejects unknown scopes and short queries before queueing', async () => {
+    await expect(startToolRun('graveyard', { q: 'computer vision', scope: 'planet' })).rejects.toMatchObject({ field: 'scope' });
     await expect(startToolRun('graveyard', { q: 'x' })).rejects.toMatchObject({ field: 'q' });
   });
 });
