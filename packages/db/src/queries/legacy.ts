@@ -213,3 +213,29 @@ export async function refreshRepoMetadata(
     })
     .where(eq(ghRepos.githubId, repo.githubId));
 }
+
+/** Counts behind a member's badges (CLAUDE.md §9.5 traits): their longest shared streak and merged open-source work. */
+export async function memberBadgeCounts(userId: string, db: DbOrTx = getDb()): Promise<{ longestStreak: number; ossProjects: number; ossMergedPrs: number }> {
+  const rows = await db.execute<{ longest_streak: number | null; oss_projects: string; oss_merged: string | null }>(sql`
+    select (select max(longest_streak) from pairs where user_a = ${userId} or user_b = ${userId}) as longest_streak,
+           (select count(*) from oss_member_contribs where user_id = ${userId}) as oss_projects,
+           (select sum(merged_prs) from oss_member_contribs where user_id = ${userId}) as oss_merged`);
+  const row = rows[0];
+  return { longestStreak: row?.longest_streak ?? 0, ossProjects: Number(row?.oss_projects ?? 0), ossMergedPrs: Number(row?.oss_merged ?? 0) };
+}
+
+export type RevivedProject = { fullName: string | null; forkFullName: string | null; role: 'adopter' | 'owner'; revivedAt: Date | null };
+
+/** Revived adoptions a member took part in, as adopter or as the listing's or repository's owner, newest first. */
+export async function revivedProjectsOf(userId: string, db: DbOrTx = getDb()): Promise<RevivedProject[]> {
+  const rows = await db.execute<{ full_name: string | null; fork_full_name: string | null; role: RevivedProject['role']; revived_at: string | null }>(sql`
+    select r.full_name, a.fork_full_name, case when a.adopter_user_id = ${userId} then 'adopter' else 'owner' end as role, a.revived_at
+    from adoptions a
+    left join graveyard_listings l on l.id = a.listing_id
+    left join gh_repos r on r.github_id = a.repo_github_id
+    left join github_identities gi on gi.user_id = ${userId}
+    where a.status = 'revived'
+      and (a.adopter_user_id = ${userId} or l.owner_user_id = ${userId} or r.owner_github_id = gi.github_id)
+    order by a.revived_at desc nulls last`);
+  return rows.map((row) => ({ fullName: row.full_name, forkFullName: row.fork_full_name, role: row.role, revivedAt: row.revived_at === null ? null : new Date(row.revived_at) }));
+}

@@ -1,4 +1,17 @@
-import { canViewProfile, canVouchFor, getProfileOwner, getSetting, getVouchingStatus, hasVouched, isBlocking, isPublicProfile } from '@commitmates/core';
+import {
+  canViewProfile,
+  canVouchFor,
+  getProfileExtras,
+  getProfileOwner,
+  getSetting,
+  getVouchingStatus,
+  hasVouched,
+  isBlocking,
+  isPublicProfile,
+  profileViewerFor,
+  type ProfileExtras,
+} from '@commitmates/core';
+import { Card, Chip } from '@commitmates/ui';
 import type { Metadata } from 'next';
 import { notFound } from 'next/navigation';
 import { cache } from 'react';
@@ -10,6 +23,8 @@ import { SafetyActions } from '@/components/safety/SafetyActions';
 import { ShareButton } from '@/components/share/ShareButton';
 import { devCardCopy } from '@/copy/dev-card';
 import { vouchCopy } from '@/copy/onboarding';
+import { profileCopy } from '@/copy/profile';
+import { reviewsCopy } from '@/copy/reviews';
 import { shareCopy } from '@/copy/share';
 import { siteName, siteUrl } from '@/lib/site';
 import { vouchAction } from '@/server/actions/verification';
@@ -30,7 +45,8 @@ const loadProfile = cache(async (login: string) => {
   const owner = await getProfileOwner(decodeURIComponent(login));
   if (!owner) return null;
   const member = await getCurrentMember();
-  const viewer = member ? { id: member.id, universityId: member.universityId, verified: member.verified } : null;
+  // `country` visibility compares the countries of the two members' universities.
+  const viewer = member ? await profileViewerFor(member) : null;
   return canViewProfile(owner, viewer) ? { owner, isSelf: member?.id === owner.userId } : null;
 });
 
@@ -55,6 +71,70 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
         }
       : {}),
   };
+}
+
+/** Badges, revived projects and showcased projects (CLAUDE.md §8 F1, P5-T10), for anyone who may see the page. */
+function MemberExtras({ extras, viewerUniversityId }: { extras: ProfileExtras; viewerUniversityId: string | null }) {
+  const copy = profileCopy;
+  const { badges, showcase } = extras;
+  const earned: { key: string; name: string; line: string }[] = [
+    ...(badges.reviewer
+      ? [{ key: 'reviewer', name: copy.badges.reviewer.name, line: copy.badges.reviewer.line(reviewsCopy.reputation.tiers[badges.reviewer.tier] ?? '', badges.reviewer.helpful) }]
+      : []),
+    ...(badges.reviver ? [{ key: 'reviver', name: copy.badges.reviver.name, line: copy.badges.reviver.line(badges.reviver.length) }] : []),
+    ...(badges.streak ? [{ key: 'streak', name: copy.badges.streak.name, line: copy.badges.streak.line(badges.streak.longest) }] : []),
+    ...(badges.oss ? [{ key: 'oss', name: copy.badges.oss.name, line: copy.badges.oss.line(badges.oss.mergedPrs, badges.oss.projects) }] : []),
+  ];
+  return (
+    <div className="grid gap-4 md:grid-cols-2">
+      <Card title={copy.badges.title} titleAs="h2" className="flex flex-col gap-2" data-testid="profile-badges">
+        {earned.length === 0 ? (
+          <p className="type-small text-fg-muted">{copy.badges.none}</p>
+        ) : (
+          <ul className="flex flex-col gap-2">
+            {earned.map((badge) => (
+              <li key={badge.key} className="type-small flex flex-wrap items-center gap-2">
+                <Chip>{badge.name}</Chip>
+                <span>{badge.line}</span>
+              </li>
+            ))}
+          </ul>
+        )}
+      </Card>
+      {badges.reviver ? (
+        <Card title={copy.revived.title} titleAs="h2" className="flex flex-col gap-2">
+          <ul className="type-small flex flex-col gap-1">
+            {badges.reviver.map((project, index) => (
+              <li key={`${project.fullName ?? 'unknown'}-${index}`}>
+                <span className="font-semibold break-words">{project.fullName ?? copy.revived.unknown}</span> · {copy.revived[project.role]}
+                {project.forkFullName ? `, ${copy.revived.fork(project.forkFullName)}` : ''}
+              </li>
+            ))}
+          </ul>
+        </Card>
+      ) : null}
+      {showcase.length > 0 ? (
+        <Card title={copy.showcase.title} titleAs="h2" className="flex flex-col gap-2 md:col-span-2">
+          <ul className="flex flex-col gap-2">
+            {showcase.map((entry) => (
+              <li key={entry.id} className="type-small flex flex-col gap-0.5">
+                {entry.universityId === viewerUniversityId ? (
+                  <a href={`/legacy/${entry.id}`} className="font-semibold break-words text-accent underline underline-offset-4" aria-label={copy.showcase.open(entry.fullName)}>
+                    {entry.fullName}
+                  </a>
+                ) : (
+                  <a href={`https://github.com/${entry.fullName}`} rel="noopener noreferrer" className="font-semibold break-words text-accent underline underline-offset-4">
+                    {entry.fullName}
+                  </a>
+                )}
+                {entry.blurb ?? entry.description ? <span className="break-words text-fg-muted">{entry.blurb ?? entry.description}</span> : null}
+              </li>
+            ))}
+          </ul>
+        </Card>
+      ) : null}
+    </div>
+  );
 }
 
 export default async function MemberProfilePage({ params }: Props) {
@@ -111,6 +191,7 @@ export default async function MemberProfilePage({ params }: Props) {
             {vouchCopy.done}
           </p>
         ) : null}
+        <MemberExtras extras={await getProfileExtras(owner)} viewerUniversityId={viewer?.universityId ?? null} />
         <DevCardTool initialLogin={owner.login} fixed />
       </div>
     </SiteFrame>

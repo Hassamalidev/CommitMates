@@ -56,10 +56,12 @@ export {
   canViewProfile,
   getProfileOwner,
   isPublicProfile,
+  profileViewerFor,
   type ProfileOwner,
   type ProfileViewer,
   type ProfileVisibility,
 } from './profiles/visibility';
+export { getProfileExtras, memberBadges, traitsFromBadges, type MemberBadges, type ProfileExtras } from './profiles/badges';
 export { COMPAT_STEPS, compatTool, getCachedCompat } from './compat/jobs';
 export { compatInputSchema, compatResultSchema, type CompatInput, type CompatResult, type CompatSideSummary } from './compat/schemas';
 export { compatShareAllowed } from './compat/sharing';

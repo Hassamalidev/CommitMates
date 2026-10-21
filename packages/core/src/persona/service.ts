@@ -17,13 +17,14 @@ import {
   getMemberProfileByGithubId,
   getPackageTags,
   getSetting,
-  hasRevivalBadge,
   metricRank,
   recordMetricSamples,
 } from '@commitmates/db';
 import { lookupLocation } from '@commitmates/sources';
 
+import { memberBadges, traitsFromBadges } from '../profiles/badges';
 import type { ProfileSnapshot } from '../profiles/ingest';
+import { getMember } from '../profiles/service';
 
 import type { DevCard } from './schemas';
 
@@ -162,11 +163,14 @@ export async function buildDevCard(snapshot: ProfileSnapshot): Promise<DevCard> 
 }
 
 /**
- * A member's companion traits from the badges they earned (CLAUDE.md §9.5): `reviver` for taking part
- * in a revival (§8 F14). Reviews, streaks, open source and mentoring add theirs as those features land.
+ * A member's companion traits from the badges they earned (CLAUDE.md §9.5): `reviewer`, `reviver`,
+ * `streak` and `oss`. Mentoring adds `mentor` with Alumni Quick Asks.
  */
 export async function memberTraits(githubId: number): Promise<string[]> {
-  return (await hasRevivalBadge(githubId)) ? ['reviver'] : [];
+  const profile = await getMemberProfileByGithubId(githubId);
+  if (!profile) return [];
+  const member = await getMember(profile.userId);
+  return traitsFromBadges(await memberBadges(profile.userId, member?.universityId ?? null));
 }
 
 /**

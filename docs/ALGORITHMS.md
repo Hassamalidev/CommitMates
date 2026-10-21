@@ -90,6 +90,16 @@ All algorithms live in `packages/algorithms` and are pure: no I/O, no clock, no 
 - Tests: `packages/core/src/persona/persona.test.ts`
 - Spec: CLAUDE.md §8 F1
 
+### Member profiles: visibility and badges
+
+- Code: `packages/core/src/profiles/visibility.ts`, `packages/core/src/profiles/badges.ts`, page `apps/web/src/app/u/[login]/page.tsx`
+- Visibility: the member always sees their own page; `public` anyone; `university` verified members of the same university; `country` verified members of a university in the same country (the countries of the two universities compared; the same university always counts, a missing country never matches); `hidden` nobody else; suspended or hidden-for-review accounts nobody else. A page someone may not see answers 404, like a missing one.
+- Badges: reviewer (at least one helpful review, with its reputation tier), reviver (taking part in a revived adoption as adopter or owner), streak (a shared streak whose longest run reached the first value of `streaks.companionStageDays`), open source (merged pull requests to other people's projects, from `oss_member_contribs`); each gives the companion trait of the same name on the member's Dev Card (`mentor` arrives with F20)
+- Page: badges, revived projects and showcased projects (linking to Senior's Legacy for members of the same university), above the Dev Card
+- Settings: `streaks.companionStageDays`, `reviews.reputationTierCuts`
+- Tests: `packages/core/src/profiles/visibility.test.ts`, `packages/core/src/profiles/badges.test.ts`, `e2e/profile.spec.ts` (every visibility level against a classmate, a member in the same country, one abroad and a visitor)
+- Spec: CLAUDE.md §8 F1 "Privacy", §9.5, P5-T10
+
 ## Similarity
 
 ### Cosine, Jaccard and histogram intersection
