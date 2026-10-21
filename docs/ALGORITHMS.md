@@ -201,6 +201,16 @@ All algorithms live in `packages/algorithms` and are pure: no I/O, no clock, no 
 - Tests: `packages/algorithms/src/gap/gap.test.ts`, `packages/core/src/gap/gap.test.ts`
 - Spec: CLAUDE.md §8 F5
 
+### Who at your uni can help (campus layer)
+
+- Code: `packages/core/src/gap/campus.ts`, panel in `apps/web/src/components/gap/GapCampusPanel.tsx`
+- A gap's skill: a dependency tag's name, or the topic a path matches; repository properties have none
+- Helpers: for a signed-in, verified member at a university with `unlock.gapCampus.minMembers` verified members, the members there whose teaching level in the skill (the Skill Swap's percentile rank of skill-vector weights within the university, everyone with a vector counted) reaches `swap.minTeachLevel`, best first, at most `gap.helpersPerGap`; never the member, never hidden or ghost-mode members, never across a block. Skills are matched in the vocabulary's spelling and returned under the spelling asked for.
+- Ask: a message request with `context_kind = 'gap'` and the repository as `context_id`, allowed only to someone the member's own panel lists for that skill; the first message is prefilled from the gap and editable; the chat rules apply
+- Settings: `unlock.gapCampus.minMembers` (10), `swap.minTeachLevel` (0.5), `gap.helpersPerGap` (3), `gap.maxGaps`
+- Tests: `packages/core/src/gap/campus.test.ts`, `apps/web/src/components/gap/gap-campus.test.tsx`
+- Spec: CLAUDE.md §8 F5 step 7
+
 ## Open-Source Starter
 
 ### Responsiveness, gates and rank

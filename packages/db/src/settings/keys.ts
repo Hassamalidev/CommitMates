@@ -77,6 +77,7 @@ export const SettingKeys = {
   'gap.minPrevalence': 'number',
   'gap.maxGaps': 'integer',
   'gap.minPeerStars': 'integer',
+  'gap.helpersPerGap': 'integer',
   'taxonomy.sampleSize': 'integer',
   'taxonomy.maxExpansions': 'integer',
   'taxonomy.minSampleFreq': 'number',

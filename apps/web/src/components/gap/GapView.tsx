@@ -3,6 +3,8 @@ import { Card, ChecklistRule, Chip } from '@commitmates/ui';
 
 import { gapCopy } from '@/copy/gap';
 
+import { GapCampusPanel } from './GapCampusPanel';
+
 /** A facet in words: "A tests/ folder", "A Dockerfile file (Docker)", "A license". */
 export function facetLabel(facet: Pick<GapFacet, 'facet' | 'kind' | 'name' | 'topic'>): string {
   const copy = gapCopy.facet;
@@ -12,7 +14,7 @@ export function facetLabel(facet: Pick<GapFacet, 'facet' | 'kind' | 'name' | 'to
 }
 
 /** The Gap Finder result (CLAUDE.md §8 F5 "UI"): gaps by prevalence with examples, what is already right, the peers. */
-export function GapView({ result, campusMinMembers }: { result: GapResult; campusMinMembers: number }) {
+export function GapView({ result, campusMinMembers, signedIn = false }: { result: GapResult; campusMinMembers: number; signedIn?: boolean }) {
   const copy = gapCopy.result;
   const total = result.peers.length;
 
@@ -86,9 +88,7 @@ export function GapView({ result, campusMinMembers }: { result: GapResult; campu
         </section>
       </Card>
 
-      <Card title={gapCopy.campus.title}>
-        <p className="type-body text-fg-muted">{gapCopy.campus.line(campusMinMembers)}</p>
-      </Card>
+      <GapCampusPanel result={result} campusMinMembers={campusMinMembers} signedIn={signedIn} label={facetLabel} />
     </div>
   );
 }

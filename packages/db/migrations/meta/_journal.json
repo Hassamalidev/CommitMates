@@ -414,6 +414,13 @@
       "when": 1792550656235,
       "tag": "0058_settings_swaps",
       "breakpoints": true
+    },
+    {
+      "idx": 59,
+      "version": "7",
+      "when": 1792552976036,
+      "tag": "0059_settings_gap_campus",
+      "breakpoints": true
     }
   ]
 }

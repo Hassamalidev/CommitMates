@@ -29,7 +29,7 @@ export default async function GapPage({ searchParams }: Props) {
 
   return (
     <ToolPage slug="gap" eyebrow={page.eyebrow} title={page.title} line={page.line} signedIn={member !== null}>
-      <GapTool initialRepo={repo} campusMinMembers={campusMinMembers} />
+      <GapTool initialRepo={repo} campusMinMembers={campusMinMembers} signedIn={member !== null} />
     </ToolPage>
   );
 }
