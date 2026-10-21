@@ -30,7 +30,8 @@ jobs:
       - run: pnpm lint && pnpm typecheck
       - run: pnpm check:hardcoded && pnpm check:licenses && pnpm check:contrast
       - name: Start local Supabase for integration tests
-        run: pnpm exec supabase start
+        # One retry: pulling the stack's images occasionally fails on a fresh runner.
+        run: pnpm exec supabase start || (pnpm exec supabase stop --no-backup && pnpm exec supabase start)
       - name: Apply migrations to the Supabase database
         run: pnpm db:migrate
         env:
@@ -66,7 +67,8 @@ jobs:
           cache: pnpm
       - run: pnpm install --frozen-lockfile
       - name: Start local Supabase
-        run: pnpm exec supabase start
+        # One retry: pulling the stack's images occasionally fails on a fresh runner.
+        run: pnpm exec supabase start || (pnpm exec supabase stop --no-backup && pnpm exec supabase start)
       - name: Apply migrations
         run: pnpm db:migrate
         env:
