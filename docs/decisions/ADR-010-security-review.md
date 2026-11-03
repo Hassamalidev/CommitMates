@@ -58,6 +58,29 @@ Audited with catalog queries and turned into tests in `packages/db/src/schema/sc
 
 **Fix:** `reencrypt_tokens` (`packages/core/src/security/tokens.ts`) rewrites every token not on the current key version, a page at a time and continuing across runs; it replaces a token only if it is unchanged since it was read; a token neither key can read is dropped and its member asked to sign in again; a missing previous key stops the run before anything changes. `pnpm tokens:reencrypt` queues it once per key version. The steps are in `docs/runbooks/rotate-token-key.md`. Tested in `packages/core/src/security/tokens.test.ts`.
 
+### Input validation of actions and routes (P7-T01c)
+
+- **Server Actions.** `apps/web/src/server/actions/audit.test.ts` reads every actions file with the TypeScript parser and checks each exported action, including the local factories it calls: all 25 files and every action call a guard (`requireUser`, `requireVerified` or `requireRole`) first, apart from the public country-index opt-out, which only removes data and is rate-limited per hashed address. Every action that writes takes a rate-limit token, apart from a listed few with their reason: admin and moderator decisions (role-gated and audited), the member's own read marker, and four read-only lookups. A new action without a guard or a rate limit fails the test. No finding.
+- **Parsing.** Actions hand inputs to core services; all 92 exported core functions that take `raw: unknown` parse it with zod before use (checked by script). Job payloads are parsed by the runner against each handler's schema (§5.4).
+- **Route handlers.** `api/tools/[tool]` checks the origin, validates before rate-limiting and rate-limits per hashed address and member; `api/jobs/[id]/events` validates the id as a UUID (job ids are unguessable and returned only to whoever started the job, so the stream is a capability URL); `api/jobs/tick` compares its secret in constant time; `api/me/export` requires a session and returns only the member's rows; `api/og/[kind]` validates logins and serves images only for public members; `auth/sign-in` and `auth/callback` accept only same-site `next` paths (`safeNextPath`); `auth/sign-out` is POST-only with an origin check. No finding.
+
+### Threat model walk (§5.10)
+
+| Threat | State after the review |
+| --- | --- |
+| Token theft from the database | AES-256-GCM with a versioned key, decrypted only in `packages/github` for the call that needs it; rotation now works end to end (`reencrypt_tokens`). |
+| OTP brute force | Peppered hash, constant-time compare, `verify.otpTtlMinutes`, `verify.maxAttempts`, `verify.maxSendsPerDay`, per-member and per-address buckets (P3-T04). |
+| Scraping tools to burn GitHub budget | Per-IP-hash and per-member buckets, cached results, reserved budgets per identity (P1-T04, P2-T06). |
+| XSS through README or markdown | Nothing is rendered as HTML: READMEs become plain text (`markdownToText`), chat is plain text with auto-linked URLs. The only inline script is the constant theme script, now with the nonce; the CSP blocks any other. `rehype-sanitize` is therefore not used. |
+| CSRF | Server Actions' origin checks; POST routes check `Origin`; the tick uses a secret header. |
+| Chat spam and harassment | Message requests, trust-scaled limits, link caps for new accounts, blocks, reports, auto-hide at distinct verified reporters (P4). |
+| Fake university claims | Suffix match against the synced list, disposable-domain block, vouching, admin or moderator approval of unknown domains (P3). |
+| Secrets leaked in our own repo | gitleaks in CI (pinned release with checksum), `.env*` ignored; production tick secrets live in Supabase Vault (P7-T06). |
+| Privilege escalation | Guards on every action (audit test), roles checked server-side, deny-by-default RLS on every table and no browser-executable function (audit tests). |
+| SSRF through user URLs | User input reaches GitHub only as owner/repo/number through `parseGitHubUrl`; registry and geocoder endpoints are fixed or from env. |
+| Abuse of non-member data | No pages or rankings for non-members, TTL purge, owner-only secret findings; the country index is shown only as links to GitHub, with an opt-out. |
+| Credit-ledger manipulation | Append-only trigger and revoked grants, locked balance checks, audited admin adjustments (P5-T04). |
+
 ## Alternatives considered
 
 - **Overriding minimatch to 11.x.** Rejected: it brings a license outside §2.2 into the tree, and the advisory does not reach shipped code.
@@ -71,6 +94,7 @@ Audited with catalog queries and turned into tests in `packages/db/src/schema/sc
 - Upgrades go through the usual gates: `pnpm verify` and the e2e suite pass on the new versions.
 - Every page now renders per request (the price of a nonce), and the public pages are no longer static; see ADR-006 and P7-T02.
 - A key rotation is a documented, tested procedure.
+- The action audit test keeps future actions guarded and rate-limited, or makes their exception explicit.
 
 ## Verification
 
