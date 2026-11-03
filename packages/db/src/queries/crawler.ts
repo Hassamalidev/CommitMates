@@ -275,3 +275,22 @@ export async function countryRepoCandidates(countryCode: string, query: string, 
     relevance: row.relevance,
   }));
 }
+
+export type IndexPerson = { githubId: number; login: string };
+
+/**
+ * People of a country's index who use a language (§8 F11 "UI", §8 F18): crawled public accounts,
+ * never members (members are found through Discover itself), with the most own non-fork repositories
+ * in that language first, then the most followers.
+ */
+export async function countryIndexPeople(countryCode: string, language: string, excludeGithubId: number, limit: number, db: DbOrTx = getDb()): Promise<IndexPerson[]> {
+  const rows = await db.execute<{ github_id: string; login: string }>(sql`
+    select u.github_id, u.login
+    from gh_users u
+    join gh_repos r on r.owner_github_id = u.github_id and not r.is_fork and lower(r.primary_language) = lower(${language})
+    where u.in_country_index and u.index_country_code = ${countryCode} and not u.is_member and u.github_id <> ${excludeGithubId}
+    group by u.github_id, u.login, u.followers
+    order by count(*) desc, coalesce(u.followers, 0) desc, u.login
+    limit ${limit}`);
+  return rows.map((row) => ({ githubId: Number(row.github_id), login: row.login }));
+}

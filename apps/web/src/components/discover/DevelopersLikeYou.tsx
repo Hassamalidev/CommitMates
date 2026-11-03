@@ -18,7 +18,9 @@ export async function DevelopersLikeYou({ member }: { member: Member }) {
       {result.status === 'unavailable' ? <p className="type-body text-fg-muted">{copy.unavailable}</p> : null}
       {result.status === 'ok' ? (
         <>
-          <p className="type-small text-fg-muted">{copy.line(result.language, result.country)}</p>
+          <p className="type-small text-fg-muted">
+            {copy.line(result.language, result.country)} {copy.source[result.source]}
+          </p>
           {result.people.length === 0 ? (
             <p className="type-body text-fg-muted">{copy.empty}</p>
           ) : (

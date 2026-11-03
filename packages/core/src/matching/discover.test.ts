@@ -271,6 +271,7 @@ describe('developersLikeYou', () => {
       status: 'ok',
       language: 'Go',
       country: 'Testland',
+      source: 'github',
       people: [{ githubId: 1, login: 'gopher', avatarUrl: 'https://avatars.githubusercontent.com/u/1', htmlUrl: 'https://github.com/gopher' }],
     });
     expect(queries).toEqual(['language:"Go" location:"Testland" type:user']);
@@ -282,6 +283,44 @@ describe('developersLikeYou', () => {
       select subject_key, is_member_subject, expires_at from analysis_cache where kind = 'developers_like_you'`;
     expect(cached).toMatchObject({ subject_key: me.login, is_member_subject: false });
     expect(cached!.expires_at.getTime() - NOW.getTime()).toBeLessThanOrEqual(24 * 60 * 60 * 1000);
+  });
+
+  it('fills the list from the country index once it holds enough people, never members, without asking GitHub', async () => {
+    const me = await member();
+    await database.sql`insert into gh_repos (github_id, owner_github_id, full_name, name, primary_language, is_fork, fetched_at)
+                       values (900020, ${me.githubId}, ${`${me.login}/a`}, 'a', 'Elixir', false, now())`;
+    const [uni] = await database.sql<{ country_code: string }[]>`select country_code from universities where id = ${me.universityId}`;
+    const index = async (githubId: number, login: string, repos: number, extra: { member?: boolean; country?: string; language?: string } = {}) => {
+      await database.sql`insert into gh_users (github_id, login, in_country_index, index_country_code, is_member, followers, fetched_at)
+                         values (${githubId}, ${login}, true, ${extra.country ?? uni!.country_code}, ${extra.member ?? false}, 0, now())`;
+      for (let repo = 0; repo < repos; repo += 1) {
+        await database.sql`insert into gh_repos (github_id, owner_github_id, full_name, name, primary_language, is_fork, fetched_at)
+                           values (${githubId * 10 + repo}, ${githubId}, ${`${login}/r${repo}`}, ${`r${repo}`}, ${extra.language ?? 'Elixir'}, false, now())`;
+      }
+    };
+    await index(71001, 'alchemist', 3);
+    await index(71002, 'brewer', 1);
+    await index(71003, 'member-elixir', 5, { member: true });
+    await index(71004, 'abroad', 5, { country: 'ZZ' });
+    await index(71005, 'rustacean', 5, { language: 'Rust' });
+    // No GitHub handler: a search here would fail the test.
+    await withSettings({ 'matching.coldStartListSize': 3 }, async () => {
+      // Two indexed people cannot fill three places, so the live search is used (and fails here).
+      server.use(http.get(`${API}/rate_limit`, () => new HttpResponse(null, { status: 502 })));
+      expect((await developersLikeYou(me, NOW)).status).toBe('unavailable');
+    });
+    await withSettings({ 'matching.coldStartListSize': 2 }, async () => {
+      expect(await developersLikeYou(me, NOW)).toEqual({
+        status: 'ok',
+        language: 'Elixir',
+        country: 'Testland',
+        source: 'index',
+        people: [
+          { githubId: 71001, login: 'alchemist', avatarUrl: 'https://avatars.githubusercontent.com/u/71001', htmlUrl: 'https://github.com/alchemist' },
+          { githubId: 71002, login: 'brewer', avatarUrl: 'https://avatars.githubusercontent.com/u/71002', htmlUrl: 'https://github.com/brewer' },
+        ],
+      });
+    });
   });
 
   it('says the list is unavailable when GitHub is down', async () => {

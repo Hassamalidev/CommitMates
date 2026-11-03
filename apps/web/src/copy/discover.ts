@@ -87,6 +87,7 @@ export const discoverCopy = {
   similar: {
     title: 'Developers like you on GitHub',
     line: (language: string, country: string) => `Public GitHub profiles that use ${language} in ${country}. View only: they are not on CommitMates.`,
+    source: { index: 'From our index of public developers in your country.', github: 'From a GitHub search.' },
     noLanguage: 'Once your public repositories show a main language, people who use it near you appear here.',
     unavailable: 'GitHub is busy right now. This list will be back shortly.',
     empty: 'No public profiles found for now.',

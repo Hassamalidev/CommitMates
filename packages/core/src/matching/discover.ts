@@ -1,5 +1,6 @@
 import { MATCH_MODES, sharedActiveWindow, type HourWindow, type MatchMode } from '@commitmates/algorithms';
 import {
+  countryIndexPeople,
   NotFoundError,
   ValidationError,
   actOnSuggestion,
@@ -240,7 +241,8 @@ export async function requestFromSuggestion(
 }
 
 export type DevelopersLikeYou =
-  | { status: 'ok'; language: string; country: string; people: SearchUser[] }
+  /** `index`: from the crawled country index (§8 F18); `github`: from a live GitHub user search. */
+  | { status: 'ok'; language: string; country: string; source: 'index' | 'github'; people: SearchUser[] }
   | { status: 'no-language' }
   | { status: 'unavailable' };
 
@@ -250,25 +252,35 @@ const peopleSchema = z.array(z.object({ githubId: z.number(), login: z.string(),
 const qualifier = (value: string) => `"${value.replace(/"/g, '')}"`;
 
 /**
- * "Developers like you on GitHub" for Discover's cold start (§8 F11 "UI"): a GitHub user search by the
- * member's top language and their university's country, view-only. The list describes people who are
- * not members, so it is cached no longer than `privacy.nonUserRawTtlHours` and filed under the
- * member's login, which their account deletion clears.
+ * "Developers like you on GitHub" for Discover's cold start (§8 F11 "UI", P6-T08): people of the
+ * member's top language in their university's country, view-only. When the country index holds
+ * enough of them to fill `matching.coldStartListSize`, the list comes from the index (never members,
+ * nothing fetched); otherwise from a GitHub user search, which describes people who are not members,
+ * so it is cached no longer than `privacy.nonUserRawTtlHours` and filed under the member's login,
+ * which their account deletion clears.
  */
 export async function developersLikeYou(member: DiscoverMember, now: Date = new Date()): Promise<DevelopersLikeYou> {
   if (member.githubId === null || member.login === null || member.universityId === null) return { status: 'no-language' };
   const [language, university] = await Promise.all([memberTopLanguage(member.githubId), getUniversity(member.universityId)]);
   if (language === null || !university) return { status: 'no-language' };
+  const size = await getSetting('matching.coldStartListSize');
+  const indexed = await countryIndexPeople(university.countryCode, language, member.githubId, size);
+  if (indexed.length >= size) {
+    const people = indexed.map((person) => ({
+      githubId: person.githubId,
+      login: person.login,
+      avatarUrl: `https://avatars.githubusercontent.com/u/${person.githubId}`,
+      htmlUrl: `https://github.com/${person.login}`,
+    }));
+    return { status: 'ok', language, country: university.country, source: 'index', people };
+  }
+
   const key = { kind: 'developers_like_you', subjectKey: member.login.toLowerCase(), paramsHash: hashParams({ language, country: university.country }) };
   const cached = await getCachedAnalysis(key, now);
   const parsed = cached ? peopleSchema.safeParse(cached.result) : null;
-  if (parsed?.success) return { status: 'ok', language, country: university.country, people: parsed.data };
+  if (parsed?.success) return { status: 'ok', language, country: university.country, source: 'github', people: parsed.data };
 
-  const [size, searchTtl, rawTtl] = await Promise.all([
-    getSetting('matching.coldStartListSize'),
-    getSetting('cache.searchTtlHours'),
-    getSetting('privacy.nonUserRawTtlHours'),
-  ]);
+  const [searchTtl, rawTtl] = await Promise.all([getSetting('cache.searchTtlHours'), getSetting('privacy.nonUserRawTtlHours')]);
   const client = githubFor(member.hasValidToken ? { kind: 'user', userId: member.id } : SERVER_IDENTITY);
   let found: SearchUser[];
   try {
@@ -287,5 +299,5 @@ export async function developersLikeYou(member: DiscoverMember, now: Date = new 
     computedAt: now,
     expiresAt: new Date(now.getTime() + Math.min(searchTtl, rawTtl) * MS_PER_HOUR),
   });
-  return { status: 'ok', language, country: university.country, people };
+  return { status: 'ok', language, country: university.country, source: 'github', people };
 }
