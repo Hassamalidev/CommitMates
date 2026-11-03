@@ -1,9 +1,11 @@
 import { THEME_INIT_SCRIPT } from '@commitmates/ui';
 import type { Metadata, Viewport } from 'next';
 import { Inter, JetBrains_Mono, Pixelify_Sans } from 'next/font/google';
+import { headers } from 'next/headers';
 import type { ReactNode } from 'react';
 
 import { siteCopy } from '@/copy/site';
+import { NONCE_HEADER } from '@/lib/csp';
 import { siteName, siteUrl } from '@/lib/site';
 
 import './globals.css';
@@ -28,7 +30,9 @@ export const viewport: Viewport = {
   initialScale: 1,
 };
 
-export default function RootLayout({ children }: { children: ReactNode }) {
+export default async function RootLayout({ children }: { children: ReactNode }) {
+  // The proxy's nonce for this request (CLAUDE.md §5.10); reading it renders every page per request.
+  const nonce = (await headers()).get(NONCE_HEADER) ?? undefined;
   return (
     // Dark first; the inline script switches to the stored or system theme before first paint.
     <html
@@ -38,7 +42,7 @@ export default function RootLayout({ children }: { children: ReactNode }) {
       className={`${inter.variable} ${pixelify.variable} ${jetbrains.variable}`}
     >
       <head>
-        <script dangerouslySetInnerHTML={{ __html: THEME_INIT_SCRIPT }} />
+        <script nonce={nonce} dangerouslySetInnerHTML={{ __html: THEME_INIT_SCRIPT }} />
       </head>
       <body className="min-h-dvh bg-canvas text-fg antialiased">{children}</body>
     </html>

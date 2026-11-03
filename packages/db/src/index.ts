@@ -7,6 +7,7 @@ export * from './queries/adoptions';
 export * from './queries/alumni';
 export * from './queries/fyp';
 export * from './queries/squads';
+export * from './queries/tokens';
 export * from './queries/analysis';
 export * from './queries/campus';
 export * from './queries/chat';

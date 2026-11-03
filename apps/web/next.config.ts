@@ -7,7 +7,7 @@ import type { NextConfig } from 'next';
 // Next has already loaded apps/web/.env* by now, so the reload has to be forced.
 loadEnvConfig(path.resolve(import.meta.dirname, '../..'), process.env.NODE_ENV !== 'production', console, true);
 
-/** Headers sent with every response (CLAUDE.md §5.10). The CSP with nonces is added with auth in Phase 1. */
+/** Headers sent with every response (CLAUDE.md §5.10). The CSP carries a per-request nonce, so the proxy sets it (`src/proxy.ts`). */
 const securityHeaders = [
   { key: 'Strict-Transport-Security', value: 'max-age=63072000; includeSubDomains; preload' },
   { key: 'X-Content-Type-Options', value: 'nosniff' },

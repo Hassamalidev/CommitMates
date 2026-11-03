@@ -1,6 +1,6 @@
 # ADR-006: Static public pages and lighter companions
 
-Date: 2026-10-14 · Status: accepted
+Date: 2026-10-14 · Status: accepted; the static rendering of public pages is superseded by ADR-010 (a per-request CSP nonce renders every page per request), the rest stands
 
 ## Context
 

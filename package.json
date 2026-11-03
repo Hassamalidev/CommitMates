@@ -32,6 +32,7 @@
     "db:studio": "pnpm --filter @commitmates/db db:studio",
     "jobs:dev": "pnpm --filter @commitmates/worker dev",
     "jobs:tick": "pnpm --filter @commitmates/worker tick",
+    "tokens:reencrypt": "pnpm --filter @commitmates/worker reencrypt",
     "icons:build": "tsx scripts/build-icons.ts"
   },
   "devDependencies": {

@@ -21,6 +21,7 @@ import { crawlCountryJob, crawlReposJob } from './crawler/service';
 import { leaderboardUniversityJob, leaderboardWeeklyJob } from './leaderboard/service';
 import { legacyRefreshJob } from './legacy/service';
 import { memberOssContribsJob } from './oss/campus';
+import { reencryptTokensJob } from './security/tokens';
 import { formSquadsJob } from './squads/service';
 import { proposeSwapsJob } from './swaps/service';
 import { computeTrustJob } from './safety/trust';
@@ -99,6 +100,7 @@ export const jobHandlers: readonly Registration[] = [
   define(alumniSlaJob),
   define(formSquadsJob),
   define(fypDetectProjectsJob),
+  define(reencryptTokensJob),
   define(streakCheckJob),
   define(digestEmailJob),
   define(liftSuspensionsJob),

@@ -146,6 +146,41 @@ describe('row level security', () => {
     await expect(write).rejects.toThrow(/row-level security/);
   });
 
+  it('hides every table of the schema from the browser roles, apart from a member’s own rows (P7-T01b audit)', async () => {
+    const tables = await database.sql<{ relname: string }[]>`
+      select c.relname from pg_class c join pg_namespace n on n.oid = c.relnamespace
+      where n.nspname = 'public' and c.relkind in ('r', 'p') order by c.relname`;
+    expect(tables.length).toBeGreaterThan(PLATFORM_TABLES.length);
+    // Seeded rows (settings, schedules) make the empty answers meaningful.
+    const [settingsRow] = await database.sql<{ count: number }[]>`select count(*)::int as count from settings`;
+    expect(settingsRow!.count).toBeGreaterThan(0);
+    const ownRows = new Set(['notifications', 'messages', 'thread_members']);
+    for (const { relname } of tables) {
+      expect(await countAs('anon', relname), `anon reading ${relname}`).toBe(0);
+      if (!ownRows.has(relname)) expect(await countAs('authenticated', relname, userA), `authenticated reading ${relname}`).toBe(0);
+    }
+  });
+
+  it('keeps every policy to the signed-in member, views as the invoker, and Realtime to the three browser tables', async () => {
+    const policies = await database.sql<{ tablename: string; qual: string }[]>`select tablename, qual from pg_policies where schemaname = 'public'`;
+    for (const policy of policies) expect(policy.qual, `${policy.tablename} policy`).toContain('auth.uid()');
+    const views = await database.sql<{ relname: string; reloptions: string[] | null }[]>`
+      select c.relname, c.reloptions from pg_class c join pg_namespace n on n.oid = c.relnamespace
+      where n.nspname = 'public' and c.relkind in ('v', 'm')`;
+    for (const view of views) expect(view.reloptions ?? [], `${view.relname} options`).toContain('security_invoker=true');
+    const published = await database.sql<{ tablename: string }[]>`select tablename from pg_publication_tables where pubname = 'supabase_realtime' and schemaname = 'public'`;
+    expect(published.map((row) => row.tablename).filter((table) => !['notifications', 'messages', 'thread_members'].includes(table))).toEqual([]);
+  });
+
+  it('lets the browser roles execute no function of the schema', async () => {
+    const callable = await database.sql<{ proname: string }[]>`
+      select p.proname from pg_proc p join pg_namespace n on n.oid = p.pronamespace
+      where n.nspname = 'public'
+        and not exists (select 1 from pg_depend d where d.objid = p.oid and d.deptype = 'e')
+        and (has_function_privilege('anon', p.oid, 'execute') or has_function_privilege('authenticated', p.oid, 'execute'))`;
+    expect(callable).toEqual([]);
+  });
+
   it('does not let the browser spend rate-limit tokens', async () => {
     const call = database.sql.begin(async (tx) => {
       await tx.unsafe('set local role authenticated');

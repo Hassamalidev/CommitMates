@@ -10,7 +10,8 @@
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
     "dev": "tsx watch --env-file-if-exists=../../.env.local src/main.ts",
-    "tick": "tsx --env-file-if-exists=../../.env.local src/tick.ts"
+    "tick": "tsx --env-file-if-exists=../../.env.local src/tick.ts",
+    "reencrypt": "tsx --env-file-if-exists=../../.env.local src/reencrypt.ts"
   },
   "dependencies": {
     "@commitmates/core": "workspace:*",

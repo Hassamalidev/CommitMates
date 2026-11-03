@@ -3,6 +3,7 @@ export { enqueue, getJobView, runTick, watchJob, PRIORITY } from '@commitmates/j
 export type { JobEvent, JobView, TickReport } from '@commitmates/jobs';
 export { closeDb, getLogger, getSetting } from '@commitmates/db';
 export { guardRate, type RatePrefix } from './security/service';
+export { queueTokenReencryption, reencryptTokens } from './security/tokens';
 export { hashIp } from '@commitmates/db';
 export {
   completeSignIn,
