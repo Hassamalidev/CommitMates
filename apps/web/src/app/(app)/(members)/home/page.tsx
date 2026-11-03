@@ -7,6 +7,7 @@ import { redirect } from 'next/navigation';
 import { alumniCopy } from '@/copy/alumni';
 import { campusCopy, homeNotificationsCopy } from '@/copy/campus';
 import { chatCopy } from '@/copy/chat';
+import { eventsCopy } from '@/copy/events';
 import { notificationsCopy } from '@/copy/notifications';
 import { leaderboardsCopy } from '@/copy/leaderboards';
 import { legacyCopy } from '@/copy/legacy';
@@ -138,6 +139,12 @@ export default async function HomePage() {
             </Link>
           </Card>
         ) : null}
+        <Card title={eventsCopy.home.title} className="flex flex-col gap-3">
+          <p className="type-body">{eventsCopy.home.line}</p>
+          <Link href="/events" className={buttonStyles({ variant: 'secondary', size: 'md', className: 'self-start' })}>
+            {eventsCopy.home.link}
+          </Link>
+        </Card>
         <Card title={streaksCopy.home.title} className="flex flex-col gap-3">
           <p className="type-body">
             {activePairs.length === 0
