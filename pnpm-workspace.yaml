@@ -24,5 +24,10 @@ catalog:
 
 # sharp bundles libvips (LGPL-3.0-or-later), which is outside the license allow-list (CLAUDE.md §2.2).
 # Images are served unoptimized instead; GitHub avatars are requested at their display size.
+# Security fixes in transitive dependencies, until their dependents require the patched versions
+# (P7-T01a, ADR-010). undici reaches us only through jsdom in the test environment.
+overrides:
+  undici@>=8.0.0 <8.12.2: ^8.12.3
+
 ignoredOptionalDependencies:
   - sharp
