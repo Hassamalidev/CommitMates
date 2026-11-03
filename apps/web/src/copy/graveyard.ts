@@ -38,10 +38,17 @@ export const graveyardCopy = {
     },
     uniIntro: 'Projects classmates put up for adoption themselves. Have one of your own?',
     uniOwn: 'List yours',
-    countryLocked: {
+    countrySignIn: {
       title: 'Projects from your country',
-      line: 'This opens once the country index of public developers has been built.',
+      line: 'Inactive projects by developers in your country, from the country index. Sign in and verify your university to search it.',
+      action: 'Sign in',
     },
+    countryVerify: {
+      title: 'Projects from your country',
+      line: 'Verify your university to search inactive projects by developers in its country.',
+      action: 'Verify your university',
+    },
+    countryIntro: 'Inactive projects by developers in your university’s country, from the country index. It grows as the crawler works through the country.',
   },
   filters: {
     difficulty: 'Difficulty',

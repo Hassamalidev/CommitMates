@@ -19,6 +19,7 @@ const links = [
   { href: '/admin/moderation', label: adminCopy.nav.moderation, adminOnly: false },
   { href: '/admin/roles', label: adminCopy.nav.roles, adminOnly: true },
   { href: '/admin/audit', label: adminCopy.nav.audit, adminOnly: true },
+  { href: '/admin/crawler', label: adminCopy.nav.crawler, adminOnly: true },
 ] as const;
 
 /**

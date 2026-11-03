@@ -12,3 +12,4 @@ export * from './analysis';
 export * from './social';
 export * from './streaks';
 export * from './collaboration';
+export * from './crowd';

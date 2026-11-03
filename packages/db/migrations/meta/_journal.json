@@ -435,6 +435,62 @@
       "when": 1792556191463,
       "tag": "0061_settings_legacy",
       "breakpoints": true
+    },
+    {
+      "idx": 62,
+      "version": "7",
+      "when": 1792562822530,
+      "tag": "0062_crowd",
+      "breakpoints": true
+    },
+    {
+      "idx": 63,
+      "version": "7",
+      "when": 1792563726897,
+      "tag": "0063_country_index",
+      "breakpoints": true
+    },
+    {
+      "idx": 64,
+      "version": "7",
+      "when": 1792567708474,
+      "tag": "0064_schedule_leaderboard",
+      "breakpoints": true
+    },
+    {
+      "idx": 65,
+      "version": "7",
+      "when": 1792570213983,
+      "tag": "0065_settings_alumni",
+      "breakpoints": true
+    },
+    {
+      "idx": 66,
+      "version": "7",
+      "when": 1792571867476,
+      "tag": "0066_settings_alumni_page",
+      "breakpoints": true
+    },
+    {
+      "idx": 67,
+      "version": "7",
+      "when": 1792573632575,
+      "tag": "0067_settings_squads",
+      "breakpoints": true
+    },
+    {
+      "idx": 68,
+      "version": "7",
+      "when": 1793728859209,
+      "tag": "0068_fyp_corpus",
+      "breakpoints": true
+    },
+    {
+      "idx": 69,
+      "version": "7",
+      "when": 1793730755148,
+      "tag": "0069_settings_fyp_board",
+      "breakpoints": true
     }
   ]
 }

@@ -1,4 +1,4 @@
-import { getLegacyDetail } from '@commitmates/core';
+import { campusUnlocks, getLegacyDetail } from '@commitmates/core';
 import { Card, Chip, CompanionView, buttonStyles } from '@commitmates/ui';
 import type { Metadata } from 'next';
 import Link from 'next/link';
@@ -22,6 +22,13 @@ export default async function LegacyEntryPage({ params }: Props) {
   if (!member) redirect('/auth/sign-in?next=/legacy');
   const detail = await getLegacyDetail(member, { entryId: (await params).id }).catch(() => null);
   if (!detail) notFound();
+  // An alumnus who takes no direct questions can still be reached through Alumni Quick Asks (§8 F17 "Ask the author").
+  const viaAlumni =
+    !detail.canAsk &&
+    detail.ownerUserId !== member.id &&
+    detail.standing === 'alumni' &&
+    member.universityId !== null &&
+    ((await campusUnlocks(member.universityId)).unlocks.find((unlock) => unlock.key === 'alumni')?.unlocked ?? false);
   const copy = legacyCopy;
   const meta = [
     copy.results.by(detail.ownerLogin),
@@ -70,6 +77,13 @@ export default async function LegacyEntryPage({ params }: Props) {
             prefill={copy.detail.prefill(detail.fullName)}
             action={askLegacyAuthorAction}
           />
+        ) : viaAlumni ? (
+          <div className="flex flex-col gap-2">
+            <p className="type-small text-fg-muted">{copy.detail.askAlumniLine}</p>
+            <Link href={`/alumni?tags=${encodeURIComponent(detail.tags.join(', '))}`} className={buttonStyles({ variant: 'secondary', size: 'md', className: 'self-start' })}>
+              {copy.detail.askAlumni}
+            </Link>
+          </div>
         ) : (
           <p className="type-small text-fg-muted">{detail.ownerUserId === member.id ? copy.detail.yours : copy.detail.noQuestions}</p>
         )}

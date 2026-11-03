@@ -42,6 +42,8 @@ export const legacyCopy = {
     askTitle: (login: string) => `Ask @${login} about this project`,
     prefill: (name: string) => `Hi! I found ${name} in our university's library and I'm working on something similar. Could I ask you a few questions about how you built it?`,
     noQuestions: 'The author is not taking questions about this project.',
+    askAlumni: 'Ask the alumni about it instead',
+    askAlumniLine: 'The author has graduated and is not taking direct questions, but Alumni Quick Asks can pass your question to alumni who know these topics.',
     yours: 'This is your project.',
   },
 } as const;

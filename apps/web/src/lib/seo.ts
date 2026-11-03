@@ -1,7 +1,7 @@
 import { AVAILABLE_TOOLS, toolPath } from './tools';
 
 /** Pages anyone may read and search engines may list. */
-const SITE_PAGES = ['/', '/privacy', '/terms', '/attribution'] as const;
+const SITE_PAGES = ['/', '/privacy', '/terms', '/attribution', '/optout'] as const;
 
 /**
  * Paths crawlers are asked to skip: APIs, sign-in, admin and the members area

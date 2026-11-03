@@ -82,6 +82,39 @@ export { OSS_STEPS, ossTool } from './oss/jobs';
 export { ossInputSchema, ossResultSchema, type OssInput, type OssIssue, type OssResult } from './oss/schemas';
 export { listLanguages as listLanguageNames } from '@commitmates/db';
 export { FYP_STEPS, fypTool } from './fyp/jobs';
+export {
+  FYP_NOTE_PREFIX,
+  applySupervisor,
+  checkIdea,
+  decideSupervisor,
+  expressInterest,
+  fypBoardAccess,
+  getIdea,
+  listIdeas,
+  listSupervisors,
+  ownSupervisorStatus,
+  pendingSupervisors,
+  pickTeam,
+  postIdea,
+  setIdeaStatus,
+  supervisorStanding,
+  withdrawInterest,
+  type IdeaCheck,
+  type IdeaDetail,
+} from './fyp/board';
+export {
+  checkIdeaAtUniversity,
+  confirmDetectedProject,
+  fypProjectOptions,
+  listPastProjects,
+  detectMemberProjects,
+  dismissDetectedProject,
+  getPastProjects,
+  removePastProject,
+  submitPastProject,
+  universityMatches,
+  type UniversityMatch,
+} from './fyp/projects';
 export { FYP_DESCRIPTION_MAX, FYP_DESCRIPTION_MIN, FYP_TITLE_MAX, fypInputSchema, fypResultSchema, type FypInput, type FypResult } from './fyp/schemas';
 export { METRIC_WINDOWS, getSocialMetrics, getToolMetrics, recordSignUpConversion, type SocialMetrics, type ToolMetrics } from './metrics/service';
 export { tuneMatchWeights, type TuningReport } from './matching/tune';
@@ -235,7 +268,51 @@ export {
   type VerifyOutcome,
 } from './reviews/settlement';
 export { askGapHelper, gapHelpers, type GapHelper, type GapHelpers } from './gap/campus';
+export {
+  QUESTION_NOTE_PREFIX,
+  answerQuestion,
+  askQuestion,
+  correctGraduation,
+  enforceAlumniSla,
+  getAlumni,
+  passQuestion,
+  questionNote,
+  questionTags,
+  routeQuestion,
+  transitionGraduates,
+  type AlumniView,
+} from './alumni/service';
+export {
+  SQUAD_NOTE_PREFIX,
+  buildSquads,
+  createEvent,
+  createGroup,
+  decideSquadSwap,
+  finalizeSquads,
+  getEventView,
+  joinEvent,
+  joinGroup,
+  leaveEvent,
+  leaveGroup,
+  listEvents,
+  requestFormation,
+  requestSquadSwap,
+  squadNote,
+  type Availability,
+  type EventView,
+} from './squads/service';
+export { getLeaderboards, lastWeekStart, setLeaderboardOptIn, type Board, type BoardEntry, type LeaderboardsView } from './leaderboard/service';
 export { askOssContributor, ossCampus, refreshMemberContribs, type OssCampus } from './oss/campus';
+export {
+  crawlStep,
+  cursorQuery,
+  getCrawlerOverview,
+  guardStorage,
+  middleDay,
+  optOutOfCountryIndex,
+  type CrawlStep,
+  type CrawlerOverview,
+} from './crawler/service';
 export {
   addLegacyEntry,
   askLegacyAuthor,

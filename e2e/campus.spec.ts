@@ -32,21 +32,23 @@ test.describe('university page (P3-T07)', () => {
       await expect(page.getByLabel('Your invite link')).toHaveValue(new RegExp(`\\?ref=${slug}&invite=[A-Za-z0-9_-]{12}$`));
       await expectNoSeriousA11yViolations(page);
 
-      // The threshold is a setting: lowering it opens the feature without a code change.
-      await page.goto('/admin/settings/unlock.matching.minMembers');
+      // The threshold is a setting: lowering it opens the feature without a code change. Leaderboards,
+      // because no other spec expects them locked (the override is global and other specs run in parallel).
+      await expect(page.getByRole('progressbar', { name: 'Leaderboards' })).toHaveAttribute('aria-valuemax', '15');
+      await page.goto('/admin/settings/unlock.leaderboard.minMembers');
       await page.getByLabel('Override value (JSON)').fill('1');
       await page.getByRole('button', { name: 'Save override' }).click();
       await expect(page.locator('form').getByRole('status')).toHaveText('Saved.', ACTION_TIMEOUT);
       await page.goto(`/uni/${slug}`);
-      await expect(page.getByRole('progressbar', { name: 'Find a partner' })).toHaveCount(0);
-      await expect(page.getByRole('heading', { name: 'Find a partner' }).locator('..')).toContainText('Open');
+      await expect(page.getByRole('progressbar', { name: 'Leaderboards' })).toHaveCount(0);
+      await expect(page.getByRole('heading', { name: 'Leaderboards' }).locator('..')).toContainText('Open');
 
       // Home shows the same progress.
       await page.goto('/home');
       await expect(page.getByText(/\d+ of 8 campus features are open\./)).toBeVisible();
       await expect(page.getByRole('link', { name: 'See your university' })).toHaveAttribute('href', `/uni/${slug}`);
     } finally {
-      await withAppDatabase((sql) => sql`update settings set override_value = null where key = 'unlock.matching.minMembers'`);
+      await withAppDatabase((sql) => sql`update settings set override_value = null where key = 'unlock.leaderboard.minMembers'`);
       await member.cleanup();
       await withAppDatabase((sql) => sql`delete from universities where id = ${universityId}`);
     }

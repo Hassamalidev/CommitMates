@@ -1,7 +1,7 @@
 import { createHash } from 'node:crypto';
 
 import { monthsBetween, scoreRevivals, termMatcher } from '@commitmates/algorithms';
-import { ValidationError, getCategoryNumber, getSetting, uniListingCandidates } from '@commitmates/db';
+import { ValidationError, countryRepoCandidates, getCategoryNumber, getSetting, getUniversity, uniListingCandidates } from '@commitmates/db';
 import { SERVER_IDENTITY, githubFor, searchRepositories } from '@commitmates/github';
 import { PRIORITY, type JobHandler } from '@commitmates/jobs';
 
@@ -24,6 +24,8 @@ export const GRAVEYARD_STEPS = { expanding: 'expanding', searching: 'searching',
 
 /** Candidates kept from the searches (§8 F7 step 2: "up to 100"). */
 const MAX_CANDIDATES = 100;
+/** Candidates kept from the country index (§8 F7 step 2: "limit 200"). */
+const MAX_COUNTRY_CANDIDATES = 200;
 /** Expansion topics searched besides the term itself (§8 F7 step 2: "up to 3 queries"). */
 const EXTRA_QUERIES = 2;
 /** Suggestions offered when nothing was found. */
@@ -39,9 +41,12 @@ const normalizedQuery = (q: string) => q.toLowerCase().trim().replace(/\s+/g, ' 
 const queryKey = (input: GraveyardInput) =>
   `${input.scope}:${createHash('sha256').update(normalizedQuery(input.q)).digest('hex').slice(0, QUERY_KEY_LENGTH)}`;
 
+/** Scopes whose results depend on who asks: their university's listings, or their country's index. */
+const perMember = (scope: GraveyardInput['scope']) => scope === 'uni' || scope === 'country';
+
 /**
- * The Graveyard as a tool (CLAUDE.md §5.3). University listings differ by who asks (their university,
- * their blocks), so the uni scope is cached and queued per member.
+ * The Graveyard as a tool (CLAUDE.md §5.3). University listings and the country index differ by who
+ * asks (their university, its country, their blocks), so those scopes are cached and queued per member.
  */
 export const graveyardTool: ToolDefinition<GraveyardInput> = {
   slug: 'graveyard',
@@ -49,13 +54,13 @@ export const graveyardTool: ToolDefinition<GraveyardInput> = {
   cacheKind: 'graveyard',
   input: graveyardInputSchema,
   subjectKey: (input) => `${input.scope}:${normalizedQuery(input.q)}`,
-  params: (input, context) => (input.scope === 'uni' ? { member: context.userId ?? null } : undefined),
+  params: (input, context) => (perMember(input.scope) ? { member: context.userId ?? null } : undefined),
   idempotencyKey: (input, now, context) =>
-    input.scope === 'uni' ? `graveyard:${queryKey(input)}:${context.userId ?? 'visitor'}:${hourBucket(now)}` : `graveyard:${queryKey(input)}:${hourBucket(now)}`,
+    perMember(input.scope) ? `graveyard:${queryKey(input)}:${context.userId ?? 'visitor'}:${hourBucket(now)}` : `graveyard:${queryKey(input)}:${hourBucket(now)}`,
   payload: (input, context) => ({
     q: normalizedQuery(input.q),
     scope: input.scope,
-    ...(input.scope === 'uni' && context.userId ? { requestedBy: context.userId } : {}),
+    ...(perMember(input.scope) && context.userId ? { requestedBy: context.userId } : {}),
   }),
   ttlSetting: 'cache.searchTtlHours',
 };
@@ -104,12 +109,16 @@ export const graveyardSearchJob: JobHandler<GraveyardPayload> = {
     const outOfTime = () => Date.now() > ctx.deadline - DEADLINE_MARGIN_MS;
 
     let universityId: string | null = null;
-    if (payload.scope === 'uni') {
+    let countryCode: string | null = null;
+    if (payload.scope === 'uni' || payload.scope === 'country') {
       const member = payload.requestedBy ? await getMember(payload.requestedBy) : null;
       if (!member?.verified || member.universityId === null) {
         throw new ValidationError('graveyard.uni_verify', 'Sign in and verify your university to search its listings.');
       }
       universityId = member.universityId;
+      // The country scope searches the index of the country the member's university is in (§8 F7).
+      if (payload.scope === 'country') countryCode = (await getUniversity(member.universityId))?.countryCode ?? null;
+      if (payload.scope === 'country' && countryCode === null) throw new ValidationError('graveyard.country_unknown', 'We do not know your university’s country yet.');
     }
 
     await ctx.progress({ step: GRAVEYARD_STEPS.expanding, message: `Learning what “${payload.q}” covers` });
@@ -131,7 +140,12 @@ export const graveyardSearchJob: JobHandler<GraveyardPayload> = {
 
     await ctx.progress({ step: GRAVEYARD_STEPS.searching });
     let ordered: Candidate[];
-    if (universityId !== null && payload.requestedBy) {
+    if (countryCode !== null) {
+      const repos = await countryRepoCandidates(countryCode, payload.q, topics, MAX_COUNTRY_CANDIDATES);
+      const best = Math.max(0, ...repos.map((repo) => repo.relevance));
+      // Scored exactly like global results: no listing, so the idle, README and history filters apply.
+      ordered = repos.map((repo) => ({ ...repo, pushedAt: repo.pushedAt?.toISOString() ?? null, relevance: best > 0 ? repo.relevance / best : 1, listing: null }));
+    } else if (payload.scope === 'uni' && universityId !== null && payload.requestedBy) {
       const listings = await uniListingCandidates(universityId, payload.requestedBy, payload.q, topics, MAX_CANDIDATES);
       const best = Math.max(0, ...listings.map((listing) => listing.relevance));
       ordered = listings.map((listing) => ({
@@ -242,7 +256,7 @@ export const graveyardSearchJob: JobHandler<GraveyardPayload> = {
       items,
       suggestions: items.length === 0 ? topics.filter((topic) => topic !== slug).slice(0, MAX_SUGGESTIONS) : [],
     });
-    // Listings belong to members; global results describe repositories of people who may not be.
+    // Listings belong to members; global and country results describe repositories of people who may not be.
     const resultRef = await storeToolResult(graveyardTool, { q: payload.q, scope: payload.scope }, result, {
       isMemberSubject: payload.scope === 'uni',
       now,

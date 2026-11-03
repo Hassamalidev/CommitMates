@@ -7,6 +7,13 @@ export const citext = customType<{ data: string }>({
   },
 });
 
+/** Postgres full-text search vectors, usually a generated column (CLAUDE.md §3.1 "Search"). */
+export const tsvector = customType<{ data: string }>({
+  dataType() {
+    return 'tsvector';
+  },
+});
+
 export const bytea = customType<{ data: Buffer }>({
   dataType() {
     return 'bytea';

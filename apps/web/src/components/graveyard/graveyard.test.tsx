@@ -179,7 +179,7 @@ describe('GraveyardTool', () => {
     render(<GraveyardTool viewer="member" initialScope="uni" />);
     expect(screen.getByRole('link', { name: 'Verify your university' }).getAttribute('href')).toBe('/onboarding');
     fireEvent.mouseDown(screen.getByRole('tab', { name: 'My country' }));
-    expect(screen.getByText(/country index/)).toBeTruthy();
+    expect(screen.getByText(/Verify your university to search inactive projects by developers in its country/)).toBeTruthy();
     expect(fetchMock).not.toHaveBeenCalled();
   });
 
@@ -201,5 +201,17 @@ describe('GraveyardTool', () => {
     expect(fetchMock.mock.calls[1]?.[1]?.body).toBe('{"q":"react","scope":"global"}');
     expect(fetchMock).toHaveBeenCalledTimes(2);
     expect(window.location.search).toBe('?q=react');
+  });
+
+  it('searches the country index for verified members', async () => {
+    fetchMock.mockReturnValueOnce(reply({ status: 'done', result: { ...result, scope: 'country' } }));
+    render(<GraveyardTool viewer="verified" initialScope="country" initialQuery="vision" />);
+    await waitFor(() => {
+      expect(screen.getAllByTestId('graveyard-item')).toHaveLength(3);
+    });
+    expect(fetchMock.mock.calls[0]?.[1]?.body).toBe('{"q":"vision","scope":"country"}');
+    expect(screen.getByText(/from the country index/)).toBeTruthy();
+    // Results there are still called inactive, never "up for adoption" (§8 F7 "Language rules").
+    expect(screen.getAllByText(/Inactive for/).length).toBeGreaterThan(0);
   });
 });

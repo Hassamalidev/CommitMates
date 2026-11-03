@@ -1,8 +1,10 @@
 import { registerHandler, type JobHandler } from '@commitmates/jobs';
 
+import { alumniRouteJob, alumniSlaJob, roleTransitionJob } from './alumni/service';
 import { compatCheckJob } from './compat/jobs';
 import { fairnessReportJob } from './fairness/jobs';
 import { fypCheckJob } from './fyp/jobs';
+import { fypDetectProjectsJob } from './fyp/projects';
 import { gapAnalysisJob } from './gap/jobs';
 import { geocodePendingJob } from './geocoding/jobs';
 import { graveyardSearchJob } from './graveyard/jobs';
@@ -15,8 +17,11 @@ import { tuneMatchWeightsJob } from './matching/tune';
 import { suggestListingsJob } from './adoptions/listings';
 import { trackRevivalsJob } from './adoptions/revivals';
 import { expireReviewsJob, verifyReviewJob } from './reviews/settlement';
+import { crawlCountryJob, crawlReposJob } from './crawler/service';
+import { leaderboardUniversityJob, leaderboardWeeklyJob } from './leaderboard/service';
 import { legacyRefreshJob } from './legacy/service';
 import { memberOssContribsJob } from './oss/campus';
+import { formSquadsJob } from './squads/service';
 import { proposeSwapsJob } from './swaps/service';
 import { computeTrustJob } from './safety/trust';
 import { streakCheckJob } from './streaks/judge';
@@ -85,6 +90,15 @@ export const jobHandlers: readonly Registration[] = [
   define(proposeSwapsJob),
   define(memberOssContribsJob),
   define(legacyRefreshJob),
+  define(crawlCountryJob),
+  define(crawlReposJob),
+  define(leaderboardWeeklyJob),
+  define(leaderboardUniversityJob),
+  define(roleTransitionJob),
+  define(alumniRouteJob),
+  define(alumniSlaJob),
+  define(formSquadsJob),
+  define(fypDetectProjectsJob),
   define(streakCheckJob),
   define(digestEmailJob),
   define(liftSuspensionsJob),

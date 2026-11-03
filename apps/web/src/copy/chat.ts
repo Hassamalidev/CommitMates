@@ -50,6 +50,10 @@ export const chatCopy = {
       left: (login: string) => (login ? `@${login} left this conversation.` : 'Someone left this conversation.'),
       swap: (steps: readonly { from: string | null; to: string | null; tag: string }[]) =>
         `Skill swap: ${steps.map((step) => `${step.from ? `@${step.from}` : 'a member'} helps ${step.to ? `@${step.to}` : 'a member'} with ${step.tag}`).join('; ')}.`,
+      question: (body: string) => `Alumni question: “${body}”`,
+      fyp: (title: string) => `Team for the final-year project idea “${title}”. Say hello and plan how you will split the work.`,
+      squad: (event: string, members: readonly { login: string | null; role: string | null }[]) =>
+        `Your team for ${event}: ${members.map((member) => `${member.login ? `@${member.login}` : 'a member'}${member.role ? ` (${member.role})` : ''}`).join(', ')}. Say hello and plan how you will work.`,
     },
     live: 'New messages appear here as they arrive.',
   },

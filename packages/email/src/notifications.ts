@@ -140,6 +140,77 @@ const describers: Readonly<Record<string, (data: Record<string, unknown>) => Not
     line: 'Everyone accepted. Say hello in your group conversation.',
     path: isUuid(text(data.threadId)) ? `/inbox/${text(data.threadId)}` : '/inbox',
   }),
+  became_alumni: () => ({
+    title: 'Welcome to the alumni',
+    line: 'Your graduation year has passed, so you are now listed as an alumnus. If that is wrong, correct your graduation year on the Alumni page.',
+    path: '/alumni',
+  }),
+  alumni_question: () => ({
+    title: 'A student has a question for you',
+    line: 'A student at your university asked something you know about. A short answer goes a long way.',
+    path: '/alumni',
+  }),
+  alumni_answered: (data) => ({
+    title: 'Your question was answered',
+    line: text(data.login) ? `@${text(data.login)} answered your question. Continue in your conversation.` : 'An alumnus answered your question. Continue in your conversation.',
+    path: isUuid(text(data.threadId)) ? `/inbox/${text(data.threadId)}` : '/alumni',
+  }),
+  alumni_expired: () => ({
+    title: 'Your question got no answer',
+    line: 'No alumnus picked up your question this time. Try posting it on the FYP Board, or ask a classmate directly.',
+    path: '/alumni',
+  }),
+  squads_proposed: (data) => ({
+    title: 'Your team is proposed',
+    line: `Teams for ${text(data.title) || 'your event'} are proposed. See who you are with, and ask to switch once if it does not fit.`,
+    path: isUuid(text(data.eventId)) ? `/events/${text(data.eventId)}` : '/events',
+  }),
+  squad_swap_requested: (data) => ({
+    title: 'A participant wants to switch teams',
+    line: `${text(data.login) ? `@${text(data.login)}` : 'A participant'} asked to switch teams in ${text(data.title) || 'your event'}.`,
+    path: isUuid(text(data.eventId)) ? `/events/${text(data.eventId)}` : '/events',
+  }),
+  squad_swap_decided: (data) => ({
+    title: data.accepted === true ? 'You switched teams' : 'Your switch was not made',
+    line:
+      data.accepted === true
+        ? `The organizer of ${text(data.title) || 'your event'} moved you to the team you asked for.`
+        : `The organizer of ${text(data.title) || 'your event'} kept the teams as they were.`,
+    path: isUuid(text(data.eventId)) ? `/events/${text(data.eventId)}` : '/events',
+  }),
+  squads_final: (data) => ({
+    title: 'Your team is final',
+    line: `Teams for ${text(data.title) || 'your event'} are final. Say hello in your team conversation.`,
+    path: isUuid(text(data.threadId)) ? `/inbox/${text(data.threadId)}` : '/inbox',
+  }),
+  supervisor_approved: () => ({
+    title: 'You are a supervisor on the FYP Board',
+    line: 'Your supervisor application was approved. You can now post supervisor ideas.',
+    path: '/fyp',
+  }),
+  supervisor_rejected: () => ({
+    title: 'Your supervisor application was not approved',
+    line: 'A moderator did not approve your supervisor application. You can apply again with your areas.',
+    path: '/fyp',
+  }),
+  fyp_interest: (data) => ({
+    title: 'Someone wants to join your idea',
+    line: `${text(data.login) ? `@${text(data.login)}` : 'A member'} wants to work on ${text(data.title) || 'your idea'} with you.`,
+    path: isUuid(text(data.ideaId)) ? `/fyp/ideas/${text(data.ideaId)}` : '/fyp',
+  }),
+  fyp_team: (data) => ({
+    title: 'You are on the team',
+    line: `You were picked for ${text(data.title) || 'a final-year project idea'}. Say hello in your team conversation.`,
+    path: isUuid(text(data.threadId)) ? `/inbox/${text(data.threadId)}` : '/fyp',
+  }),
+  fyp_detected: (data) => ({
+    title: 'Is this your final-year project?',
+    line:
+      data.count === 1
+        ? 'One of your repositories looks like a final-year project. Confirm it to add it to your university’s past projects.'
+        : 'Some of your repositories look like final-year projects. Confirm them to add them to your university’s past projects.',
+    path: '/settings/projects',
+  }),
   github_reconnect: () => ({
     title: 'Sign in with GitHub again',
     line: 'Your GitHub sign-in has expired, so a streak day was skipped instead of counted. Sign in again to keep it going.',
@@ -190,4 +261,14 @@ export const MUTABLE_NOTIFICATIONS: Readonly<Record<string, string>> = {
   swap_proposed: 'Skill swap proposals',
   swap_declined: 'Skill swaps that did not happen',
   swap_accepted: 'Skill swaps everyone accepted',
+  alumni_question: 'Questions for you as an alumnus',
+  alumni_answered: 'Answers to your questions',
+  alumni_expired: 'Questions that got no answer',
+  squads_proposed: 'Proposed event teams',
+  squad_swap_requested: 'Requests to switch teams in your events',
+  squad_swap_decided: 'Answers to your team switch requests',
+  squads_final: 'Final event teams',
+  fyp_detected: 'Repositories that look like final-year projects',
+  fyp_interest: 'People who want to join your ideas',
+  fyp_team: 'Teams you were picked for',
 };

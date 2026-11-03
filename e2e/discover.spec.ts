@@ -71,6 +71,44 @@ test.describe('Discover (P4-T04)', () => {
     }
   });
 
+  test('before matching opens, developers like you come from the country index, as view-only links (P6-T08)', async ({ page, context, baseURL }) => {
+    const suffix = randomBytes(4).toString('hex');
+    // A language of this test only, so other specs' index rows never show up here.
+    const language = `E2E-${suffix}`;
+    const universityId = await seedUniversity(`Index University ${suffix}`, `index-university-${suffix}`);
+    const member = await signInTestMember(context, baseURL ?? '');
+    const base = Number.parseInt(suffix, 16) * 100;
+    const logins = Array.from({ length: 10 }, (_, index) => `indexed-${suffix}-${index}`);
+    try {
+      await prepareMember(member, { universityId, verifiedDaysAgo: 1, onboarded: true });
+      await withAppDatabase(async (sql) => {
+        const [identity] = await sql<{ github_id: string }[]>`select github_id from github_identities where user_id = ${member.userId}`;
+        await sql`insert into gh_repos (github_id, owner_github_id, full_name, name, primary_language, is_fork, fetched_at)
+                  values (${base}, ${identity!.github_id}, ${`${member.login}/app`}, 'app', ${language}, false, now())`;
+        for (const [index, login] of logins.entries()) {
+          await sql`insert into gh_users (github_id, login, in_country_index, index_country_code, is_member, fetched_at)
+                    values (${base + 1 + index}, ${login}, true, 'TL', false, now())`;
+          await sql`insert into gh_repos (github_id, owner_github_id, full_name, name, primary_language, is_fork, fetched_at)
+                    values (${base + 100 + index}, ${base + 1 + index}, ${`${login}/lib`}, 'lib', ${language}, false, now())`;
+        }
+      });
+      await page.goto('/discover');
+      const list = page.getByRole('heading', { name: 'Developers like you on GitHub' }).locator('..');
+      await expect(page.getByText('From our index of public developers in your country.')).toBeVisible(ACTION_TIMEOUT);
+      await expect(page.getByRole('link', { name: `@${logins[0]} on GitHub` })).toHaveAttribute('href', `https://github.com/${logins[0]}`);
+      // View only: nobody in the list can be messaged from here.
+      await expect(list.getByRole('button')).toHaveCount(0);
+      await expectNoSeriousA11yViolations(page);
+    } finally {
+      await member.cleanup();
+      await withAppDatabase(async (sql) => {
+        await sql`delete from gh_repos where primary_language = ${language}`;
+        await sql`delete from gh_users where login like ${`indexed-${suffix}-%`}`;
+        await sql`delete from universities where id = ${universityId}`;
+      });
+    }
+  });
+
   test('a member works through the deck with the keyboard, likes, and sends a request', async ({ page, context, baseURL }) => {
     const suffix = randomBytes(4).toString('hex');
     const universityId = await seedUniversity(`Deck University ${suffix}`, `deck-university-${suffix}`);

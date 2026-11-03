@@ -22,6 +22,9 @@ export function SiteFooter() {
           <Link href="/terms" className={linkStyles}>
             {navCopy.footer.terms}
           </Link>
+          <Link href="/optout" className={linkStyles}>
+            {navCopy.footer.optout}
+          </Link>
           <Link href="/health" className={linkStyles}>
             {navCopy.footer.status}
           </Link>

@@ -25,7 +25,8 @@ export async function generateMetadata({ searchParams }: Props): Promise<Metadat
 export default async function GraveyardPage({ searchParams }: Props) {
   const params = await searchParams;
   const query = firstValue(params.q);
-  const scope = firstValue(params.scope) === 'uni' ? 'uni' : 'global';
+  const requested = firstValue(params.scope);
+  const scope = requested === 'uni' || requested === 'country' ? requested : 'global';
   const member = await getCurrentMember();
   const viewer = member === null ? 'visitor' : member.verified ? 'verified' : 'member';
   const { page } = graveyardCopy;

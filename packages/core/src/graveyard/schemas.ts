@@ -9,18 +9,14 @@ export const GRAVEYARD_SCOPES = ['global', 'country', 'uni'] as const;
 
 export const graveyardInputSchema = z.object({
   q: z.string().trim().min(MIN_TERM_LENGTH, 'Search for at least two characters.').max(MAX_QUERY_CHARS),
-  scope: z
-    .enum(GRAVEYARD_SCOPES)
-    .default('global')
-    // The country index arrives with Phase 6; its tab shows what it needs until then.
-    .refine((scope) => scope !== 'country', 'This scope unlocks later. Search everywhere for now.'),
+  scope: z.enum(GRAVEYARD_SCOPES).default('global'),
 });
 export type GraveyardInput = z.infer<typeof graveyardInputSchema>;
 
 export const graveyardPayloadSchema = z.object({
   q: z.string().min(1),
   scope: z.enum(GRAVEYARD_SCOPES),
-  /** The member searching their university's listings (uni scope only). */
+  /** The member searching their university's listings or their country's index (uni and country scopes). */
   requestedBy: z.uuid().optional(),
 });
 export type GraveyardPayload = z.infer<typeof graveyardPayloadSchema>;

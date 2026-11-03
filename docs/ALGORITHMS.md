@@ -264,6 +264,98 @@ All algorithms live in `packages/algorithms` and are pure: no I/O, no clock, no 
 - Tests: `packages/core/src/legacy/legacy.test.ts`, `packages/algorithms/src/text/markdown.test.ts`
 - Spec: CLAUDE.md §8 F17
 
+## Country crawler
+
+### Seeds, cursors and the index
+
+- Code: `packages/core/src/crawler/service.ts` (jobs `crawl_country`, every five minutes at priority CRAWL, and `crawl_repos` per new account, `crawl-repos:<githubId>:<month>`), queries in `packages/db/src/queries/crawler.ts`
+- Seeds: the countries of universities with verified members, and the cities of members' resolved GitHub locations with at least `crawler.minCitySeedMembers` members; each seed is one cursor per country, `location:"<seed>"`
+- Ranges: a seed's first cursor covers account creation from `crawler.earliestAccountDate` to today; when nothing waits, each seed gets one more cursor from the day after its latest covered day to today, so new accounts are found
+- Splitting: a cursor's first page with a total above `crawler.searchCap` splits the range into two halves (the parent is done); a single day that is still too large is crawled up to the cap
+- Paging: 100 accounts per search page; the cursor is done (with `crawled_at`) when the reachable results (the total, at most the cap) are read or a page comes back short
+- Index: accounts are stored with only login and id, flagged `in_country_index` with the cursor's country; an opted-out login is never stored; tool analyses never give indexed rows an expiry
+- Repositories: per new account, one page of its own public non-fork repositories (at most `crawler.reposPerUser`), metadata only; an account GitHub no longer has leaves the index with its repositories
+- Storage guard: before each step and each repository fetch, at `crawler.maxUsers` accounts or `crawler.maxRepos` repositories the index is pruned to `crawler.pruneTargetPct` of both (repositories fetched longest ago with the fewest stars first, then accounts fetched longest ago with the fewest followers, with their repositories), and nothing is added in that step; members' rows are never pruned
+- Refresh: a crawled cursor older than `crawler.refreshDays` is crawled again from its first page
+- Opt-out: `/optout` (public, linked from the footer, rate-limited per hashed address like the tools) takes any GitHub login; the login is recorded and its index rows are deleted at once. It only removes data, so it needs no proof of ownership; members' own rows are never touched.
+- Admin: `/admin/crawler` shows the index size against `crawler.maxUsers` and `crawler.maxRepos`, the date ranges by status, the number of seeds and opt-outs
+- Settings: `crawler.searchCap` (1000), `crawler.maxUsers` (50000), `crawler.maxRepos` (200000), `crawler.reposPerUser` (30), `crawler.minCitySeedMembers` (2), `crawler.refreshDays` (30), `crawler.pruneTargetPct` (0.95), `crawler.earliestAccountDate` (2008-01-01)
+- Tests: `packages/core/src/crawler/crawler.test.ts`
+- Spec: CLAUDE.md §8 F18
+
+## Leaderboards
+
+### Weekly boards
+
+- Code: `packages/algorithms/src/leaderboard/score.ts`, `packages/core/src/leaderboard/service.ts` (job `leaderboard_weekly` on Mondays at 00:00 UTC for the week that just ended, queueing `leaderboard_university` per university: `leaderboard:<universityId>:<week Monday>`), queries in `packages/db/src/queries/leaderboard.ts`
+- Eligibility: universities with at least `unlock.leaderboard.minMembers` verified members
+- Active days: per verified, active member, the days of the week with at least one contribution in GitHub's contribution calendar (a day counts once), read with their own token when valid; an account GitHub no longer knows counts zero. A run that nears its deadline continues with the days counted so far in its payload (nothing per member is stored).
+- Metrics: activeRatio = members with at least `leaderboard.minActiveDays` active days ÷ verified members; medianActiveDays; revivals = adoptions revived in the week by adopters there; helpfulReviews = reviews by members there whose request settled as helpful in the week (dated by the request's last change)
+- Scores: each metric min-max normalized among the board's entries (all equal → 1 above zero, else 0), weighted by `leaderboard.weights`; competition ranks (ties share a rank)
+- Boards: universities within their country; departments with at least `leaderboard.minDeptMembers` verified members within their university; opted-in members within their university by active days, ties broken by helpful reviews. Each run re-ranks its boards under an advisory lock with whatever rows exist, so the boards are complete once every university's run is done. Leaving the individual board deletes the member's rows.
+- Page: `/leaderboards` shows each board's latest week with every entry's rank, its change against the week before ("New this week" when it had no row), the metric breakdown and a companion (members their Dev Card's; universities and departments one seeded by their id); members join or leave the members board there
+- Settings: `unlock.leaderboard.minMembers` (15), `leaderboard.minActiveDays` (3), `leaderboard.minDeptMembers` (5), `leaderboard.weights` ({activeRatio 0.5, medianActiveDays 0.3, revivals 0.1, helpfulReviews 0.1})
+- Tests: `packages/algorithms/src/leaderboard/score.test.ts`, `packages/core/src/leaderboard/leaderboard.test.ts`
+- Spec: CLAUDE.md §8 F19
+
+## Alumni Quick Asks
+
+### Role transition, tagging and routing
+
+- Code: `packages/algorithms/src/alumni/route.ts`, `packages/core/src/alumni/service.ts` (jobs `role_transition` daily at 01:30 UTC, `alumni_route` per question and round: `alumni:<questionId>:<round>`, `alumni_sla` hourly), queries in `packages/db/src/queries/alumni.ts`
+- Role transition: cutoff = this year from `alumni.transitionMonth` on, else last year; verified students whose graduation year is earlier than the cutoff become alumni and get a `became_alumni` notification pointing to where they can correct the year
+- Asking: verified members of a university with at least `unlock.alumni.minAlumni` alumni; body trimmed, 1 to `alumni.questionMaxChars` characters; picked topics must be known tags; optional anonymity
+- Tags: the picked tags first, then YAKE keyphrases of the body (same extractor and settings as the FYP checker), each phrase and each of its words normalized like package tags and kept when it is a topic slug, a topic alias (mapped to its topic) or a package-derived tag; at most `alumni.maxQuestionTags`
+- Candidates: verified, active alumni of the university with a skill vector, not hidden, not in ghost mode, not the asker, no block either way, not already sent this question
+- Score: skillOverlap × (1 − open ÷ `alumni.maxOpenPerAlumnus`) × responsiveness; skillOverlap = cosine of the question's tags (weight 1 each) with the alumnus' skill vector; responsiveness = answered ÷ routed over the last `alumni.responsivenessDays` days, 0.5 below 3 routed. Alumni at the cap are left out; the rest are ordered by score, then by availability ((1 − load) × responsiveness), then id, so a question whose tags nobody shares still reaches the alumni most likely to answer. The top `alumni.routeTopK` are routed and notified.
+- Rounds: round 1 on creation. Hourly, pending routes older than `alumni.slaHours` expire; an open question with no pending route left in its round (expired or passed) moves to the next round, at once after a pass. Past `alumni.maxRounds`, or when no candidate is left, the question expires and the asker is told.
+- Answering: a direct conversation with the asker (their existing one if any) opens without a message request, with a system message quoting the question; the other pending routes end as passed; the two members are connected (`alumni`); the asker is notified. An anonymous asker's name is shown to the alumnus only from the answer on.
+- Page: `/alumni` shows the Unlock card until the alumni count is reached, then the ask form (topics comma-separated, prefilled from `?tags=`, which Senior's Legacy uses for graduated authors who take no direct questions), the member's questions with their state and, once answered, who answered and the conversation link; alumni also see the questions routed to them (an anonymous asker as "a student" until they answer) with Answer and Pass, and can correct their graduation year (a year not yet past the cutoff makes them a student again, so the next transition leaves it alone). Lists hold at most `alumni.listLimit` questions.
+- Settings: `unlock.alumni.minAlumni` (5), `alumni.listLimit` (50), `alumni.routeTopK` (3), `alumni.slaHours` (48), `alumni.maxOpenPerAlumnus` (3), `alumni.maxRounds` (3), `alumni.transitionMonth` (7), `alumni.questionMaxChars` (600), `alumni.maxQuestionTags` (8), `alumni.responsivenessDays` (90)
+- Tests: `packages/algorithms/src/alumni/route.test.ts`, `packages/core/src/alumni/alumni.test.ts`
+- Spec: CLAUDE.md §8 F20
+
+## FYP Board
+
+### Past projects and the university corpus
+
+- Code: `packages/core/src/fyp/projects.ts` (job `fyp_detect_projects` weekly on Wednesdays at 06:00 UTC, queueing one run per verified member and week: `fyp-detect:<userId>:<week Monday>`), queries in `packages/db/src/queries/fyp.ts`
+- Submitting: a verified member picks one of their own (non-fork) repositories and an optional year (bounded like graduation years); it is confirmed at once. Its corpus text is the repository name, description and README as plain text, at most 20,000 characters (the F9 README length), read with the member's own token when valid.
+- Detection: each member's own repositories the university does not already record are read; a README that mentions a `fyp.detectTerms` term as whole words (case-insensitive) is proposed to the owner unconfirmed, with its corpus text, and the owner is notified. The owner confirms (with an optional year) or turns it down; a turned-down repository keeps its row with `dismissed_at`, so it is never proposed again. A run that nears its deadline continues.
+- Senior's Legacy: a confirmed project adds an entry with source `fyp` (no blurb, not taking questions until the owner changes it); an existing showcase entry for the repository is kept. Removing a project removes its `fyp` entry.
+- University matches (F9 step 6): once the university records `fyp.minCorpus` confirmed projects with corpus text, BM25 (`ir.bm25.k1`, `ir.bm25.b`, stopwords of the idea's language) scores every corpus text against the idea, as a share of the idea's own score; the `fyp.searchTopN` closest are banded with `fyp.bands`. Verified members see them as "At your university" above the global results of the FYP Idea Checker.
+- Settings: `fyp.detectTerms`, `fyp.minCorpus` (30), `fyp.searchTopN` (20), `fyp.bands` ([40, 70]), `ir.bm25.k1` (1.2), `ir.bm25.b` (0.75), `profile.gradYearMaxAhead`, `profile.gradYearMaxBehind`
+- Tests: `packages/core/src/fyp/projects.test.ts`, `apps/web/src/components/fyp/fyp.test.tsx`
+- Spec: CLAUDE.md §8 F22 "Past projects corpus", §8 F9 step 6, §8 F17
+
+### Ideas and supervisors
+
+- Code: `packages/core/src/fyp/board.ts`, queries in `packages/db/src/queries/fyp.ts`
+- Access: verified members of a university with `unlock.fypBoard.minMembers` verified members
+- Supervisors: members whose role is `supervisor_pending` (or approved supervisors updating their areas) apply with areas from the tag vocabulary (normalized like package tags, at most `fyp.maxSupervisorAreas`); admins, or moderators of that university, approve (the role becomes `supervisor`) or turn the application down (it is removed), audited as `fyp.supervisor_approved` / `fyp.supervisor_rejected`, and the member is notified. The board lists approved supervisors with their areas and open supervisor ideas.
+- Checking and posting: before posting, the author sees the idea's YAKE keyphrases (the F9 extractor) and its closest past projects at the university (the F9 university matches), and runs the worldwide F9 check from the page. A posted idea stores its keyphrases; "supervisor idea" needs an approved supervisor of the university.
+- Listing: ideas at the university, newest first, at most `fyp.listLimit`, from active members only and never across a block with the viewer, filtered by keyphrase, status (archived only when asked for) or supervisor ideas. An idea's page shows the same university matches as its duplicate-check summary.
+- Teams: members express interest with a message (1 to `fyp.interestMaxChars` characters) while the idea is open or forming a team, and the author is notified; the author picks teammates among the interested once, which opens a group conversation (note `fyp:` with the title), marks the idea team forming and notifies those picked. The author can mark it taken, archive it or open it again (back to team forming when a team exists).
+- Pages: `/fyp` shows the Unlock card until the board opens, then tabs for ideas (filters by key idea, status and supervisor ideas; the composer checks an idea against past projects here and, on request, worldwide with the F9 job, then posts it), supervisors (approved ones with their areas and open ideas, and the application form for members who supervise) and past projects; `/fyp/ideas/<id>` shows the idea, its comparison with past projects here, asking to join or withdrawing, and for the author the interested members to pick a team from and the status controls; `/settings/projects` adds one's own repository as a final-year project and confirms or turns down detections; `/admin/moderation` lists supervisor applications in the reviewer's scope with Approve and Turn down; `/home` links to the board.
+- Settings: `unlock.fypBoard.minMembers` (10), `fyp.maxSupervisorAreas` (10), `fyp.interestMaxChars` (500), `fyp.listLimit` (50)
+- Tests: `packages/core/src/fyp/board.test.ts`
+- Spec: CLAUDE.md §8 F22 "Supervisors", "Ideas", "UI"
+
+## Squad Builder
+
+### Roles and formation
+
+- Code: `packages/algorithms/src/squads/cluster.ts`, `packages/algorithms/src/squads/form.ts`, `packages/core/src/squads/service.ts` (job `form_squads` on the organizer's request: `squads:<eventId>:<version>`), queries in `packages/db/src/queries/squads.ts`
+- Events: created by any verified member for their university, their country or everyone, from the start of the first day to the end of the last day in the organizer's timezone, teams of 2 to `squads.maxTeamSize` (default `squads.defaultTeamSize`); visible to the organizer and the members their visibility covers, until they end
+- Joining: while the event is open; free time is one block (from–to hour) per weekday in the member's own timezone; locked groups are joined with a code and never grow past the team size; formation opens at `unlock.squads.minParticipants` participants
+- Roles: participants with a skill vector become dense points over the union of their tags; k-means (Lloyd, Euclidean, at most `squads.maxIterations` iterations) from k-means++ seeds drawn with mulberry32 seeded by `<eventId>:<version>`, for k in [2, min(`squads.kMax`, ⌊n ÷ 2⌋)], keeping the best mean silhouette (ties: smaller k); one role when the range is empty. Each role is named by its centroid's top 2 tags (topic display names). Members without a vector have no role.
+- Formation: ⌈participants ÷ team size⌉ teams; locked groups first, each into its own team (largest first; extra groups join the smallest team); then the open team missing the most roles that someone still unassigned can fill (ties: fewest members, order) takes the participant who covers a missing role, among those keeping the team's common free hours (in the event's first week, so everyone is compared in one clock) at `squads.minOverlapHours` or more when free time was given (everyone if nobody fits); ties go to whoever brings the team's mean activity score (the Dev Card's, stored with the persona snapshot) closest to the event's mean, then id order
+- Review: participants may ask once per version to move to another team; the organizer applies or refuses; finalizing gives each team a `squad` conversation opened by a note of who brings which role, connects its members (`squad`), refuses waiting requests and notifies everyone. Asking for teams again before finalizing builds a new version.
+- Pages: `/events` lists the events the member can see (dates in their timezone, participants, joined and organizer marks) with a create form; `/events/<id>` shows the participant progress until teams can be formed, the join form (one from–until per weekday, "not free" skips a day), groups by code, the teams with each member's role and the member's own team marked, one switch request per proposal, the organizer's participants, Form teams (again), waiting switch requests to apply or refuse and Finalize, and, once final, a link to the team conversation; `/home` links to events.
+- Settings: `unlock.squads.minParticipants` (6), `squads.kMax` (6), `squads.defaultTeamSize` (4), `squads.minOverlapHours` (4), `squads.maxIterations` (100), `squads.maxTeamSize` (12), `squads.titleMaxChars` (120), `squads.descriptionMaxChars` (2000), `squads.listLimit` (50)
+- Tests: `packages/algorithms/src/squads/squads.test.ts`, `packages/core/src/squads/squads.test.ts`
+- Spec: CLAUDE.md §8 F21
+
 ## Information retrieval
 
 ### YAKE keyphrases
@@ -381,7 +473,7 @@ TF-IDF arrives in P4-T02.
 - Icebreakers: a template key with one real signal from the suggestion: the first shared top tag (`sharedTag`), the first covered tag that is one of the member's learning goals (`learning`), or the number of shared topics (`interests`). Only openers the suggestion supports are accepted; the page's copy writes the text, and the minimum length does not apply to them.
 - Answering: accepting opens a direct thread (or reuses the one the two share), posts the first message as the sender's at the request's time, records a connection (`discover` → `match`), accepts a crossing pending request, and notifies the sender; declining is silent and the sender sees "pending" until `chat.requestTtlDays` pass. A pending request older than that is expired when answered or when the same sender writes again.
 - Messages: members of the thread only, active senders, no block either way in direct threads; same length and link rules as first messages; edits within `chat.editWindowMinutes`; deletion empties the body. Unread = messages from others after the member's `last_read_at`, deleted ones excluded; muted threads are left out of the total. Conversations load `chat.messagesPerPage` at a time, keyset-paged by `(created_at, id)`.
-- Cold start: GitHub user search `language:"<member's most common own-repo language>" location:"<university country>" type:user`, `matching.coldStartListSize` people, the member left out; view-only.
+- Cold start: people of the member's most common own-repo language in their university's country, `matching.coldStartListSize` of them, the member left out; view-only links to GitHub. From the country index (crawled accounts, never members, ranked by own non-fork repositories in that language, then followers) when it holds enough people to fill the list; otherwise a GitHub user search `language:"<language>" location:"<university country>" type:user`, cached no longer than non-member data. The list says which source it came from.
 - Settings: `chat.*` above, `chat.requestTtlDays` (14), `chat.editWindowMinutes` (10), `chat.messagesPerPage` (50), `matching.coldStartListSize` (10)
 - Tests: `packages/core/src/matching/discover.test.ts`, `packages/core/src/chat/service.test.ts`, `packages/core/src/chat/threads.test.ts`, `packages/algorithms/src/text/links.test.ts`
 - Spec: CLAUDE.md §8 F11 "UI", "Edge cases"; §8 F12 "Message requests"
@@ -445,6 +537,15 @@ TF-IDF arrives in P4-T02.
 - Settings: `adoptions.suggestMinUnfinished` (0.5), `adoptions.noteMaxChars` (280), `graveyard.idleMonths.default`, `graveyard.minCommits`, `graveyard.unfinishedTerms`
 - Tests: `packages/core/src/adoptions/listings.test.ts`, `e2e/projects.spec.ts`
 - Spec: CLAUDE.md §8 F14 "Private suggestions", "Listing"
+
+### Graveyard country scope
+
+- Code: `packages/core/src/graveyard/jobs.ts` (country branch of `graveyard_search`), `countryRepoCandidates` in `packages/db/src/queries/crawler.ts`
+- Candidates: repositories of developers in the country index of the searching member's university's country (`index_country_code`), matched by full text on name, description and topics or by a topic of the query's expansion; relevance = `ts_rank_cd` plus shared topics, divided by the best in the set; at most 200 (the spec's limit)
+- Scoring: exactly the global pipeline (forks dropped, idle threshold per category, README and history filters, signals, revivability, difficulty, rank); only the relevance source differs. Results say "inactive", never "up for adoption".
+- Access: verified members only; the result is cached and queued per member, like the uni scope
+- Tests: `packages/core/src/graveyard/country.test.ts` (the same repositories found through the country index and through GitHub search get the same revivability, unfinished score, difficulty and signals)
+- Spec: CLAUDE.md §8 F7 (country)
 
 ### Graveyard uni scope and adoptions
 

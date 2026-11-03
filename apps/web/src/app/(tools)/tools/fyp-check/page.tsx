@@ -4,6 +4,7 @@ import type { Metadata } from 'next';
 import { FypTool } from '@/components/fyp/FypTool';
 import { ToolPage } from '@/components/tools/ToolPage';
 import { fypCopy } from '@/copy/fyp';
+import { universityMatchesAction } from '@/server/actions/fyp';
 import { getCurrentMember } from '@/server/auth';
 
 export function generateMetadata(): Metadata {
@@ -16,7 +17,10 @@ export default async function FypCheckPage() {
 
   return (
     <ToolPage slug="fyp-check" eyebrow={page.eyebrow} title={page.title} line={page.line} signedIn={member !== null}>
-      <FypTool limits={{ titleMax: FYP_TITLE_MAX, descriptionMin: FYP_DESCRIPTION_MIN, descriptionMax: FYP_DESCRIPTION_MAX }} />
+      <FypTool
+        limits={{ titleMax: FYP_TITLE_MAX, descriptionMin: FYP_DESCRIPTION_MIN, descriptionMax: FYP_DESCRIPTION_MAX }}
+        {...(member?.verified ? { universityCheck: universityMatchesAction } : {})}
+      />
     </ToolPage>
   );
 }

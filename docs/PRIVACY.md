@@ -125,6 +125,26 @@ Projects a member chose to showcase for their university, or confirmed final-yea
 
 How many pull requests a verified member got merged into public repositories, refreshed weekly from GitHub's public search, for the "seniors from your university contributed here" panel. Deleted by cascade.
 
+### `leaderboard_optins`, `leaderboard_snapshots` (class A for members)
+
+Whether a member chose to appear on their university's individual leaderboard, and the weekly rows ranking them there (active days only). University and department rows of `leaderboard_snapshots` hold only aggregates of verified members and are class D. A member's own rows are deleted with their account; the opt-in goes by cascade.
+
+### `alumni_questions`, `question_routes` (class A)
+
+Short questions a member asked their university's alumni (with whether they asked anonymously, which hides their name until an alumnus answers), and the questions routed to an alumnus with their answer state. Deleted by cascade; an answer's conversation follows the rules for threads.
+
+### `events`, `event_participants`, `squads`, `squad_members`, `squad_swap_requests` (class A)
+
+Events a member organizes, the events they joined with the weekly hours they said they are free and any group they formed beforehand, the teams they were placed in and the moves they asked for. Deleted by cascade; deleting an organizer's account deletes their events.
+
+### `fyp_ideas`, `fyp_interest`, `fyp_supervisors`, `fyp_projects` (class A)
+
+Final-year project ideas a member posted, their interest in joining others' teams (with a short message), supervisor applications with their areas, and past projects they submitted or that were detected in their repositories (detected ones wait for their confirmation; one they turn down keeps `dismissed_at` so it is not proposed again). A past project keeps `corpus_text`, the repository's name, description and README as plain text (at most 20,000 characters), read from GitHub when it was submitted or detected, so ideas at the university can be checked against it; it is the member's own public repository and goes with the row. Deleted by cascade; a project someone else submitted keeps the project but drops the link to the person who left.
+
+### `crawl_cursors`, `crawl_optouts` (class E)
+
+The country index's crawl progress (a location seed and a date range per cursor, no personal data) and the GitHub logins that asked never to be crawled, kept so the opt-out is honored on every later crawl. Crawled people are `gh_users` rows with only their login and id (`in_country_index`, `index_country_code`) and up to `crawler.reposPerUser` of their public repositories as metadata; they carry no expiry, are refreshed by the crawler, leave the index when GitHub no longer has them, and are pruned oldest first at the storage limits. An opt-out deletes them at once. They are shown only as view-only links to their GitHub profiles (the Graveyard's country scope and Discover's "developers like you" list), never with a page of ours, a ranking or a way to contact them.
+
 ### `notifications`, `notification_prefs` (class A)
 
 In-app notifications and the member's email preferences: whether they want a daily digest and which kinds they muted. A digest goes to the email address of their sign-in account (from GitHub, stored by Supabase Auth); it lists unread notifications not emailed before and records when each went out (`emailed_at`), so none is sent twice. Muted kinds are never emailed and not counted in the unread badge. Deleted by cascade from `users`.
