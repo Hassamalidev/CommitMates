@@ -2,13 +2,15 @@
 
 import type { GraveyardItem } from '@commitmates/core';
 import { Card, Chip, buttonStyles } from '@commitmates/ui';
+import dynamic from 'next/dynamic';
 
 import { graveyardCopy } from '@/copy/graveyard';
 import { formatCalendarDate } from '@/lib/dev-card';
 import { askOwnerUrl, forkUrl } from '@/lib/graveyard';
 import { recordAdoptionInterestAction } from '@/server/actions/adoptions';
 
-import { AdoptDialog } from './AdoptDialog';
+// Loaded only when a card can be adopted: visitors never download the dialog (ADR-011).
+const AdoptDialog = dynamic(() => import('./AdoptDialog').then((module) => module.AdoptDialog));
 
 export type GraveyardCardProps = {
   item: GraveyardItem;

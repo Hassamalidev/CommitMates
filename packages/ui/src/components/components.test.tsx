@@ -339,11 +339,15 @@ describe('Radix-based components', () => {
         ]}
       />,
     );
-    const trigger = screen.getByRole('button', { name: 'Do you use AI?' });
-    expect(trigger).toHaveAttribute('aria-expanded', 'false');
-    await userEvent.click(trigger);
-    expect(trigger).toHaveAttribute('aria-expanded', 'true');
+    const heading = screen.getByRole('heading', { level: 3, name: 'Do you use AI?' });
+    const section = heading.closest('details');
+    expect(section).not.toHaveAttribute('open');
+    expect(screen.getByText(/classic algorithms/)).not.toBeVisible();
+    await userEvent.click(heading);
+    expect(section).toHaveAttribute('open');
     expect(screen.getByText(/classic algorithms/)).toBeVisible();
+    await userEvent.click(heading);
+    expect(section).not.toHaveAttribute('open');
     expect(screen.getByRole('heading', { level: 3, name: 'Do you use AI?' })).toBeVisible();
     await expectAccessible(container);
   });

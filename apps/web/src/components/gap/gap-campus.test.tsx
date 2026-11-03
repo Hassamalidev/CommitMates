@@ -56,8 +56,10 @@ describe('GapCampusPanel', () => {
     const { container } = render(<GapCampusPanel result={result} campusMinMembers={10} signedIn label={facetLabel} />);
     expect(await screen.findByRole('button', { name: 'Ask @kim' })).toBeTruthy();
     expect(screen.getByText('Nobody yet.')).toBeTruthy();
+    // The dialog's code loads on demand (ADR-011), so its trigger appears once that has happened.
+    const ask = await screen.findByRole('button', { name: 'Ask @kim' });
     expect(await findA11yViolations(container)).toEqual([]);
-    fireEvent.click(screen.getByRole('button', { name: 'Ask @kim' }));
+    fireEvent.click(ask);
     const dialog = await screen.findByRole('dialog', { name: 'Ask @kim for help' });
     const message = within(dialog).getByLabelText<HTMLTextAreaElement>('Message');
     expect(message.value).toContain('me/app is missing a dockerfile file (Docker)');

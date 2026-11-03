@@ -52,8 +52,10 @@ describe('OssCampusLine', () => {
     );
     expect(screen.getByText('2 members of your university contributed here.')).toBeTruthy();
     expect(screen.getByText('@sam · 1 merged pull request')).toBeTruthy();
+    // The dialog's code loads on demand (ADR-011), so its trigger appears once that has happened.
+    const ask = await screen.findByRole('button', { name: 'Ask @kim' });
     expect(await findA11yViolations(container)).toEqual([]);
-    fireEvent.click(screen.getByRole('button', { name: 'Ask @kim' }));
+    fireEvent.click(ask);
     const dialog = await screen.findByRole('dialog', { name: 'Ask @kim about this project' });
     expect(within(dialog).getByLabelText<HTMLTextAreaElement>('Message').value).toContain('merged into vercel/next.js');
     fireEvent.click(within(dialog).getByRole('button', { name: 'Send request' }));

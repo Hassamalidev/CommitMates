@@ -65,9 +65,12 @@ test.describe('landing page', () => {
 
   test('answers a question in the FAQ', async ({ page }) => {
     await page.goto('/#faq');
-    const question = page.getByRole('button', { name: 'Do you use AI to score me?' });
-    await question.click();
-    await expect(question).toHaveAttribute('aria-expanded', 'true');
+    const question = page.locator('#faq details').filter({ hasText: 'Do you use AI to score me?' });
+    await expect(question).not.toHaveAttribute('open');
+    // Opened from the keyboard: the native disclosure needs no JavaScript.
+    await question.locator('summary').focus();
+    await page.keyboard.press('Enter');
+    await expect(question).toHaveAttribute('open');
     await expect(page.getByText('Scores come from counting and comparing')).toBeVisible();
   });
 

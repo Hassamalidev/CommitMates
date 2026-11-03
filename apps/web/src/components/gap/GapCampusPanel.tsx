@@ -2,12 +2,14 @@
 
 import type { GapFacet, GapHelpers, GapResult } from '@commitmates/core';
 import { Card, Skeleton } from '@commitmates/ui';
+import dynamic from 'next/dynamic';
 import { useEffect, useMemo, useState } from 'react';
-
-import { AskDialog } from '@/components/chat/AskDialog';
 
 import { gapCopy } from '@/copy/gap';
 import { askGapHelperAction, gapHelpersAction } from '@/server/actions/gap';
+
+// Loaded only when there is someone to ask: visitors never download the dialog (ADR-011).
+const AskDialog = dynamic(() => import('@/components/chat/AskDialog').then((module) => module.AskDialog));
 
 /** The skill tag a gap stands for: a dependency tag, or the topic a path matches; repository properties have none. */
 export function gapTag(gap: Pick<GapFacet, 'kind' | 'name' | 'topic'>): string | null {

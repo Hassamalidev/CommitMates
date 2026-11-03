@@ -1,11 +1,14 @@
 'use client';
 
 import type { OssCampus } from '@commitmates/core';
+import dynamic from 'next/dynamic';
 import { useEffect, useState } from 'react';
 
-import { AskDialog } from '@/components/chat/AskDialog';
 import { ossCopy } from '@/copy/oss';
 import { askOssContributorAction, ossCampusAction } from '@/server/actions/oss';
+
+// Loaded only when there is someone to ask: visitors never download the dialog (ADR-011).
+const AskDialog = dynamic(() => import('@/components/chat/AskDialog').then((module) => module.AskDialog));
 
 type Contributors = Extract<OssCampus, { state: 'open' }>['contributors'];
 

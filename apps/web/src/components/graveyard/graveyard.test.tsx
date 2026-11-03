@@ -107,9 +107,11 @@ describe('GraveyardCard', () => {
     expect(within(card).getByText(/Needs a frontend/)).toBeTruthy();
     expect(within(card).queryByText(/Inactive/)).toBeNull();
     expect(within(card).queryByRole('link', { name: /Ask the owner/ })).toBeNull();
+    // The dialog's code loads on demand (ADR-011), so its trigger appears once that has happened.
+    const adopt = await within(card).findByRole('button', { name: 'Adopt classmate/dash' });
     expect(await findA11yViolations(container)).toEqual([]);
 
-    fireEvent.click(within(card).getByRole('button', { name: 'Adopt classmate/dash' }));
+    fireEvent.click(adopt);
     const dialog = await screen.findByRole('dialog', { name: 'Adopt classmate/dash' });
     fireEvent.change(within(dialog).getByLabelText('Message'), { target: { value: 'I would love to build the frontend for this.' } });
     fireEvent.click(within(dialog).getByRole('button', { name: 'Send request' }));
