@@ -4,6 +4,12 @@ Tasks in CLAUDE.md §16 marked **[HUMAN]** need accounts, secrets or approvals t
 
 ## Open
 
+### P7-T03 — Screen-reader check before launch
+
+- Why: the automated audit ([ADR-012](decisions/ADR-012-accessibility.md)) checks names, roles, focus and contrast on every page, but cannot tell how the flows sound.
+- Do this: with NVDA (Windows, free) or VoiceOver (macOS), try the landing page demo, a Dev Card, onboarding with an email code, Discover and a conversation. Listen for unclear names, missing announcements of progress, and anything that cannot be reached.
+- Waiting on it: nothing is blocked; report anything confusing and it will be fixed before `v1.0.0`.
+
 ### P0-T01 — Protect `main`
 
 - Why: so nothing reaches `main` without a green CI run.

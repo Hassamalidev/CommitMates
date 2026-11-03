@@ -53,7 +53,8 @@ export function Button({
       aria-busy={loading || undefined}
       className={cn(buttonStyles({ variant, size }), className)}
     >
-      <span className={cn('inline-flex items-center gap-2', loading && 'invisible')}>{children}</span>
+      {/* Transparent, not hidden: the label keeps the button's width and stays its accessible name while loading. */}
+      <span className={cn('inline-flex items-center gap-2', loading && 'opacity-0')}>{children}</span>
       {loading ? (
         <span aria-hidden className="absolute inset-0 flex items-center justify-center font-mono">
           <span className="animate-pixel-dots tracking-widest">▪▪▪</span>

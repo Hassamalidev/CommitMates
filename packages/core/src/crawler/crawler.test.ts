@@ -85,32 +85,36 @@ describe('pure helpers', () => {
 
 describe('crawlStep', () => {
   it('seeds a cursor for the country, splits ranges above the search cap until they fit, and indexes accounts', async () => {
-    totals = { '2008-01-01..2026-10-21': 5000, '2008-01-01..2017-05-27': 900, '2017-05-28..2026-10-21': 150 };
-    const client = githubFor(SERVER_IDENTITY);
-    expect(await crawlStep(client, NOW, deadline())).toBe('split');
-    expect(await database.sql`select created_from::text, created_to::text, status from crawl_cursors where seed = 'Testland' order by created_from, created_to`).toEqual([
-      { created_from: '2008-01-01', created_to: '2017-05-27', status: 'pending' },
-      { created_from: '2008-01-01', created_to: '2026-10-21', status: 'done' },
-      { created_from: '2017-05-28', created_to: '2026-10-21', status: 'pending' },
-    ]);
+    // A low cap keeps the volume small (the full suite runs many database tests at once) while still
+    // splitting a range and paging through more than one page of 100.
+    await withSettings({ 'crawler.searchCap': 200 }, async () => {
+      totals = { '2008-01-01..2026-10-21': 500, '2008-01-01..2017-05-27': 180, '2017-05-28..2026-10-21': 30 };
+      const client = githubFor(SERVER_IDENTITY);
+      expect(await crawlStep(client, NOW, deadline())).toBe('split');
+      expect(await database.sql`select created_from::text, created_to::text, status from crawl_cursors where seed = 'Testland' order by created_from, created_to`).toEqual([
+        { created_from: '2008-01-01', created_to: '2017-05-27', status: 'pending' },
+        { created_from: '2008-01-01', created_to: '2026-10-21', status: 'done' },
+        { created_from: '2017-05-28', created_to: '2026-10-21', status: 'pending' },
+      ]);
 
-    // The first account of the first half (ids follow the range's digits in this stub).
-    await database.sql`insert into crawl_optouts (github_login) values ('crawled-200801013')`;
-    const steps: string[] = [];
-    for (let index = 0; index < 20; index += 1) {
-      const step = await crawlStep(client, NOW, deadline());
-      steps.push(step);
-      if (step === 'idle') break;
-    }
-    expect(steps.at(-1)).toBe('idle');
-    // 900 + 150 accounts fit under the cap of 1000 per query, minus one opt-out.
-    const [indexed] = await database.sql<{ count: string }[]>`select count(*) from gh_users where in_country_index and index_country_code = 'TL'`;
-    expect(Number(indexed?.count)).toBe(1049);
-    expect(await database.sql`select 1 from gh_users where login = 'crawled-200801013'`).toEqual([]);
-    expect(queries[0]).toBe('location:"Testland" created:2008-01-01..2026-10-21 type:user#1');
-    const [queued] = await database.sql<{ count: string }[]>`select count(*) from jobs where type = 'crawl_repos'`;
-    expect(Number(queued?.count)).toBe(1049);
-    expect((await database.sql`select count(*)::int as done from crawl_cursors where status = 'done' and crawled_at is not null`)[0]?.done).toBe(2);
+      // The first account of the first half (ids follow the range's digits in this stub).
+      await database.sql`insert into crawl_optouts (github_login) values ('crawled-200801013')`;
+      const steps: string[] = [];
+      for (let index = 0; index < 20; index += 1) {
+        const step = await crawlStep(client, NOW, deadline());
+        steps.push(step);
+        if (step === 'idle') break;
+      }
+      expect(steps.at(-1)).toBe('idle');
+      // 180 + 30 accounts fit under the cap of 200 per query, minus one opt-out.
+      const [indexed] = await database.sql<{ count: string }[]>`select count(*) from gh_users where in_country_index and index_country_code = 'TL'`;
+      expect(Number(indexed?.count)).toBe(209);
+      expect(await database.sql`select 1 from gh_users where login = 'crawled-200801013'`).toEqual([]);
+      expect(queries[0]).toBe('location:"Testland" created:2008-01-01..2026-10-21 type:user#1');
+      const [queued] = await database.sql<{ count: string }[]>`select count(*) from jobs where type = 'crawl_repos'`;
+      expect(Number(queued?.count)).toBe(209);
+      expect((await database.sql`select count(*)::int as done from crawl_cursors where status = 'done' and crawled_at is not null`)[0]?.done).toBe(2);
+    });
   });
 
   it('honors an opt-out at once, removing what the index holds', async () => {

@@ -4,8 +4,8 @@ import { expect, type Page } from '@playwright/test';
 /** Impact levels that fail a page (CLAUDE.md §9.10). */
 const BLOCKING_IMPACTS = new Set(['serious', 'critical']);
 
-/** Scans the current page with axe and fails on any serious or critical violation. */
-export async function expectNoSeriousA11yViolations(page: Page): Promise<void> {
+/** Scans the current page with axe and fails on any serious or critical violation; `where` names the page in the failure. */
+export async function expectNoSeriousA11yViolations(page: Page, where?: string): Promise<void> {
   const results = await new AxeBuilder({ page }).withTags(['wcag2a', 'wcag2aa', 'wcag21aa', 'wcag22aa']).analyze();
   const blocking = results.violations
     .filter((violation) => BLOCKING_IMPACTS.has(violation.impact ?? ''))
@@ -15,5 +15,5 @@ export async function expectNoSeriousA11yViolations(page: Page): Promise<void> {
       help: violation.help,
       targets: violation.nodes.map((node) => node.target.join(' ')),
     }));
-  expect(blocking, 'serious or critical accessibility violations').toEqual([]);
+  expect(blocking, `serious or critical accessibility violations${where ? ` on ${where}` : ''}`).toEqual([]);
 }

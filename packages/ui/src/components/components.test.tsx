@@ -62,6 +62,9 @@ describe('Button', () => {
     const button = screen.getByRole('button', { name: 'Save' });
     expect(button).toBeDisabled();
     expect(button).toHaveAttribute('aria-busy', 'true');
+    // Faded, not `invisible`: visibility: hidden would drop the label from the accessible name (P7-T03).
+    expect(screen.getByText('Save')).toHaveClass('opacity-0');
+    expect(screen.getByText('Save')).not.toHaveClass('invisible');
     await userEvent.click(button);
     expect(onClick).not.toHaveBeenCalled();
   });
