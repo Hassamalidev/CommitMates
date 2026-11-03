@@ -249,6 +249,25 @@ export {
   transitionGraduates,
   type AlumniView,
 } from './alumni/service';
+export {
+  SQUAD_NOTE_PREFIX,
+  buildSquads,
+  createEvent,
+  createGroup,
+  decideSquadSwap,
+  finalizeSquads,
+  getEventView,
+  joinEvent,
+  joinGroup,
+  leaveEvent,
+  leaveGroup,
+  listEvents,
+  requestFormation,
+  requestSquadSwap,
+  squadNote,
+  type Availability,
+  type EventView,
+} from './squads/service';
 export { getLeaderboards, lastWeekStart, setLeaderboardOptIn, type Board, type BoardEntry, type LeaderboardsView } from './leaderboard/service';
 export { askOssContributor, ossCampus, refreshMemberContribs, type OssCampus } from './oss/campus';
 export {

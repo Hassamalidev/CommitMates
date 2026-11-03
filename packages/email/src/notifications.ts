@@ -160,6 +160,29 @@ const describers: Readonly<Record<string, (data: Record<string, unknown>) => Not
     line: 'No alumnus picked up your question this time. Try posting it on the FYP Board, or ask a classmate directly.',
     path: '/alumni',
   }),
+  squads_proposed: (data) => ({
+    title: 'Your team is proposed',
+    line: `Teams for ${text(data.title) || 'your event'} are proposed. See who you are with, and ask to switch once if it does not fit.`,
+    path: isUuid(text(data.eventId)) ? `/events/${text(data.eventId)}` : '/events',
+  }),
+  squad_swap_requested: (data) => ({
+    title: 'A participant wants to switch teams',
+    line: `${text(data.login) ? `@${text(data.login)}` : 'A participant'} asked to switch teams in ${text(data.title) || 'your event'}.`,
+    path: isUuid(text(data.eventId)) ? `/events/${text(data.eventId)}` : '/events',
+  }),
+  squad_swap_decided: (data) => ({
+    title: data.accepted === true ? 'You switched teams' : 'Your switch was not made',
+    line:
+      data.accepted === true
+        ? `The organizer of ${text(data.title) || 'your event'} moved you to the team you asked for.`
+        : `The organizer of ${text(data.title) || 'your event'} kept the teams as they were.`,
+    path: isUuid(text(data.eventId)) ? `/events/${text(data.eventId)}` : '/events',
+  }),
+  squads_final: (data) => ({
+    title: 'Your team is final',
+    line: `Teams for ${text(data.title) || 'your event'} are final. Say hello in your team conversation.`,
+    path: isUuid(text(data.threadId)) ? `/inbox/${text(data.threadId)}` : '/inbox',
+  }),
   github_reconnect: () => ({
     title: 'Sign in with GitHub again',
     line: 'Your GitHub sign-in has expired, so a streak day was skipped instead of counted. Sign in again to keep it going.',
@@ -213,4 +236,8 @@ export const MUTABLE_NOTIFICATIONS: Readonly<Record<string, string>> = {
   alumni_question: 'Questions for you as an alumnus',
   alumni_answered: 'Answers to your questions',
   alumni_expired: 'Questions that got no answer',
+  squads_proposed: 'Proposed event teams',
+  squad_swap_requested: 'Requests to switch teams in your events',
+  squad_swap_decided: 'Answers to your team switch requests',
+  squads_final: 'Final event teams',
 };

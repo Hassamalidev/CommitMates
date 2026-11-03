@@ -83,6 +83,8 @@ export function linkify(text: string): TextPart[] {
 /** The words for a system message, which the database stores as a key. */
 /** Prefix of a skill swap's opening note (CLAUDE.md §8 F16); its data follows as JSON. */
 const SWAP_PREFIX = 'swap:';
+/** Prefix of a final team's opening note (CLAUDE.md §8 F21); `{ event, members: [{ login, role }] }` follows as JSON. */
+const SQUAD_PREFIX = 'squad:';
 /** Prefix of an answered alumni question's opening note (CLAUDE.md §8 F20); `{ body }` follows as JSON. */
 const QUESTION_PREFIX = 'question:';
 
@@ -99,6 +101,18 @@ function parseSwapSteps(json: string): { from: string | null; to: string | null;
   }
   if (!Array.isArray(value) || !value.every((step) => isRecord(step) && typeof step.tag === 'string')) return null;
   return (value as Record<string, unknown>[]).map((step) => ({ from: loginOrNull(step.from), to: loginOrNull(step.to), tag: String(step.tag) }));
+}
+
+/** The event and members of a squad note, or null when the data is not what the server writes. */
+function parseSquad(json: string): { event: string; members: { login: string | null; role: string | null }[] } | null {
+  try {
+    const value: unknown = JSON.parse(json);
+    if (!isRecord(value) || typeof value.event !== 'string' || !Array.isArray(value.members)) return null;
+    const members = (value.members as unknown[]).filter(isRecord).map((member) => ({ login: loginOrNull(member.login), role: typeof member.role === 'string' ? member.role : null }));
+    return { event: value.event, members };
+  } catch {
+    return null;
+  }
 }
 
 /** The question an alumni note quotes, or null when the data is not what the server writes. */
@@ -118,6 +132,10 @@ export function systemNoteText(body: string): string {
   if (body.startsWith(SWAP_PREFIX)) {
     const steps = parseSwapSteps(body.slice(SWAP_PREFIX.length));
     if (steps) return copy.swap(steps);
+  }
+  if (body.startsWith(SQUAD_PREFIX)) {
+    const squad = parseSquad(body.slice(SQUAD_PREFIX.length));
+    if (squad) return copy.squad(squad.event, squad.members);
   }
   if (body.startsWith(QUESTION_PREFIX)) {
     const question = parseQuestion(body.slice(QUESTION_PREFIX.length));

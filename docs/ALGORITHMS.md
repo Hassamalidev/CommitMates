@@ -315,6 +315,20 @@ All algorithms live in `packages/algorithms` and are pure: no I/O, no clock, no 
 - Tests: `packages/algorithms/src/alumni/route.test.ts`, `packages/core/src/alumni/alumni.test.ts`
 - Spec: CLAUDE.md §8 F20
 
+## Squad Builder
+
+### Roles and formation
+
+- Code: `packages/algorithms/src/squads/cluster.ts`, `packages/algorithms/src/squads/form.ts`, `packages/core/src/squads/service.ts` (job `form_squads` on the organizer's request: `squads:<eventId>:<version>`), queries in `packages/db/src/queries/squads.ts`
+- Events: created by any verified member for their university, their country or everyone, from the start of the first day to the end of the last day in the organizer's timezone, teams of 2 to `squads.maxTeamSize` (default `squads.defaultTeamSize`); visible to the organizer and the members their visibility covers, until they end
+- Joining: while the event is open; free time is one block (from–to hour) per weekday in the member's own timezone; locked groups are joined with a code and never grow past the team size; formation opens at `unlock.squads.minParticipants` participants
+- Roles: participants with a skill vector become dense points over the union of their tags; k-means (Lloyd, Euclidean, at most `squads.maxIterations` iterations) from k-means++ seeds drawn with mulberry32 seeded by `<eventId>:<version>`, for k in [2, min(`squads.kMax`, ⌊n ÷ 2⌋)], keeping the best mean silhouette (ties: smaller k); one role when the range is empty. Each role is named by its centroid's top 2 tags (topic display names). Members without a vector have no role.
+- Formation: ⌈participants ÷ team size⌉ teams; locked groups first, each into its own team (largest first; extra groups join the smallest team); then the open team missing the most roles that someone still unassigned can fill (ties: fewest members, order) takes the participant who covers a missing role, among those keeping the team's common free hours (in the event's first week, so everyone is compared in one clock) at `squads.minOverlapHours` or more when free time was given (everyone if nobody fits); ties go to whoever brings the team's mean activity score (the Dev Card's, stored with the persona snapshot) closest to the event's mean, then id order
+- Review: participants may ask once per version to move to another team; the organizer applies or refuses; finalizing gives each team a `squad` conversation opened by a note of who brings which role, connects its members (`squad`), refuses waiting requests and notifies everyone. Asking for teams again before finalizing builds a new version.
+- Settings: `unlock.squads.minParticipants` (6), `squads.kMax` (6), `squads.defaultTeamSize` (4), `squads.minOverlapHours` (4), `squads.maxIterations` (100), `squads.maxTeamSize` (12), `squads.titleMaxChars` (120), `squads.descriptionMaxChars` (2000), `squads.listLimit` (50)
+- Tests: `packages/algorithms/src/squads/squads.test.ts`, `packages/core/src/squads/squads.test.ts`
+- Spec: CLAUDE.md §8 F21
+
 ## Information retrieval
 
 ### YAKE keyphrases

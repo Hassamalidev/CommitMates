@@ -51,6 +51,8 @@ export const chatCopy = {
       swap: (steps: readonly { from: string | null; to: string | null; tag: string }[]) =>
         `Skill swap: ${steps.map((step) => `${step.from ? `@${step.from}` : 'a member'} helps ${step.to ? `@${step.to}` : 'a member'} with ${step.tag}`).join('; ')}.`,
       question: (body: string) => `Alumni question: “${body}”`,
+      squad: (event: string, members: readonly { login: string | null; role: string | null }[]) =>
+        `Your team for ${event}: ${members.map((member) => `${member.login ? `@${member.login}` : 'a member'}${member.role ? ` (${member.role})` : ''}`).join(', ')}. Say hello and plan how you will work.`,
     },
     live: 'New messages appear here as they arrive.',
   },

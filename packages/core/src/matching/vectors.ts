@@ -57,13 +57,14 @@ const dateOrNull = (value: string): Date | null => {
 
 /**
  * The persona part of a member's Dev Card (§7.4 `persona_snapshots`): what other members see on a
- * Discover card, plus the UTC hour histogram for the shared-hours line.
+ * Discover card, plus the UTC hour histogram for the shared-hours line and the activity score that
+ * balances squads (§8 F21 "Formation").
  */
-export function snapshotFromCard(card: Pick<DevCard, 'window' | 'metrics' | 'hourHistUtc' | 'labels' | 'companion'>): PersonaSnapshotInput {
+export function snapshotFromCard(card: Pick<DevCard, 'window' | 'metrics' | 'hourHistUtc' | 'labels' | 'companion' | 'activityScore'>): PersonaSnapshotInput {
   return {
     windowStart: dateOrNull(card.window.eventsFrom),
     windowEnd: dateOrNull(card.window.eventsTo),
-    metrics: { ...card.metrics, hourHistUtc: card.hourHistUtc },
+    metrics: { ...card.metrics, hourHistUtc: card.hourHistUtc, activityScore: card.activityScore },
     labels: [...card.labels]
       .sort((a, b) => b.strength - a.strength)
       .slice(0, SNAPSHOT_LABELS)

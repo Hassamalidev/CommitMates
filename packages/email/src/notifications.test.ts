@@ -45,6 +45,10 @@ describe('notification words', () => {
       'alumni_question',
       'alumni_answered',
       'alumni_expired',
+      'squads_proposed',
+      'squad_swap_requested',
+      'squad_swap_decided',
+      'squads_final',
     ]);
     expect(Object.keys(MUTABLE_NOTIFICATIONS)).not.toContain('became_alumni');
     expect(Object.keys(MUTABLE_NOTIFICATIONS)).not.toContain('account_hidden');

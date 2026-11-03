@@ -92,6 +92,9 @@ describe('chat helpers', () => {
     expect(systemNoteText('left:sam')).toBe('@sam left this conversation.');
     expect(systemNoteText('question:{"body":"How did you prepare for interviews?"}')).toBe('Alumni question: “How did you prepare for interviews?”');
     expect(systemNoteText('question:{"text":1}')).toBe('A member left this conversation.');
+    expect(systemNoteText('squad:{"event":"Hack Night","members":[{"login":"ada","role":"React · Docker"},{"login":null,"role":null}]}')).toBe(
+      'Your team for Hack Night: @ada (React · Docker), a member. Say hello and plan how you will work.',
+    );
     expect(systemNoteText('swap:[{"from":"ada","to":"bo","tag":"react"},{"from":"bo","to":null,"tag":"go"}]')).toBe(
       'Skill swap: @ada helps @bo with react; @bo helps a member with go.',
     );
