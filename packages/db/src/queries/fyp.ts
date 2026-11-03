@@ -290,3 +290,19 @@ export async function interestIn(ideaId: string, db: DbOrTx = getDb()): Promise<
     order by f.created_at, f.user_id`);
   return rows.map((row) => ({ userId: row.user_id, login: row.login, message: row.message, createdAt: new Date(row.created_at) }));
 }
+
+export type PastProjectView = { id: string; fullName: string | null; description: string | null; year: number | null; ownerLogin: string | null; stars: number | null };
+
+/** Confirmed past projects of a university, newest class first, from active or departed owners. */
+export async function pastProjectsAt(universityId: string, limit: number, db: DbOrTx = getDb()): Promise<PastProjectView[]> {
+  const rows = await db.execute<{ id: string; full_name: string | null; description: string | null; year: number | null; login: string | null; stars: number | null }>(sql`
+    select p.id, r.full_name, r.description, p.year, gi.login, r.stars
+    from fyp_projects p
+    left join gh_repos r on r.github_id = p.repo_github_id
+    left join users u on u.id = p.owner_user_id
+    left join github_identities gi on gi.user_id = p.owner_user_id
+    where p.university_id = ${universityId} and p.confirmed and (u.id is null or u.status = 'active')
+    order by p.year desc nulls last, r.full_name, p.id
+    limit ${limit}`);
+  return rows.map((row) => ({ id: row.id, fullName: row.full_name, description: row.description, year: row.year, ownerLogin: row.login, stars: row.stars }));
+}

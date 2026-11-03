@@ -97,6 +97,7 @@ export {
   pickTeam,
   postIdea,
   setIdeaStatus,
+  supervisorStanding,
   withdrawInterest,
   type IdeaCheck,
   type IdeaDetail,
@@ -104,6 +105,8 @@ export {
 export {
   checkIdeaAtUniversity,
   confirmDetectedProject,
+  fypProjectOptions,
+  listPastProjects,
   detectMemberProjects,
   dismissDetectedProject,
   getPastProjects,

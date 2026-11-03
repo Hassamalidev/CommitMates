@@ -90,6 +90,12 @@ export async function ownSupervisorStatus(actor: Actor) {
   return getSupervisor(actor.id, actor.universityId);
 }
 
+/** Whether the member may apply as a supervisor, their application, and the area limit. */
+export async function supervisorStanding(actor: Actor): Promise<{ canApply: boolean; application: Awaited<ReturnType<typeof getSupervisor>>; maxAreas: number }> {
+  const [details, application, maxAreas] = await Promise.all([getProfileDetails(actor.id), ownSupervisorStatus(actor), getSetting('fyp.maxSupervisorAreas')]);
+  return { canApply: actor.verified && (details?.role === 'supervisor_pending' || details?.role === 'supervisor'), application, maxAreas };
+}
+
 type Reviewer = Pick<Member, 'id' | 'roles'>;
 
 /** Applications waiting in the reviewer's scope (admins everywhere, moderators their universities). */

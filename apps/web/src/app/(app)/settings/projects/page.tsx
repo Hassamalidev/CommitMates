@@ -1,15 +1,17 @@
-import { getAdoptions, getProjects, getShowcase } from '@commitmates/core';
+import { fypProjectOptions, getAdoptions, getProjects, getShowcase } from '@commitmates/core';
 import { Card, Chip, Input, Select, StateChip, buttonStyles } from '@commitmates/ui';
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import { redirect } from 'next/navigation';
 
 import { ActionForm } from '@/components/forms/ActionForm';
+import { fypBoardCopy } from '@/copy/fyp-board';
 import { projectsCopy } from '@/copy/projects';
 import { formatUtc } from '@/lib/format';
 import { licenseChooserUrl } from '@/lib/graveyard';
 import { linkForkAction } from '@/server/actions/adoptions';
 import { addLegacyEntryAction, dismissSuggestionAction, listRepoAction, relistAction, removeLegacyEntryAction, withdrawListingAction } from '@/server/actions/projects';
+import { confirmDetectedProjectAction, dismissDetectedProjectAction, removePastProjectAction, submitPastProjectAction } from '@/server/actions/fyp-board';
 import { getCurrentMember } from '@/server/auth';
 
 export function generateMetadata(): Metadata {
@@ -41,7 +43,15 @@ export default async function ProjectsPage() {
       </div>
     );
   }
-  const [{ listings, suggestions, others, noteMaxChars }, { adopting, adoptedFromMe }, showcase] = await Promise.all([getProjects(member), getAdoptions(member), getShowcase(member)]);
+  const [{ listings, suggestions, others, noteMaxChars }, { adopting, adoptedFromMe }, showcase, fyp] = await Promise.all([
+    getProjects(member),
+    getAdoptions(member),
+    getShowcase(member),
+    fypProjectOptions(member),
+  ]);
+  const fypCopy = fypBoardCopy.projects;
+  const detected = fyp.projects.filter((project) => !project.confirmed);
+  const confirmed = fyp.projects.filter((project) => project.confirmed);
   // Adopted listings without a license: the adopter cannot reuse the code until the owner adds one (§8 F14 step 2).
   const needsLicense = new Set(adoptedFromMe.filter((listing) => listing.licenseSpdx === null).map((listing) => listing.listingId));
   const noteField = <Input label={copy.note} name="note" maxLength={noteMaxChars} description={copy.noteHelp(noteMaxChars)} />;
@@ -227,6 +237,48 @@ export default async function ProjectsPage() {
             </label>
           </ActionForm>
         )}
+      </Card>
+
+      <Card title={fypCopy.title} titleAs="h2" className="flex flex-col gap-3">
+        <p className="type-small text-fg-muted">{fypCopy.intro}</p>
+        {detected.length > 0 ? (
+          <div className="flex flex-col gap-2">
+            <p className="type-small">{fypCopy.detected}</p>
+            <ul className="flex flex-col gap-3">
+              {detected.map((project) => (
+                <li key={project.id} className="flex flex-col gap-2 rounded-control border border-line p-3">
+                  <span className="type-small font-semibold break-all">{project.fullName}</span>
+                  <ActionForm action={confirmDetectedProjectAction} values={{ projectId: project.id }} submitLabel={fypCopy.confirm} variant="primary" className="flex flex-wrap items-end gap-2">
+                    <Input label={fypCopy.year} name="year" type="number" inputMode="numeric" />
+                  </ActionForm>
+                  <ActionForm action={dismissDetectedProjectAction} values={{ projectId: project.id }} submitLabel={fypCopy.dismiss} variant="ghost" />
+                </li>
+              ))}
+            </ul>
+          </div>
+        ) : null}
+        <h3 className="type-small font-semibold">{fypCopy.confirmed}</h3>
+        {confirmed.length === 0 ? (
+          <p className="type-small text-fg-muted">{fypCopy.none}</p>
+        ) : (
+          <ul className="flex flex-col gap-2">
+            {confirmed.map((project) => (
+              <li key={project.id} className="flex flex-wrap items-center justify-between gap-2">
+                <span className="type-small break-all">
+                  {project.fullName}
+                  {project.year !== null ? ` · ${fypBoardCopy.match.year(project.year)}` : ''}
+                </span>
+                <ActionForm action={removePastProjectAction} values={{ projectId: project.id }} submitLabel={fypCopy.remove} variant="ghost" />
+              </li>
+            ))}
+          </ul>
+        )}
+        {fyp.repos.length > 0 ? (
+          <ActionForm action={submitPastProjectAction} submitLabel={fypCopy.submit} successMessage={fypCopy.added} variant="secondary" className="flex flex-col items-start gap-3">
+            <Select label={fypCopy.repo} name="repoGithubId" options={fyp.repos.map((repo) => ({ value: String(repo.githubId), label: repo.fullName }))} />
+            <Input label={fypCopy.year} name="year" type="number" inputMode="numeric" />
+          </ActionForm>
+        ) : null}
       </Card>
     </div>
   );

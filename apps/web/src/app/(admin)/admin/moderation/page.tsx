@@ -1,4 +1,4 @@
-import { getModerationQueue, getSetting, hasRole, listDisputes } from '@commitmates/core';
+import { getModerationQueue, getSetting, hasRole, listDisputes, pendingSupervisors } from '@commitmates/core';
 import { Card, EmptyState, Input, Textarea } from '@commitmates/ui';
 import type { Metadata } from 'next';
 import { notFound } from 'next/navigation';
@@ -8,6 +8,8 @@ import { ActionForm } from '@/components/forms/ActionForm';
 import { adminCopy } from '@/copy/admin';
 import { adjustCreditsAction, resolveDisputeAction } from '@/server/actions/reviews';
 import { getCurrentMember } from '@/server/auth';
+import { fypBoardCopy } from '@/copy/fyp-board';
+import { decideSupervisorAction } from '@/server/actions/fyp-board';
 
 export function generateMetadata(): Metadata {
   return { title: adminCopy.moderation.metaTitle, robots: { index: false } };
@@ -22,7 +24,8 @@ export default async function AdminModerationPage() {
   if (member?.status !== 'active') notFound();
   const queue = await getModerationQueue(member).catch(() => null);
   if (!queue) notFound();
-  const [maxDays, disputes] = await Promise.all([getSetting('safety.maxSuspensionDays'), listDisputes(member)]);
+  const [maxDays, disputes, supervisors] = await Promise.all([getSetting('safety.maxSuspensionDays'), listDisputes(member), pendingSupervisors(member)]);
+  const supervisorCopy = fypBoardCopy.moderation;
   const isAdmin = hasRole(member, 'admin');
   const copy = adminCopy.moderation;
   const { scope, groups } = queue;
@@ -65,6 +68,39 @@ export default async function AdminModerationPage() {
               }}
             />
           ))
+        )}
+      </section>
+
+      <section aria-labelledby="supervisors-title" className="mt-8 flex flex-col gap-4">
+        <h2 id="supervisors-title" className="type-h2">
+          {supervisorCopy.title}
+        </h2>
+        {supervisors.length === 0 ? (
+          <Card>
+            <EmptyState title={supervisorCopy.title} description={supervisorCopy.empty} />
+          </Card>
+        ) : (
+          supervisors.map((application) => {
+            const name = supervisorCopy.line(application.login, application.universityName);
+            return (
+              <Card key={`${application.userId}-${application.universityId}`} as="article" aria-label={name} className="flex flex-col gap-2">
+                <p className="type-body font-semibold">{name}</p>
+                <p className="type-small text-fg-muted">{application.areas.join(', ')}</p>
+                <span className="flex flex-wrap gap-2">
+                  {(['true', 'false'] as const).map((approve) => (
+                    <ActionForm
+                      key={approve}
+                      action={decideSupervisorAction}
+                      values={{ userId: application.userId, universityId: application.universityId, approve }}
+                      submitLabel={approve === 'true' ? supervisorCopy.approve : supervisorCopy.reject}
+                      successMessage={supervisorCopy.done}
+                      variant={approve === 'true' ? 'primary' : 'ghost'}
+                    />
+                  ))}
+                </span>
+              </Card>
+            );
+          })
         )}
       </section>
 

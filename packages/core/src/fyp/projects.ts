@@ -15,11 +15,14 @@ import {
   insertNotification,
   memberOwnRepos,
   ownFypProjects,
+  pastProjectsAt,
   recordedRepoIds,
   universityCorpus,
   upsertConfirmedProject,
   verifiedMembersWithGithub,
   type OwnFypProject,
+  type OwnRepo,
+  type PastProjectView,
 } from '@commitmates/db';
 import { SERVER_IDENTITY, fetchReadme, githubFor, type GitHubClient } from '@commitmates/github';
 import { PRIORITY, enqueue, type JobHandler } from '@commitmates/jobs';
@@ -120,6 +123,19 @@ export async function dismissDetectedProject(actor: Pick<Member, 'id'>, raw: unk
 export async function removePastProject(actor: Pick<Member, 'id'>, raw: unknown): Promise<void> {
   const input = projectActionSchema.parse(raw);
   await deleteFypProject(await ownProject(actor, input.projectId));
+}
+
+/** What the projects page offers: the member's own projects and detections, and repositories they could add. */
+export async function fypProjectOptions(actor: Pick<Member, 'id' | 'verified' | 'universityId' | 'githubId'>): Promise<{ projects: OwnFypProject[]; repos: OwnRepo[] }> {
+  if (!actor.verified || actor.universityId === null || actor.githubId === null) return { projects: [], repos: [] };
+  const [projects, repos, recorded] = await Promise.all([ownFypProjects(actor.id), memberOwnRepos(actor.githubId), recordedRepoIds(actor.universityId)]);
+  return { projects, repos: repos.filter((repo) => !recorded.has(repo.githubId)) };
+}
+
+/** Confirmed past projects of the member's university (§8 F22 "UI": past projects). */
+export async function listPastProjects(actor: Pick<Member, 'verified' | 'universityId'>): Promise<PastProjectView[]> {
+  if (!actor.verified || actor.universityId === null) return [];
+  return pastProjectsAt(actor.universityId, await getSetting('fyp.listLimit'));
 }
 
 /** A member's own confirmed projects and the detections waiting for them. */

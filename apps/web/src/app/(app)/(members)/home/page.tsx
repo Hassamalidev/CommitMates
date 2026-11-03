@@ -8,6 +8,7 @@ import { alumniCopy } from '@/copy/alumni';
 import { campusCopy, homeNotificationsCopy } from '@/copy/campus';
 import { chatCopy } from '@/copy/chat';
 import { eventsCopy } from '@/copy/events';
+import { fypBoardCopy } from '@/copy/fyp-board';
 import { notificationsCopy } from '@/copy/notifications';
 import { leaderboardsCopy } from '@/copy/leaderboards';
 import { legacyCopy } from '@/copy/legacy';
@@ -46,6 +47,7 @@ export default async function HomePage() {
   const legacyUnlock = progress.unlocks.find((unlock) => unlock.key === 'legacy');
   const boardUnlock = progress.unlocks.find((unlock) => unlock.key === 'leaderboard');
   const alumniUnlock = progress.unlocks.find((unlock) => unlock.key === 'alumni');
+  const fypUnlock = progress.unlocks.find((unlock) => unlock.key === 'fypBoard');
   const swaps = swapUnlock?.unlocked ? await getSwaps(member) : null;
   const waitingSwaps = swaps?.proposals.filter((proposal) => proposal.status === 'proposed' && !proposal.responses.some((response) => response.userId === member.id)).length ?? 0;
   const next = progress.unlocks
@@ -136,6 +138,14 @@ export default async function HomePage() {
             <p className="type-body">{alumniUnlock.unlocked ? alumniCopy.home.open : alumniCopy.home.locked(alumniUnlock.current, alumniUnlock.required)}</p>
             <Link href="/alumni" className={buttonStyles({ variant: 'secondary', size: 'md', className: 'self-start' })}>
               {alumniCopy.home.link}
+            </Link>
+          </Card>
+        ) : null}
+        {fypUnlock ? (
+          <Card title={fypBoardCopy.home.title} className="flex flex-col gap-3">
+            <p className="type-body">{fypUnlock.unlocked ? fypBoardCopy.home.open : fypBoardCopy.home.locked(fypUnlock.current, fypUnlock.required)}</p>
+            <Link href="/fyp" className={buttonStyles({ variant: 'secondary', size: 'md', className: 'self-start' })}>
+              {fypBoardCopy.home.link}
             </Link>
           </Card>
         ) : null}
