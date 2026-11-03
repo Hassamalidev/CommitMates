@@ -1,3 +1,4 @@
+import { serverEnv } from '@commitmates/env/server';
 import type { ReactNode } from 'react';
 
 import { legalCopy } from '@/copy/legal';
@@ -19,7 +20,6 @@ export function ProsePage({ title, intro, updated, sections = [], children }: Pr
       <h1 className="type-h1">{title}</h1>
       <p className="type-small mt-2 text-fg-muted">{legalCopy.updated(updated)}</p>
       <p className="type-body mt-6">{intro}</p>
-      <p className="type-small mt-4 rounded-control border border-line bg-surface p-3 text-fg-muted">{legalCopy.draftNote}</p>
       {sections.map((section) => (
         <section key={section.title} className="mt-8">
           <h2 className="type-h3">{section.title}</h2>
@@ -31,6 +31,7 @@ export function ProsePage({ title, intro, updated, sections = [], children }: Pr
         </section>
       ))}
       {children}
+      <p className="type-small mt-10 border-t border-line pt-4 text-fg-muted">{legalCopy.contact(serverEnv.CONTACT_EMAIL)}</p>
     </article>
   );
 }

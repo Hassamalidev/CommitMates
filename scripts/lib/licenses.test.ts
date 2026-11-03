@@ -5,6 +5,7 @@ import {
   findLicenseViolations,
   formatLicenseViolation,
   isLicenseAllowed,
+  dependencyCredits,
   parsePnpmLicenses,
 } from './licenses';
 
@@ -68,6 +69,27 @@ describe('findLicenseViolations', () => {
     ]);
     const relicensed = [{ name: 'odd-lib', version: '3.0.0', license: 'GPL-3.0' }];
     expect(findLicenseViolations(relicensed, ALLOWED_LICENSES, [exception])).toHaveLength(1);
+  });
+});
+
+describe('dependencyCredits', () => {
+  it('lists each package once, sorted, without versions, linking to its homepage or npm page', () => {
+    const credits = dependencyCredits({
+      MIT: [
+        { name: 'zod', versions: ['4.0.0', '4.1.0'], license: 'MIT', homepage: 'https://zod.dev' },
+        { name: '@scope/tool', versions: ['1.0.0'], license: 'MIT', homepage: 'git+ssh://example' },
+      ],
+      'CC-BY-4.0': [{ name: 'caniuse-lite', versions: ['1.0.1'], license: 'CC-BY-4.0' }],
+    });
+    expect(credits).toEqual([
+      { name: '@scope/tool', license: 'MIT', homepage: 'https://www.npmjs.com/package/@scope/tool' },
+      { name: 'caniuse-lite', license: 'CC-BY-4.0', homepage: 'https://www.npmjs.com/package/caniuse-lite' },
+      { name: 'zod', license: 'MIT', homepage: 'https://zod.dev' },
+    ]);
+  });
+
+  it('rejects unexpected output', () => {
+    expect(() => dependencyCredits(null)).toThrow();
   });
 });
 

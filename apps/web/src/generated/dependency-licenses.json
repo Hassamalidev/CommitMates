@@ -1,0 +1,707 @@
+[
+  {
+    "name": "@floating-ui/core",
+    "license": "MIT",
+    "homepage": "https://floating-ui.com"
+  },
+  {
+    "name": "@floating-ui/dom",
+    "license": "MIT",
+    "homepage": "https://floating-ui.com"
+  },
+  {
+    "name": "@floating-ui/react-dom",
+    "license": "MIT",
+    "homepage": "https://floating-ui.com/docs/react-dom"
+  },
+  {
+    "name": "@floating-ui/utils",
+    "license": "MIT",
+    "homepage": "https://floating-ui.com"
+  },
+  {
+    "name": "@fontsource/inter",
+    "license": "OFL-1.1",
+    "homepage": "https://fontsource.org/fonts/inter"
+  },
+  {
+    "name": "@fontsource/pixelify-sans",
+    "license": "OFL-1.1",
+    "homepage": "https://fontsource.org/fonts/pixelify-sans"
+  },
+  {
+    "name": "@next/env",
+    "license": "MIT",
+    "homepage": "https://github.com/vercel/next.js#readme"
+  },
+  {
+    "name": "@octokit/auth-token",
+    "license": "MIT",
+    "homepage": "https://github.com/octokit/auth-token.js#readme"
+  },
+  {
+    "name": "@octokit/core",
+    "license": "MIT",
+    "homepage": "https://github.com/octokit/core.js#readme"
+  },
+  {
+    "name": "@octokit/endpoint",
+    "license": "MIT",
+    "homepage": "https://github.com/octokit/endpoint.js#readme"
+  },
+  {
+    "name": "@octokit/graphql",
+    "license": "MIT",
+    "homepage": "https://github.com/octokit/graphql.js#readme"
+  },
+  {
+    "name": "@octokit/openapi-types",
+    "license": "MIT",
+    "homepage": "https://github.com/octokit/openapi-types.ts#readme"
+  },
+  {
+    "name": "@octokit/request",
+    "license": "MIT",
+    "homepage": "https://github.com/octokit/request.js#readme"
+  },
+  {
+    "name": "@octokit/request-error",
+    "license": "MIT",
+    "homepage": "https://github.com/octokit/request-error.js#readme"
+  },
+  {
+    "name": "@octokit/types",
+    "license": "MIT",
+    "homepage": "https://github.com/octokit/types.ts#readme"
+  },
+  {
+    "name": "@photostructure/tz-lookup",
+    "license": "CC0-1.0",
+    "homepage": "https://github.com/photostructure/tz-lookup#readme"
+  },
+  {
+    "name": "@pinojs/redact",
+    "license": "MIT",
+    "homepage": "https://github.com/pinojs/redact#readme"
+  },
+  {
+    "name": "@radix-ui/number",
+    "license": "MIT",
+    "homepage": "https://radix-ui.com/primitives"
+  },
+  {
+    "name": "@radix-ui/primitive",
+    "license": "MIT",
+    "homepage": "https://radix-ui.com/primitives"
+  },
+  {
+    "name": "@radix-ui/react-accessible-icon",
+    "license": "MIT",
+    "homepage": "https://radix-ui.com/primitives"
+  },
+  {
+    "name": "@radix-ui/react-accordion",
+    "license": "MIT",
+    "homepage": "https://radix-ui.com/primitives"
+  },
+  {
+    "name": "@radix-ui/react-alert-dialog",
+    "license": "MIT",
+    "homepage": "https://radix-ui.com/primitives"
+  },
+  {
+    "name": "@radix-ui/react-arrow",
+    "license": "MIT",
+    "homepage": "https://radix-ui.com/primitives"
+  },
+  {
+    "name": "@radix-ui/react-aspect-ratio",
+    "license": "MIT",
+    "homepage": "https://radix-ui.com/primitives"
+  },
+  {
+    "name": "@radix-ui/react-avatar",
+    "license": "MIT",
+    "homepage": "https://radix-ui.com/primitives"
+  },
+  {
+    "name": "@radix-ui/react-checkbox",
+    "license": "MIT",
+    "homepage": "https://radix-ui.com/primitives"
+  },
+  {
+    "name": "@radix-ui/react-collapsible",
+    "license": "MIT",
+    "homepage": "https://radix-ui.com/primitives"
+  },
+  {
+    "name": "@radix-ui/react-collection",
+    "license": "MIT",
+    "homepage": "https://radix-ui.com/primitives"
+  },
+  {
+    "name": "@radix-ui/react-compose-refs",
+    "license": "MIT",
+    "homepage": "https://radix-ui.com/primitives"
+  },
+  {
+    "name": "@radix-ui/react-context",
+    "license": "MIT",
+    "homepage": "https://radix-ui.com/primitives"
+  },
+  {
+    "name": "@radix-ui/react-context-menu",
+    "license": "MIT",
+    "homepage": "https://radix-ui.com/primitives"
+  },
+  {
+    "name": "@radix-ui/react-dialog",
+    "license": "MIT",
+    "homepage": "https://radix-ui.com/primitives"
+  },
+  {
+    "name": "@radix-ui/react-direction",
+    "license": "MIT",
+    "homepage": "https://radix-ui.com/primitives"
+  },
+  {
+    "name": "@radix-ui/react-dismissable-layer",
+    "license": "MIT",
+    "homepage": "https://radix-ui.com/primitives"
+  },
+  {
+    "name": "@radix-ui/react-dropdown-menu",
+    "license": "MIT",
+    "homepage": "https://radix-ui.com/primitives"
+  },
+  {
+    "name": "@radix-ui/react-focus-guards",
+    "license": "MIT",
+    "homepage": "https://radix-ui.com/primitives"
+  },
+  {
+    "name": "@radix-ui/react-focus-scope",
+    "license": "MIT",
+    "homepage": "https://radix-ui.com/primitives"
+  },
+  {
+    "name": "@radix-ui/react-form",
+    "license": "MIT",
+    "homepage": "https://radix-ui.com/primitives"
+  },
+  {
+    "name": "@radix-ui/react-hover-card",
+    "license": "MIT",
+    "homepage": "https://radix-ui.com/primitives"
+  },
+  {
+    "name": "@radix-ui/react-id",
+    "license": "MIT",
+    "homepage": "https://radix-ui.com/primitives"
+  },
+  {
+    "name": "@radix-ui/react-label",
+    "license": "MIT",
+    "homepage": "https://radix-ui.com/primitives"
+  },
+  {
+    "name": "@radix-ui/react-menu",
+    "license": "MIT",
+    "homepage": "https://radix-ui.com/primitives"
+  },
+  {
+    "name": "@radix-ui/react-menubar",
+    "license": "MIT",
+    "homepage": "https://radix-ui.com/primitives"
+  },
+  {
+    "name": "@radix-ui/react-navigation-menu",
+    "license": "MIT",
+    "homepage": "https://radix-ui.com/primitives"
+  },
+  {
+    "name": "@radix-ui/react-one-time-password-field",
+    "license": "MIT",
+    "homepage": "https://radix-ui.com/primitives"
+  },
+  {
+    "name": "@radix-ui/react-password-toggle-field",
+    "license": "MIT",
+    "homepage": "https://radix-ui.com/primitives"
+  },
+  {
+    "name": "@radix-ui/react-popover",
+    "license": "MIT",
+    "homepage": "https://radix-ui.com/primitives"
+  },
+  {
+    "name": "@radix-ui/react-popper",
+    "license": "MIT",
+    "homepage": "https://radix-ui.com/primitives"
+  },
+  {
+    "name": "@radix-ui/react-portal",
+    "license": "MIT",
+    "homepage": "https://radix-ui.com/primitives"
+  },
+  {
+    "name": "@radix-ui/react-presence",
+    "license": "MIT",
+    "homepage": "https://radix-ui.com/primitives"
+  },
+  {
+    "name": "@radix-ui/react-primitive",
+    "license": "MIT",
+    "homepage": "https://radix-ui.com/primitives"
+  },
+  {
+    "name": "@radix-ui/react-progress",
+    "license": "MIT",
+    "homepage": "https://radix-ui.com/primitives"
+  },
+  {
+    "name": "@radix-ui/react-radio-group",
+    "license": "MIT",
+    "homepage": "https://radix-ui.com/primitives"
+  },
+  {
+    "name": "@radix-ui/react-roving-focus",
+    "license": "MIT",
+    "homepage": "https://radix-ui.com/primitives"
+  },
+  {
+    "name": "@radix-ui/react-scroll-area",
+    "license": "MIT",
+    "homepage": "https://radix-ui.com/primitives"
+  },
+  {
+    "name": "@radix-ui/react-select",
+    "license": "MIT",
+    "homepage": "https://radix-ui.com/primitives"
+  },
+  {
+    "name": "@radix-ui/react-separator",
+    "license": "MIT",
+    "homepage": "https://radix-ui.com/primitives"
+  },
+  {
+    "name": "@radix-ui/react-slider",
+    "license": "MIT",
+    "homepage": "https://radix-ui.com/primitives"
+  },
+  {
+    "name": "@radix-ui/react-slot",
+    "license": "MIT",
+    "homepage": "https://radix-ui.com/primitives"
+  },
+  {
+    "name": "@radix-ui/react-switch",
+    "license": "MIT",
+    "homepage": "https://radix-ui.com/primitives"
+  },
+  {
+    "name": "@radix-ui/react-tabs",
+    "license": "MIT",
+    "homepage": "https://radix-ui.com/primitives"
+  },
+  {
+    "name": "@radix-ui/react-toast",
+    "license": "MIT",
+    "homepage": "https://radix-ui.com/primitives"
+  },
+  {
+    "name": "@radix-ui/react-toggle",
+    "license": "MIT",
+    "homepage": "https://radix-ui.com/primitives"
+  },
+  {
+    "name": "@radix-ui/react-toggle-group",
+    "license": "MIT",
+    "homepage": "https://radix-ui.com/primitives"
+  },
+  {
+    "name": "@radix-ui/react-toolbar",
+    "license": "MIT",
+    "homepage": "https://radix-ui.com/primitives"
+  },
+  {
+    "name": "@radix-ui/react-tooltip",
+    "license": "MIT",
+    "homepage": "https://radix-ui.com/primitives"
+  },
+  {
+    "name": "@radix-ui/react-use-callback-ref",
+    "license": "MIT",
+    "homepage": "https://radix-ui.com/primitives"
+  },
+  {
+    "name": "@radix-ui/react-use-controllable-state",
+    "license": "MIT",
+    "homepage": "https://radix-ui.com/primitives"
+  },
+  {
+    "name": "@radix-ui/react-use-effect-event",
+    "license": "MIT",
+    "homepage": "https://radix-ui.com/primitives"
+  },
+  {
+    "name": "@radix-ui/react-use-escape-keydown",
+    "license": "MIT",
+    "homepage": "https://radix-ui.com/primitives"
+  },
+  {
+    "name": "@radix-ui/react-use-is-hydrated",
+    "license": "MIT",
+    "homepage": "https://radix-ui.com/primitives"
+  },
+  {
+    "name": "@radix-ui/react-use-layout-effect",
+    "license": "MIT",
+    "homepage": "https://radix-ui.com/primitives"
+  },
+  {
+    "name": "@radix-ui/react-use-previous",
+    "license": "MIT",
+    "homepage": "https://radix-ui.com/primitives"
+  },
+  {
+    "name": "@radix-ui/react-use-rect",
+    "license": "MIT",
+    "homepage": "https://radix-ui.com/primitives"
+  },
+  {
+    "name": "@radix-ui/react-use-size",
+    "license": "MIT",
+    "homepage": "https://radix-ui.com/primitives"
+  },
+  {
+    "name": "@radix-ui/react-visually-hidden",
+    "license": "MIT",
+    "homepage": "https://radix-ui.com/primitives"
+  },
+  {
+    "name": "@radix-ui/rect",
+    "license": "MIT",
+    "homepage": "https://radix-ui.com/primitives"
+  },
+  {
+    "name": "@supabase/auth-js",
+    "license": "MIT",
+    "homepage": "https://github.com/supabase/supabase-js/tree/master/packages/core/auth-js"
+  },
+  {
+    "name": "@supabase/functions-js",
+    "license": "MIT",
+    "homepage": "https://github.com/supabase/supabase-js/tree/master/packages/core/functions-js"
+  },
+  {
+    "name": "@supabase/phoenix",
+    "license": "MIT",
+    "homepage": "https://github.com/supabase/phoenix#readme"
+  },
+  {
+    "name": "@supabase/postgrest-js",
+    "license": "MIT",
+    "homepage": "https://github.com/supabase/supabase-js/tree/master/packages/core/postgrest-js"
+  },
+  {
+    "name": "@supabase/realtime-js",
+    "license": "MIT",
+    "homepage": "https://github.com/supabase/supabase-js/tree/master/packages/core/realtime-js"
+  },
+  {
+    "name": "@supabase/ssr",
+    "license": "MIT",
+    "homepage": "https://github.com/supabase/ssr#readme"
+  },
+  {
+    "name": "@supabase/storage-js",
+    "license": "MIT",
+    "homepage": "https://github.com/supabase/supabase-js/tree/master/packages/core/storage-js"
+  },
+  {
+    "name": "@supabase/supabase-js",
+    "license": "MIT",
+    "homepage": "https://github.com/supabase/supabase-js/tree/master/packages/core/supabase-js"
+  },
+  {
+    "name": "@swc/helpers",
+    "license": "Apache-2.0",
+    "homepage": "https://swc.rs"
+  },
+  {
+    "name": "aria-hidden",
+    "license": "MIT",
+    "homepage": "https://github.com/theKashey/aria-hidden#readme"
+  },
+  {
+    "name": "atomic-sleep",
+    "license": "MIT",
+    "homepage": "https://github.com/davidmarkclements/atomic-sleep#readme"
+  },
+  {
+    "name": "baseline-browser-mapping",
+    "license": "Apache-2.0",
+    "homepage": "https://github.com/web-platform-dx/baseline-browser-mapping#readme"
+  },
+  {
+    "name": "before-after-hook",
+    "license": "Apache-2.0",
+    "homepage": "https://github.com/gr2m/before-after-hook#readme"
+  },
+  {
+    "name": "caniuse-lite",
+    "license": "CC-BY-4.0",
+    "homepage": "https://github.com/browserslist/caniuse-lite#readme"
+  },
+  {
+    "name": "class-variance-authority",
+    "license": "Apache-2.0",
+    "homepage": "https://github.com/joe-bell/cva#readme"
+  },
+  {
+    "name": "client-only",
+    "license": "MIT",
+    "homepage": "https://reactjs.org/"
+  },
+  {
+    "name": "clsx",
+    "license": "MIT",
+    "homepage": "https://github.com/lukeed/clsx#readme"
+  },
+  {
+    "name": "content-type",
+    "license": "MIT",
+    "homepage": "https://github.com/jshttp/content-type#readme"
+  },
+  {
+    "name": "cookie",
+    "license": "MIT",
+    "homepage": "https://github.com/jshttp/cookie#readme"
+  },
+  {
+    "name": "cron-parser",
+    "license": "MIT",
+    "homepage": "https://github.com/harrisiirak/cron-parser#readme"
+  },
+  {
+    "name": "detect-node-es",
+    "license": "MIT",
+    "homepage": "https://github.com/thekashey/detect-node"
+  },
+  {
+    "name": "drizzle-orm",
+    "license": "Apache-2.0",
+    "homepage": "https://orm.drizzle.team"
+  },
+  {
+    "name": "esbuild",
+    "license": "MIT",
+    "homepage": "https://github.com/evanw/esbuild#readme"
+  },
+  {
+    "name": "get-nonce",
+    "license": "MIT",
+    "homepage": "https://github.com/theKashey/get-nonce"
+  },
+  {
+    "name": "iceberg-js",
+    "license": "MIT",
+    "homepage": "https://github.com/supabase/iceberg-js#readme"
+  },
+  {
+    "name": "json-with-bigint",
+    "license": "MIT",
+    "homepage": "https://github.com/Ivan-Korolenko/json-with-bigint#readme"
+  },
+  {
+    "name": "luxon",
+    "license": "MIT",
+    "homepage": "https://github.com/moment/luxon#readme"
+  },
+  {
+    "name": "nanoid",
+    "license": "MIT",
+    "homepage": "https://github.com/ai/nanoid#readme"
+  },
+  {
+    "name": "next",
+    "license": "MIT",
+    "homepage": "https://nextjs.org"
+  },
+  {
+    "name": "nodemailer",
+    "license": "MIT-0",
+    "homepage": "https://nodemailer.com/"
+  },
+  {
+    "name": "on-exit-leak-free",
+    "license": "MIT",
+    "homepage": "https://github.com/mcollina/on-exit-or-gc#readme"
+  },
+  {
+    "name": "picocolors",
+    "license": "ISC",
+    "homepage": "https://github.com/alexeyraspopov/picocolors#readme"
+  },
+  {
+    "name": "pino",
+    "license": "MIT",
+    "homepage": "https://getpino.io"
+  },
+  {
+    "name": "pino-abstract-transport",
+    "license": "MIT",
+    "homepage": "https://github.com/pinojs/pino-abstract-transport#readme"
+  },
+  {
+    "name": "pino-std-serializers",
+    "license": "MIT",
+    "homepage": "https://github.com/pinojs/pino-std-serializers#readme"
+  },
+  {
+    "name": "postcss",
+    "license": "MIT",
+    "homepage": "https://postcss.org/"
+  },
+  {
+    "name": "postgres",
+    "license": "Unlicense",
+    "homepage": "https://github.com/porsager/postgres"
+  },
+  {
+    "name": "process-warning",
+    "license": "MIT",
+    "homepage": "https://github.com/fastify/fastify-warning#readme"
+  },
+  {
+    "name": "quick-format-unescaped",
+    "license": "MIT",
+    "homepage": "https://github.com/davidmarkclements/quick-format#readme"
+  },
+  {
+    "name": "radix-ui",
+    "license": "MIT",
+    "homepage": "https://radix-ui.com/primitives"
+  },
+  {
+    "name": "re2js",
+    "license": "MIT",
+    "homepage": "https://github.com/le0pard/re2js#readme"
+  },
+  {
+    "name": "react",
+    "license": "MIT",
+    "homepage": "https://react.dev/"
+  },
+  {
+    "name": "react-dom",
+    "license": "MIT",
+    "homepage": "https://react.dev/"
+  },
+  {
+    "name": "react-remove-scroll",
+    "license": "MIT",
+    "homepage": "https://github.com/theKashey/react-remove-scroll#readme"
+  },
+  {
+    "name": "react-remove-scroll-bar",
+    "license": "MIT",
+    "homepage": "https://github.com/theKashey/react-remove-scroll-bar#readme"
+  },
+  {
+    "name": "react-style-singleton",
+    "license": "MIT",
+    "homepage": "https://github.com/theKashey/react-style-singleton#readme"
+  },
+  {
+    "name": "real-require",
+    "license": "MIT",
+    "homepage": "https://github.com/pinojs/real-require"
+  },
+  {
+    "name": "safe-stable-stringify",
+    "license": "MIT",
+    "homepage": "https://github.com/BridgeAR/safe-stable-stringify#readme"
+  },
+  {
+    "name": "scheduler",
+    "license": "MIT",
+    "homepage": "https://react.dev/"
+  },
+  {
+    "name": "server-only",
+    "license": "MIT",
+    "homepage": "https://reactjs.org/"
+  },
+  {
+    "name": "smol-toml",
+    "license": "BSD-3-Clause",
+    "homepage": "https://github.com/squirrelchat/smol-toml#readme"
+  },
+  {
+    "name": "sonic-boom",
+    "license": "MIT",
+    "homepage": "https://github.com/pinojs/sonic-boom#readme"
+  },
+  {
+    "name": "source-map-js",
+    "license": "BSD-3-Clause",
+    "homepage": "https://github.com/7rulnik/source-map-js"
+  },
+  {
+    "name": "split2",
+    "license": "ISC",
+    "homepage": "https://github.com/mcollina/split2#readme"
+  },
+  {
+    "name": "styled-jsx",
+    "license": "MIT",
+    "homepage": "https://github.com/vercel/styled-jsx#readme"
+  },
+  {
+    "name": "tailwind-merge",
+    "license": "MIT",
+    "homepage": "https://github.com/dcastil/tailwind-merge"
+  },
+  {
+    "name": "thread-stream",
+    "license": "MIT",
+    "homepage": "https://github.com/mcollina/thread-stream#readme"
+  },
+  {
+    "name": "tslib",
+    "license": "0BSD",
+    "homepage": "https://www.typescriptlang.org/"
+  },
+  {
+    "name": "tsx",
+    "license": "MIT",
+    "homepage": "https://tsx.hirok.io"
+  },
+  {
+    "name": "universal-user-agent",
+    "license": "ISC",
+    "homepage": "https://github.com/gr2m/universal-user-agent#readme"
+  },
+  {
+    "name": "use-callback-ref",
+    "license": "MIT",
+    "homepage": "https://www.npmjs.com/package/use-callback-ref"
+  },
+  {
+    "name": "use-sidecar",
+    "license": "MIT",
+    "homepage": "https://github.com/theKashey/use-sidecar"
+  },
+  {
+    "name": "yaml",
+    "license": "ISC",
+    "homepage": "https://eemeli.org/yaml/"
+  },
+  {
+    "name": "zod",
+    "license": "MIT",
+    "homepage": "https://zod.dev"
+  }
+]

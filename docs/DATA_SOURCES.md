@@ -162,6 +162,16 @@ PyPI names are normalized per PEP 503. Fixtures are real manifests from well-kno
 - Refresh: weekly (job `sync_disposable_emails`, Sunday 06:30 UTC).
 - License and attribution: CC0 1.0 (ADR-007); credited on `/attribution` as a courtesy.
 
+## Attribution page
+
+`/attribution` (CLAUDE.md §6.11) is generated from what the app uses:
+
+- **Synced sources:** `SYNCED_SOURCE_NAMES` in `packages/core/src/attribution/service.ts` lists every source module. A test keeps that list equal to the modules in this package, and the page's copy is typed so each name must have a credit. Each credit shows the source's last sync from `source_snapshots`.
+- **Sources used on request:** the GitHub API, the package registries, Nominatim and tz-lookup are credited in the page's copy.
+- **Packages:** `apps/web/src/generated/dependency-licenses.json` lists every production dependency with its license and homepage, without versions. `pnpm licenses:report` rewrites it, and `pnpm check:licenses` fails when it no longer matches the installed dependencies ([ADR-013](decisions/ADR-013-legal-and-attribution.md)).
+
+A new source needs its module name added to `SYNCED_SOURCE_NAMES` and a credit in `apps/web/src/copy/legal.ts`.
+
 ## How to add a section
 
 ```markdown

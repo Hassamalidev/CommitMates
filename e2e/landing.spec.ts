@@ -107,6 +107,23 @@ test.describe('site pages', () => {
     });
   }
 
+  test('the attribution page credits the synced sources and every shipped package', async ({ page }) => {
+    await page.goto('/attribution');
+    // Each synced source is credited, with its last sync when one has run (source_snapshots).
+    for (const source of ['GitHub Linguist', 'github/explore', 'gitleaks', 'stopwords-iso', 'Hipo university-domains-list', 'disposable-email-domains']) {
+      await expect(page.getByRole('link', { name: source, exact: true })).toBeVisible();
+    }
+    await expect(page.getByText(/^(Last synced .+|Not synced yet)\.$/).first()).toBeVisible();
+    // The package table comes from the dependency license report, including attribution licenses.
+    const packages = page.getByRole('table', { name: 'Open-source packages in the site, with their licenses' });
+    await expect(packages.getByRole('row', { name: /^next MIT$/ })).toBeVisible();
+    await expect(packages.getByRole('row', { name: /^caniuse-lite CC-BY-4.0$/ })).toBeVisible();
+    expect(await packages.getByRole('row').count()).toBeGreaterThan(100);
+    // Policies end with a way to reach us, and are no longer drafts.
+    await expect(page.getByText(/^Questions about this page, or a request about your data: .+@.+\.$/)).toBeVisible();
+    await expect(page.getByText(/will be finalized before public launch/)).toHaveCount(0);
+  });
+
   test('an unknown address shows the friendly 404 page', async ({ page }) => {
     const response = await page.goto('/this-page-does-not-exist');
     expect(response?.status()).toBe(404);

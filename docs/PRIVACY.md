@@ -28,7 +28,8 @@ Every personal-data field the app stores: why it exists, how long it is kept, an
   2. One transaction deletes what no foreign key cascades from: analyses cached about the member (by login), their GitHub user row and their repositories with manifests, dependencies and paths. It also writes an `audit_log` entry whose target is `hashUserId(id)`.
   3. The Supabase auth user is deleted, and every class A and B table cascades from it.
   4. The session ends.
-- **Not yet applicable:** §5.12 step 3 (ending pairs, withdrawing listings, refunding escrows, cancelling questions) and replacing a member's chat messages arrive with those features in Phases 4–6.
+- **What else deletion does (§5.12 steps 2–3):** in the same transaction, conversations shared with others keep going with the member's messages replaced by one "a member left" note, and conversations only they were in are deleted; swap proposals naming them and their own leaderboard rows are deleted (neither has a foreign key to cascade); partners in open streak pairs are notified, and the pairs end with the account. Listings, adoptions, review requests with their escrow, credits, questions, events and ideas are class A rows and cascade; a review request the member had claimed reopens through `expire_reviews`.
+- **Public statement:** the privacy policy at `/privacy` (`apps/web/src/copy/legal.ts`) describes this file in plain words; change both together.
 - **Deviation from §5.12 step 1:** the GitHub OAuth grant is not revoked by the server. Revoking a grant needs the OAuth app's client secret, which only Supabase Auth holds. The page links to GitHub's authorized-applications settings instead, where the member can revoke it.
 
 ## Field inventory

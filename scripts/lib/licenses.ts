@@ -119,7 +119,7 @@ export function findLicenseViolations(
   });
 }
 
-type PnpmLicenseEntry = { name?: unknown; versions?: unknown; version?: unknown; license?: unknown };
+type PnpmLicenseEntry = { name?: unknown; versions?: unknown; version?: unknown; license?: unknown; homepage?: unknown };
 
 /** Flattens `pnpm licenses list --json` (license → packages) into one row per package version. */
 export function parsePnpmLicenses(json: unknown): PackageLicense[] {
@@ -140,6 +140,30 @@ export function parsePnpmLicenses(json: unknown): PackageLicense[] {
     }
   }
   return rows;
+}
+
+/** One shipped dependency as credited on /attribution (CLAUDE.md §6.11). */
+export type DependencyCredit = { name: string; license: string; homepage: string };
+
+/**
+ * The public list of shipped dependencies: one entry per package name, sorted, without versions so
+ * that version updates leave it unchanged. A package without a usable homepage links to its npm page.
+ */
+export function dependencyCredits(json: unknown): DependencyCredit[] {
+  if (typeof json !== 'object' || json === null) throw new Error('Unexpected output from pnpm licenses');
+  const byName = new Map<string, DependencyCredit>();
+  for (const [license, entries] of Object.entries(json)) {
+    if (!Array.isArray(entries)) continue;
+    for (const entry of entries as PnpmLicenseEntry[]) {
+      if (typeof entry.name !== 'string' || byName.has(entry.name)) continue;
+      const homepage =
+        typeof entry.homepage === 'string' && /^https?:\/\//.test(entry.homepage)
+          ? entry.homepage
+          : `https://www.npmjs.com/package/${entry.name}`;
+      byName.set(entry.name, { name: entry.name, license: typeof entry.license === 'string' ? entry.license : license, homepage });
+    }
+  }
+  return [...byName.values()].sort((a, b) => a.name.localeCompare(b.name, 'en'));
 }
 
 export function formatLicenseViolation(pkg: PackageLicense): string {
