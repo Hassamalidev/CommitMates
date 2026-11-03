@@ -50,7 +50,10 @@ describe('notification words', () => {
       'squad_swap_decided',
       'squads_final',
       'fyp_detected',
+      'fyp_interest',
+      'fyp_team',
     ]);
+    expect(Object.keys(MUTABLE_NOTIFICATIONS)).not.toContain('supervisor_approved');
     expect(Object.keys(MUTABLE_NOTIFICATIONS)).not.toContain('became_alumni');
     expect(Object.keys(MUTABLE_NOTIFICATIONS)).not.toContain('account_hidden');
     expect(Object.keys(MUTABLE_NOTIFICATIONS)).not.toContain('github_reconnect');

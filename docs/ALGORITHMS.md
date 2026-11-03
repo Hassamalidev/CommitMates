@@ -328,6 +328,18 @@ All algorithms live in `packages/algorithms` and are pure: no I/O, no clock, no 
 - Tests: `packages/core/src/fyp/projects.test.ts`, `apps/web/src/components/fyp/fyp.test.tsx`
 - Spec: CLAUDE.md §8 F22 "Past projects corpus", §8 F9 step 6, §8 F17
 
+### Ideas and supervisors
+
+- Code: `packages/core/src/fyp/board.ts`, queries in `packages/db/src/queries/fyp.ts`
+- Access: verified members of a university with `unlock.fypBoard.minMembers` verified members
+- Supervisors: members whose role is `supervisor_pending` (or approved supervisors updating their areas) apply with areas from the tag vocabulary (normalized like package tags, at most `fyp.maxSupervisorAreas`); admins, or moderators of that university, approve (the role becomes `supervisor`) or turn the application down (it is removed), audited as `fyp.supervisor_approved` / `fyp.supervisor_rejected`, and the member is notified. The board lists approved supervisors with their areas and open supervisor ideas.
+- Checking and posting: before posting, the author sees the idea's YAKE keyphrases (the F9 extractor) and its closest past projects at the university (the F9 university matches), and runs the worldwide F9 check from the page. A posted idea stores its keyphrases; "supervisor idea" needs an approved supervisor of the university.
+- Listing: ideas at the university, newest first, at most `fyp.listLimit`, from active members only and never across a block with the viewer, filtered by keyphrase, status (archived only when asked for) or supervisor ideas. An idea's page shows the same university matches as its duplicate-check summary.
+- Teams: members express interest with a message (1 to `fyp.interestMaxChars` characters) while the idea is open or forming a team, and the author is notified; the author picks teammates among the interested once, which opens a group conversation (note `fyp:` with the title), marks the idea team forming and notifies those picked. The author can mark it taken, archive it or open it again (back to team forming when a team exists).
+- Settings: `unlock.fypBoard.minMembers` (10), `fyp.maxSupervisorAreas` (10), `fyp.interestMaxChars` (500), `fyp.listLimit` (50)
+- Tests: `packages/core/src/fyp/board.test.ts`
+- Spec: CLAUDE.md §8 F22 "Supervisors", "Ideas", "UI"
+
 ## Squad Builder
 
 ### Roles and formation

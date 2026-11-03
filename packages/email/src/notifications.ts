@@ -183,6 +183,26 @@ const describers: Readonly<Record<string, (data: Record<string, unknown>) => Not
     line: `Teams for ${text(data.title) || 'your event'} are final. Say hello in your team conversation.`,
     path: isUuid(text(data.threadId)) ? `/inbox/${text(data.threadId)}` : '/inbox',
   }),
+  supervisor_approved: () => ({
+    title: 'You are a supervisor on the FYP Board',
+    line: 'Your supervisor application was approved. You can now post supervisor ideas.',
+    path: '/fyp',
+  }),
+  supervisor_rejected: () => ({
+    title: 'Your supervisor application was not approved',
+    line: 'A moderator did not approve your supervisor application. You can apply again with your areas.',
+    path: '/fyp',
+  }),
+  fyp_interest: (data) => ({
+    title: 'Someone wants to join your idea',
+    line: `${text(data.login) ? `@${text(data.login)}` : 'A member'} wants to work on ${text(data.title) || 'your idea'} with you.`,
+    path: isUuid(text(data.ideaId)) ? `/fyp/ideas/${text(data.ideaId)}` : '/fyp',
+  }),
+  fyp_team: (data) => ({
+    title: 'You are on the team',
+    line: `You were picked for ${text(data.title) || 'a final-year project idea'}. Say hello in your team conversation.`,
+    path: isUuid(text(data.threadId)) ? `/inbox/${text(data.threadId)}` : '/fyp',
+  }),
   fyp_detected: (data) => ({
     title: 'Is this your final-year project?',
     line:
@@ -249,4 +269,6 @@ export const MUTABLE_NOTIFICATIONS: Readonly<Record<string, string>> = {
   squad_swap_decided: 'Answers to your team switch requests',
   squads_final: 'Final event teams',
   fyp_detected: 'Repositories that look like final-year projects',
+  fyp_interest: 'People who want to join your ideas',
+  fyp_team: 'Teams you were picked for',
 };

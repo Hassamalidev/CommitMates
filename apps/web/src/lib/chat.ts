@@ -85,6 +85,8 @@ export function linkify(text: string): TextPart[] {
 const SWAP_PREFIX = 'swap:';
 /** Prefix of a final team's opening note (CLAUDE.md §8 F21); `{ event, members: [{ login, role }] }` follows as JSON. */
 const SQUAD_PREFIX = 'squad:';
+/** Prefix of an idea team's opening note (CLAUDE.md §8 F22); `{ title }` follows as JSON. */
+const FYP_PREFIX = 'fyp:';
 /** Prefix of an answered alumni question's opening note (CLAUDE.md §8 F20); `{ body }` follows as JSON. */
 const QUESTION_PREFIX = 'question:';
 
@@ -115,6 +117,16 @@ function parseSquad(json: string): { event: string; members: { login: string | n
   }
 }
 
+/** The idea an FYP team note names, or null when the data is not what the server writes. */
+function parseTitle(json: string): string | null {
+  try {
+    const value: unknown = JSON.parse(json);
+    return isRecord(value) && typeof value.title === 'string' ? value.title : null;
+  } catch {
+    return null;
+  }
+}
+
 /** The question an alumni note quotes, or null when the data is not what the server writes. */
 function parseQuestion(json: string): string | null {
   try {
@@ -136,6 +148,10 @@ export function systemNoteText(body: string): string {
   if (body.startsWith(SQUAD_PREFIX)) {
     const squad = parseSquad(body.slice(SQUAD_PREFIX.length));
     if (squad) return copy.squad(squad.event, squad.members);
+  }
+  if (body.startsWith(FYP_PREFIX)) {
+    const title = parseTitle(body.slice(FYP_PREFIX.length));
+    if (title !== null) return copy.fyp(title);
   }
   if (body.startsWith(QUESTION_PREFIX)) {
     const question = parseQuestion(body.slice(QUESTION_PREFIX.length));

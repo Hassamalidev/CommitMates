@@ -83,6 +83,25 @@ export { ossInputSchema, ossResultSchema, type OssInput, type OssIssue, type Oss
 export { listLanguages as listLanguageNames } from '@commitmates/db';
 export { FYP_STEPS, fypTool } from './fyp/jobs';
 export {
+  FYP_NOTE_PREFIX,
+  applySupervisor,
+  checkIdea,
+  decideSupervisor,
+  expressInterest,
+  fypBoardAccess,
+  getIdea,
+  listIdeas,
+  listSupervisors,
+  ownSupervisorStatus,
+  pendingSupervisors,
+  pickTeam,
+  postIdea,
+  setIdeaStatus,
+  withdrawInterest,
+  type IdeaCheck,
+  type IdeaDetail,
+} from './fyp/board';
+export {
   checkIdeaAtUniversity,
   confirmDetectedProject,
   detectMemberProjects,
