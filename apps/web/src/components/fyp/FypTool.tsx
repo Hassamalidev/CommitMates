@@ -1,6 +1,6 @@
 'use client';
 
-import type { FypResult } from '@commitmates/core';
+import type { FypResult, UniversityMatch } from '@commitmates/core';
 import { Button, Card, Chip, Input, Textarea } from '@commitmates/ui';
 import { useState, type SubmitEvent } from 'react';
 
@@ -8,6 +8,7 @@ import { JobStatus } from '@/components/tools/JobStatus';
 import { fypCopy } from '@/copy/fyp';
 import type { JobState } from '@/lib/job-state';
 import { useJob } from '@/lib/use-job';
+import type { ActionResult } from '@/server/action';
 
 const isRecord = (value: unknown): value is Record<string, unknown> => typeof value === 'object' && value !== null;
 
@@ -24,18 +25,34 @@ const BAND_ORDER = ['very-similar', 'related', 'loose'] as const;
 
 const IDLE: JobState<unknown> = { phase: 'idle' };
 
-export type FypToolProps = { limits: { titleMax: number; descriptionMin: number; descriptionMax: number } };
+export type FypToolProps = {
+  limits: { titleMax: number; descriptionMin: number; descriptionMax: number };
+  /** For verified members: the university's own past projects compared with the idea (§8 F9 step 6). */
+  universityCheck?: (input: { title: string; description: string }) => Promise<ActionResult<UniversityMatch[] | null>>;
+};
 
 /** The FYP Idea Checker (CLAUDE.md §8 F9 "UI"): an idea in, similar projects by band and what is unique out. */
-export function FypTool({ limits }: FypToolProps) {
+export function FypTool({ limits, universityCheck }: FypToolProps) {
   const { state, start } = useJob('fyp-check', parseFyp);
+  const [university, setUniversity] = useState<UniversityMatch[] | 'error' | null>(null);
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
   const { form, result: copy } = fypCopy;
 
   const submit = (event: SubmitEvent<HTMLFormElement>) => {
     event.preventDefault();
-    start({ title: title.trim(), description: description.trim() });
+    const input = { title: title.trim(), description: description.trim() };
+    start(input);
+    setUniversity(null);
+    if (universityCheck) {
+      universityCheck(input)
+        .then((result) => {
+          setUniversity(result.ok ? result.data : result.error.field ? null : 'error');
+        })
+        .catch(() => {
+          setUniversity('error');
+        });
+    }
   };
 
   const busy = state.phase === 'working' || state.phase === 'waiting';
@@ -77,6 +94,37 @@ export function FypTool({ limits }: FypToolProps) {
         </form>
         <JobStatus state={hasFieldError ? IDLE : state} steps={fypCopy.steps} idleLine={fypCopy.idleLine} />
       </Card>
+
+      {university === 'error' ? (
+        <p role="alert" className="type-small text-state-error">
+          {copy.universityError}
+        </p>
+      ) : university ? (
+        <Card as="section" aria-labelledby="fyp-university" className="flex flex-col gap-3">
+          <h2 id="fyp-university" className="type-h3">
+            {copy.universityTitle}
+          </h2>
+          <p className="type-small text-fg-muted">{copy.universityLine}</p>
+          <ul className="flex flex-col gap-3">
+            {university.map((entry) => (
+              <li key={entry.projectId} className="rounded-control border border-line bg-surface-2 p-3">
+                <div className="flex flex-wrap items-baseline justify-between gap-2">
+                  {entry.fullName ? (
+                    <a href={`https://github.com/${entry.fullName}`} rel="noreferrer" className="type-body text-accent underline underline-offset-4 break-all">
+                      {entry.fullName}
+                    </a>
+                  ) : null}
+                  <span className="type-small font-mono text-fg-muted">
+                    {copy.bands[entry.band]} · {copy.similarity(entry.similarity)}
+                  </span>
+                </div>
+                {entry.description ? <p className="type-small mt-1 text-fg-muted">{entry.description}</p> : null}
+                {entry.year !== null ? <p className="type-small mt-1">{copy.universityYear(entry.year)}</p> : null}
+              </li>
+            ))}
+          </ul>
+        </Card>
+      ) : null}
 
       {result ? (
         <Card as="article" aria-label={fypCopy.page.title} data-testid="fyp-result" className="flex flex-col gap-6">

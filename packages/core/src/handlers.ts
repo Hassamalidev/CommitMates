@@ -4,6 +4,7 @@ import { alumniRouteJob, alumniSlaJob, roleTransitionJob } from './alumni/servic
 import { compatCheckJob } from './compat/jobs';
 import { fairnessReportJob } from './fairness/jobs';
 import { fypCheckJob } from './fyp/jobs';
+import { fypDetectProjectsJob } from './fyp/projects';
 import { gapAnalysisJob } from './gap/jobs';
 import { geocodePendingJob } from './geocoding/jobs';
 import { graveyardSearchJob } from './graveyard/jobs';
@@ -97,6 +98,7 @@ export const jobHandlers: readonly Registration[] = [
   define(alumniRouteJob),
   define(alumniSlaJob),
   define(formSquadsJob),
+  define(fypDetectProjectsJob),
   define(streakCheckJob),
   define(digestEmailJob),
   define(liftSuspensionsJob),

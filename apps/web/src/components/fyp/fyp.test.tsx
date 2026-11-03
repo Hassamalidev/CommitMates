@@ -40,6 +40,37 @@ describe('FypTool', () => {
     vi.stubGlobal('fetch', fetchMock);
   });
 
+  it('shows the university’s own past projects above, for members whose university has a corpus', async () => {
+    fetchMock.mockReturnValueOnce(Promise.resolve(Response.json({ status: 'done', result })));
+    const universityCheck = vi.fn().mockResolvedValue({
+      ok: true,
+      data: [{ projectId: 'p-1', fullName: 'senior/attend', description: 'Face attendance', year: 2024, similarity: 91, band: 'very-similar' }],
+    });
+    render(<FypTool limits={limits} universityCheck={universityCheck} />);
+    fireEvent.change(screen.getByLabelText('Title'), { target: { value: 'Smart attendance' } });
+    fireEvent.change(screen.getByLabelText('Description'), { target: { value: 'A smart attendance system using face recognition on an edge device.' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Check idea' }));
+    const section = await screen.findByRole('region', { name: 'At your university' });
+    expect(within(section).getByText('senior/attend')).toBeTruthy();
+    expect(within(section).getByText('Very similar · 91% similar')).toBeTruthy();
+    expect(within(section).getByText('Class of 2024')).toBeTruthy();
+    expect(universityCheck).toHaveBeenCalledWith({ title: 'Smart attendance', description: 'A smart attendance system using face recognition on an edge device.' });
+    expect(await findA11yViolations(document.body)).toEqual([]);
+  });
+
+  it('shows nothing extra when the university has no corpus yet, and a note when the comparison fails', async () => {
+    fetchMock.mockReturnValue(Promise.resolve(Response.json({ status: 'done', result })));
+    const universityCheck = vi.fn().mockResolvedValueOnce({ ok: true, data: null }).mockResolvedValueOnce({ ok: false, error: { code: 'internal', message: 'x' } });
+    render(<FypTool limits={limits} universityCheck={universityCheck} />);
+    fireEvent.change(screen.getByLabelText('Title'), { target: { value: 'Smart attendance' } });
+    fireEvent.change(screen.getByLabelText('Description'), { target: { value: 'A smart attendance system using face recognition on an edge device.' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Check idea' }));
+    await screen.findByTestId('fyp-result');
+    expect(screen.queryByRole('region', { name: 'At your university' })).toBeNull();
+    fireEvent.click(screen.getByRole('button', { name: 'Check again' }));
+    expect(await screen.findByText('We could not compare your idea with your university’s past projects just now.')).toBeTruthy();
+  });
+
   it('checks an idea and groups similar projects by band', async () => {
     fetchMock.mockReturnValueOnce(Promise.resolve(Response.json({ status: 'done', result })));
     render(<FypTool limits={limits} />);

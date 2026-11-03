@@ -41,7 +41,7 @@ const MAX_QUERY_CHARS = 100;
 type Actor = Pick<Member, 'id' | 'verified' | 'universityId' | 'githubId'>;
 
 /** An entry's tags (§8 F17 "Indexing"): the repository's topics and its dependencies' derived tags. */
-async function entryTags(repoGithubId: number, topics: readonly string[]): Promise<string[]> {
+export async function entryTags(repoGithubId: number, topics: readonly string[]): Promise<string[]> {
   const dependencies = await getRepoDependencies([repoGithubId]);
   const derived = await getPackageTags(dependencies.map((dependency) => ({ ecosystem: dependency.ecosystem, name: dependency.packageName })));
   return [...new Set([...topics, ...[...derived.values()].flat()].flatMap((tag) => normalizeTag(tag) ?? []))].sort();

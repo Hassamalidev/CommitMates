@@ -315,6 +315,19 @@ All algorithms live in `packages/algorithms` and are pure: no I/O, no clock, no 
 - Tests: `packages/algorithms/src/alumni/route.test.ts`, `packages/core/src/alumni/alumni.test.ts`
 - Spec: CLAUDE.md §8 F20
 
+## FYP Board
+
+### Past projects and the university corpus
+
+- Code: `packages/core/src/fyp/projects.ts` (job `fyp_detect_projects` weekly on Wednesdays at 06:00 UTC, queueing one run per verified member and week: `fyp-detect:<userId>:<week Monday>`), queries in `packages/db/src/queries/fyp.ts`
+- Submitting: a verified member picks one of their own (non-fork) repositories and an optional year (bounded like graduation years); it is confirmed at once. Its corpus text is the repository name, description and README as plain text, at most 20,000 characters (the F9 README length), read with the member's own token when valid.
+- Detection: each member's own repositories the university does not already record are read; a README that mentions a `fyp.detectTerms` term as whole words (case-insensitive) is proposed to the owner unconfirmed, with its corpus text, and the owner is notified. The owner confirms (with an optional year) or turns it down; a turned-down repository keeps its row with `dismissed_at`, so it is never proposed again. A run that nears its deadline continues.
+- Senior's Legacy: a confirmed project adds an entry with source `fyp` (no blurb, not taking questions until the owner changes it); an existing showcase entry for the repository is kept. Removing a project removes its `fyp` entry.
+- University matches (F9 step 6): once the university records `fyp.minCorpus` confirmed projects with corpus text, BM25 (`ir.bm25.k1`, `ir.bm25.b`, stopwords of the idea's language) scores every corpus text against the idea, as a share of the idea's own score; the `fyp.searchTopN` closest are banded with `fyp.bands`. Verified members see them as "At your university" above the global results of the FYP Idea Checker.
+- Settings: `fyp.detectTerms`, `fyp.minCorpus` (30), `fyp.searchTopN` (20), `fyp.bands` ([40, 70]), `ir.bm25.k1` (1.2), `ir.bm25.b` (0.75), `profile.gradYearMaxAhead`, `profile.gradYearMaxBehind`
+- Tests: `packages/core/src/fyp/projects.test.ts`, `apps/web/src/components/fyp/fyp.test.tsx`
+- Spec: CLAUDE.md §8 F22 "Past projects corpus", §8 F9 step 6, §8 F17
+
 ## Squad Builder
 
 ### Roles and formation

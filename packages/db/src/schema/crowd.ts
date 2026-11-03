@@ -267,6 +267,10 @@ export const fypProjects = pgTable(
     submittedBy: uuid('submitted_by').references(() => users.id, { onDelete: 'set null' }),
     autoDetected: boolean('auto_detected').notNull().default(false),
     confirmed: boolean('confirmed').notNull().default(false),
+    /** Name, description and README as plain text, for duplicate checks against the university's corpus (§8 F9 step 6). */
+    corpusText: text('corpus_text'),
+    /** Set when the owner said a detected repository is not a final-year project; it is not proposed again. */
+    dismissedAt: timestamptz('dismissed_at'),
     createdAt: createdAt(),
     updatedAt: updatedAt(),
   },

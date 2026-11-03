@@ -183,6 +183,14 @@ const describers: Readonly<Record<string, (data: Record<string, unknown>) => Not
     line: `Teams for ${text(data.title) || 'your event'} are final. Say hello in your team conversation.`,
     path: isUuid(text(data.threadId)) ? `/inbox/${text(data.threadId)}` : '/inbox',
   }),
+  fyp_detected: (data) => ({
+    title: 'Is this your final-year project?',
+    line:
+      data.count === 1
+        ? 'One of your repositories looks like a final-year project. Confirm it to add it to your university’s past projects.'
+        : 'Some of your repositories look like final-year projects. Confirm them to add them to your university’s past projects.',
+    path: '/settings/projects',
+  }),
   github_reconnect: () => ({
     title: 'Sign in with GitHub again',
     line: 'Your GitHub sign-in has expired, so a streak day was skipped instead of counted. Sign in again to keep it going.',
@@ -240,4 +248,5 @@ export const MUTABLE_NOTIFICATIONS: Readonly<Record<string, string>> = {
   squad_swap_requested: 'Requests to switch teams in your events',
   squad_swap_decided: 'Answers to your team switch requests',
   squads_final: 'Final event teams',
+  fyp_detected: 'Repositories that look like final-year projects',
 };

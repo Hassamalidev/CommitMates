@@ -14,7 +14,7 @@ import { fypInputSchema, fypResultSchema, type FypInput, type FypResult } from '
 export const FYP_STEPS = { keyphrases: 'keyphrases', searching: 'searching', reading: 'reading', comparing: 'comparing' } as const;
 
 /** README characters compared (§8 F9 step 3). */
-const MAX_README_CHARS = 20_000;
+export const MAX_README_CHARS = 20_000;
 /** Keyphrases combined in the first search, and the pairs searched after it (§8 F9 step 2). */
 const TOGETHER = 3;
 /** Closest projects whose keyphrases decide what is unique to the idea (§8 F9 step 5). */
@@ -22,7 +22,7 @@ const UNIQUE_AGAINST = 5;
 /** Normalized Levenshtein similarity above which two keyphrases are near-duplicates (§8 F9, reference YAKE). */
 const DEDUP_THRESHOLD = 0.8; // allowed-literal: from the reference implementation (§8 F9)
 /** Similarity is reported in percent. */
-const PERCENT = 100;
+export const PERCENT = 100;
 /** Characters of a SHA-256 digest used to key an idea. */
 const KEY_LENGTH = 16;
 /** GitHub's largest search page. */
@@ -30,7 +30,7 @@ const SEARCH_PAGE = 100;
 /** Time kept in hand before the deadline for comparing and storing. */
 const DEADLINE_MARGIN_MS = 4000;
 
-const ideaText = (input: FypInput) => `${input.title}\n${input.description}`;
+export const ideaText = (input: FypInput) => `${input.title}\n${input.description}`;
 const ideaKey = (input: FypInput) =>
   createHash('sha256').update(ideaText(input).toLowerCase().replace(/\s+/g, ' ').trim()).digest('hex').slice(0, KEY_LENGTH);
 

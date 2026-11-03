@@ -82,6 +82,17 @@ export { OSS_STEPS, ossTool } from './oss/jobs';
 export { ossInputSchema, ossResultSchema, type OssInput, type OssIssue, type OssResult } from './oss/schemas';
 export { listLanguages as listLanguageNames } from '@commitmates/db';
 export { FYP_STEPS, fypTool } from './fyp/jobs';
+export {
+  checkIdeaAtUniversity,
+  confirmDetectedProject,
+  detectMemberProjects,
+  dismissDetectedProject,
+  getPastProjects,
+  removePastProject,
+  submitPastProject,
+  universityMatches,
+  type UniversityMatch,
+} from './fyp/projects';
 export { FYP_DESCRIPTION_MAX, FYP_DESCRIPTION_MIN, FYP_TITLE_MAX, fypInputSchema, fypResultSchema, type FypInput, type FypResult } from './fyp/schemas';
 export { METRIC_WINDOWS, getSocialMetrics, getToolMetrics, recordSignUpConversion, type SocialMetrics, type ToolMetrics } from './metrics/service';
 export { tuneMatchWeights, type TuningReport } from './matching/tune';

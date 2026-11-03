@@ -39,5 +39,9 @@ export const fypCopy = {
     differentTitle: 'What makes yours different',
     differentLine: 'These ideas from your description appear in none of the closest projects.',
     differentNone: 'Every key idea already appears in a close project. Think about what you would add or do differently.',
+    universityTitle: 'At your university',
+    universityLine: 'Past final-year projects of your university, compared with your idea.',
+    universityYear: (year: number) => `Class of ${year}`,
+    universityError: 'We could not compare your idea with your university’s past projects just now.',
   },
 } as const;

@@ -139,7 +139,7 @@ Events a member organizes, the events they joined with the weekly hours they sai
 
 ### `fyp_ideas`, `fyp_interest`, `fyp_supervisors`, `fyp_projects` (class A)
 
-Final-year project ideas a member posted, their interest in joining others' teams (with a short message), supervisor applications with their areas, and past projects they submitted or that were detected in their repositories (detected ones wait for their confirmation). Deleted by cascade; a project someone else submitted keeps the project but drops the link to the person who left.
+Final-year project ideas a member posted, their interest in joining others' teams (with a short message), supervisor applications with their areas, and past projects they submitted or that were detected in their repositories (detected ones wait for their confirmation; one they turn down keeps `dismissed_at` so it is not proposed again). A past project keeps `corpus_text`, the repository's name, description and README as plain text (at most 20,000 characters), read from GitHub when it was submitted or detected, so ideas at the university can be checked against it; it is the member's own public repository and goes with the row. Deleted by cascade; a project someone else submitted keeps the project but drops the link to the person who left.
 
 ### `crawl_cursors`, `crawl_optouts` (class E)
 
