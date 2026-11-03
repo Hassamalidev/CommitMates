@@ -100,6 +100,8 @@ export const ghRepos = pgTable(
     index('gh_repos_pushed_idx').on(table.pushedAt),
     index('gh_repos_expires_idx').on(table.expiresAt),
     index('gh_repos_search_idx').using('gin', table.searchTsv),
+    // Topic overlap in the country and uni Graveyard searches (P7-T02a).
+    index('gh_repos_topics_idx').using('gin', table.topics),
     index('gh_repos_full_name_trgm_idx').using('gin', sql`(${table.fullName}::text) gin_trgm_ops`),
   ],
 ).enableRLS();

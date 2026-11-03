@@ -204,6 +204,7 @@ export const swapProposals = pgTable(
   },
   (table) => [
     index('swap_proposals_status_idx').on(table.status),
+    index('swap_proposals_university_idx').on(table.universityId),
     // Finds a member's proposals: `members @> array[id]`.
     index('swap_proposals_members_idx').using('gin', table.members),
   ],

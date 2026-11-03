@@ -25,6 +25,8 @@ export const departments = pgTable(
   (table) => [
     uniqueIndex('departments_university_normalized_key').on(table.universityId, table.normalizedName),
     index('departments_normalized_trgm_idx').using('gin', table.normalizedName.op('gin_trgm_ops')),
+    index('departments_created_by_idx').on(table.createdBy),
+    index('departments_merged_into_idx').on(table.mergedIntoId),
   ],
 ).enableRLS();
 
@@ -43,5 +45,5 @@ export const invites = pgTable(
     uses: integer('uses').notNull().default(0),
     createdAt: createdAt(),
   },
-  (table) => [uniqueIndex('invites_university_creator_key').on(table.universityId, table.createdBy)],
+  (table) => [uniqueIndex('invites_university_creator_key').on(table.universityId, table.createdBy), index('invites_created_by_idx').on(table.createdBy)],
 ).enableRLS();

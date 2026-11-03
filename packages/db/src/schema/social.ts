@@ -154,6 +154,8 @@ export const reports = pgTable(
     index('reports_target_status_idx').on(table.targetUser, table.status),
     index('reports_reporter_idx').on(table.reporter),
     index('reports_status_created_idx').on(table.status, table.createdAt),
+    index('reports_target_message_idx').on(table.targetMessage),
+    index('reports_resolved_by_idx').on(table.resolvedBy),
   ],
 ).enableRLS();
 

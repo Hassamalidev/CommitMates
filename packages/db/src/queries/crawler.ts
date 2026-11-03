@@ -256,7 +256,7 @@ export async function countryRepoCandidates(countryCode: string, query: string, 
            (ts_rank_cd(r.search_tsv, ${text}) + cardinality(array(select unnest(coalesce(r.topics, '{}')) intersect select unnest(${topicList}))))::float8 as relevance
     from gh_repos r join gh_users u on u.github_id = r.owner_github_id
     where u.in_country_index and u.index_country_code = ${countryCode.toUpperCase()}
-      and (r.search_tsv @@ ${text} or coalesce(r.topics, '{}') && ${topicList})
+      and (r.search_tsv @@ ${text} or r.topics && ${topicList})
     order by relevance desc, r.stars desc nulls last, r.full_name
     limit ${limit}`);
   return rows.map((row) => ({

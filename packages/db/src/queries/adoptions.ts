@@ -202,7 +202,7 @@ export async function uniListingCandidates(
     join github_identities g on g.user_id = l.owner_user_id
     where l.status = 'listed' and p.university_id = ${universityId} and u.status = 'active' and l.owner_user_id <> ${searcherId}
       and not exists (select 1 from blocks b where (b.blocker = ${searcherId} and b.blocked = l.owner_user_id) or (b.blocker = l.owner_user_id and b.blocked = ${searcherId}))
-      and (r.search_tsv @@ websearch_to_tsquery('simple', ${query}) or coalesce(r.topics, '{}') && ${topicArray}::text[])
+      and (r.search_tsv @@ websearch_to_tsquery('simple', ${query}) or r.topics && ${topicArray}::text[])
     order by relevance desc, r.full_name
     limit ${limit}`);
   return rows.map((row) => ({

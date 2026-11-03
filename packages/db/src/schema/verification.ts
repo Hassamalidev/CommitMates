@@ -67,6 +67,8 @@ export const universityRequests = pgTable(
     uniqueIndex('university_requests_pending_key').on(table.userId, table.domain).where(sql`${table.status} = 'pending'`),
     index('university_requests_status_idx').on(table.status, table.createdAt),
     index('university_requests_user_idx').on(table.userId),
+    index('university_requests_university_idx').on(table.universityId),
+    index('university_requests_reviewed_by_idx').on(table.reviewedBy),
   ],
 ).enableRLS();
 
@@ -93,6 +95,7 @@ export const vouches = pgTable(
   (table) => [
     uniqueIndex('vouches_voucher_vouchee_key').on(table.voucherUserId, table.voucheeUserId),
     index('vouches_vouchee_university_idx').on(table.voucheeUserId, table.universityId),
+    index('vouches_university_idx').on(table.universityId),
     check('vouches_not_self', sql`${table.voucherUserId} <> ${table.voucheeUserId}`),
   ],
 ).enableRLS();
