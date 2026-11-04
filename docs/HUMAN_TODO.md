@@ -4,6 +4,14 @@ Tasks in CLAUDE.md §16 marked **[HUMAN]** need accounts, secrets or approvals t
 
 ## Open
 
+### P7-T05 — Uptime monitor and regular backups
+
+- Why: to learn about downtime before members do, and to have a copy of the database that does not depend on Supabase.
+- Do this:
+  1. Create a free account with an uptime monitoring service (for example UptimeRobot or Better Stack; check that their current free plan allows two monitors), and add two HTTP monitors at their shortest free interval: the site's home page (`https://<your domain>/`) and `https://<your domain>/health`. Alert by email.
+  2. Weekly, and before risky migrations: run `pnpm db:backup` against production as described in [runbooks/backup-restore.md](runbooks/backup-restore.md), and keep the file in encrypted storage you control. Once a quarter, run the restore drill there against staging.
+- Waiting on it: nothing in the code. Monitoring needs the deployed site (P7-T06).
+
 ### P7-T03 — Screen-reader check before launch
 
 - Why: the automated audit ([ADR-012](decisions/ADR-012-accessibility.md)) checks names, roles, focus and contrast on every page, but cannot tell how the flows sound.
