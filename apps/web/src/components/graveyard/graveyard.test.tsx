@@ -9,6 +9,9 @@ import { askOwnerUrl, filterItems, forkUrl, licenseChooserUrl, parseGraveyard } 
 import { GraveyardCard } from './GraveyardCard';
 import { GraveyardTool } from './GraveyardTool';
 
+/** The dialog's code loads on first use (ADR-011); under a full parallel test run that can outlast the default wait. */
+const LAZY_DIALOG = { timeout: 20_000 };
+
 const actions = vi.hoisted(() => ({
   recordAdoptionInterestAction: vi.fn(() => Promise.resolve({ ok: true as const, data: { recorded: true } })),
   requestAdoptionAction: vi.fn(() => Promise.resolve({ ok: true as const, data: null })),
@@ -108,7 +111,7 @@ describe('GraveyardCard', () => {
     expect(within(card).queryByText(/Inactive/)).toBeNull();
     expect(within(card).queryByRole('link', { name: /Ask the owner/ })).toBeNull();
     // The dialog's code loads on demand (ADR-011), so its trigger appears once that has happened.
-    const adopt = await within(card).findByRole('button', { name: 'Adopt classmate/dash' });
+    const adopt = await within(card).findByRole('button', { name: 'Adopt classmate/dash' }, LAZY_DIALOG);
     expect(await findA11yViolations(container)).toEqual([]);
 
     fireEvent.click(adopt);

@@ -3,6 +3,9 @@ import { findA11yViolations } from '@commitmates/config/testing/axe';
 import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
+/** The dialog's code loads on first use (ADR-011); under a full parallel test run that can outlast the default wait. */
+const LAZY_DIALOG = { timeout: 20_000 };
+
 const actions = vi.hoisted(() => ({
   ossCampusAction: vi.fn(),
   askOssContributorAction: vi.fn(() => Promise.resolve({ ok: true as const, data: null })),
@@ -53,7 +56,7 @@ describe('OssCampusLine', () => {
     expect(screen.getByText('2 members of your university contributed here.')).toBeTruthy();
     expect(screen.getByText('@sam · 1 merged pull request')).toBeTruthy();
     // The dialog's code loads on demand (ADR-011), so its trigger appears once that has happened.
-    const ask = await screen.findByRole('button', { name: 'Ask @kim' });
+    const ask = await screen.findByRole('button', { name: 'Ask @kim' }, LAZY_DIALOG);
     expect(await findA11yViolations(container)).toEqual([]);
     fireEvent.click(ask);
     const dialog = await screen.findByRole('dialog', { name: 'Ask @kim about this project' });

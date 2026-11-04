@@ -168,6 +168,16 @@ describe('REST GET', () => {
     expect((error as GitHubNotFoundError).userMessage).toBe("We couldn't find @nobody on GitHub. Check the spelling?");
   });
 
+  it('tells a visitor the problem is ours when GitHub rejects the server token', async () => {
+    server.use(http.get(`${API}/rate_limit`, () => HttpResponse.json({ message: 'Bad credentials' }, { status: 401 })));
+    const error = await client()
+      .get('GET /users/{username}', { username: 'someone' }, userSchema)
+      .catch((caught: unknown) => caught);
+    expect(error).toBeInstanceOf(GitHubAuthError);
+    expect(error).toMatchObject({ code: 'github.server_auth' });
+    expect((error as GitHubAuthError).userMessage).not.toMatch(/sign in/i);
+  });
+
   it('maps 422 to a validation error', async () => {
     server.use(
       rateLimitHandler(),

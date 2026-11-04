@@ -7,10 +7,21 @@ export class GitHubNotFoundError extends NotFoundError {
   }
 }
 
-/** 401: the token is missing, expired or revoked. Not retried; members are asked to sign in again. */
+/**
+ * 401: the token is missing, expired or revoked. Not retried. A member whose own token failed is
+ * asked to sign in again; when the site's server token fails, the visitor did nothing wrong, so
+ * the message says the problem is ours.
+ */
 export class GitHubAuthError extends AppError {
-  constructor(options?: { cause?: unknown }) {
-    super('github.auth', 'Your GitHub sign-in has expired. Please sign in again.', 401, options); // allowed-literal: HTTP status
+  constructor(kind: 'user' | 'server' = 'user', options?: { cause?: unknown }) {
+    super(
+      kind === 'user' ? 'github.auth' : 'github.server_auth',
+      kind === 'user'
+        ? 'Your GitHub sign-in has expired. Please sign in again.'
+        : "We can't reach GitHub from our side right now. It's not you; we've logged it and will fix it.",
+      401, // allowed-literal: HTTP status
+      options,
+    );
   }
 }
 

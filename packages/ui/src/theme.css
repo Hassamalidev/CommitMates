@@ -111,9 +111,10 @@
 }
 
 @layer components {
+  /* No fill mode: with steps(n) the end value is one frame past the last, so holding it would leave
+     an empty frame. A finite animation (Done: two hops) returns to the first, standing frame. */
   .companion-frames {
     animation-name: companion-steps;
-    animation-fill-mode: forwards;
   }
   /* Reduced motion: show the first frame only. */
   @media (prefers-reduced-motion: reduce) {

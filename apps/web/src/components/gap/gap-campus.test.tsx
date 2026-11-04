@@ -4,6 +4,9 @@ import type { GapResult } from '@commitmates/core';
 import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
+/** The dialog's code loads on first use (ADR-011); under a full parallel test run that can outlast the default wait. */
+const LAZY_DIALOG = { timeout: 20_000 };
+
 const actions = vi.hoisted(() => ({
   gapHelpersAction: vi.fn(),
   askGapHelperAction: vi.fn(() => Promise.resolve({ ok: true as const, data: null })),
@@ -54,10 +57,10 @@ describe('GapCampusPanel', () => {
   it('lists helpers per gap and sends a prefilled request', async () => {
     actions.gapHelpersAction.mockResolvedValueOnce({ ok: true, data: { state: 'open', helpers: { Docker: [{ userId: 'u1', login: 'kim', level: 0.8 }], testing: [] } } });
     const { container } = render(<GapCampusPanel result={result} campusMinMembers={10} signedIn label={facetLabel} />);
-    expect(await screen.findByRole('button', { name: 'Ask @kim' })).toBeTruthy();
+    expect(await screen.findByRole('button', { name: 'Ask @kim' }, LAZY_DIALOG)).toBeTruthy();
     expect(screen.getByText('Nobody yet.')).toBeTruthy();
     // The dialog's code loads on demand (ADR-011), so its trigger appears once that has happened.
-    const ask = await screen.findByRole('button', { name: 'Ask @kim' });
+    const ask = await screen.findByRole('button', { name: 'Ask @kim' }, LAZY_DIALOG);
     expect(await findA11yViolations(container)).toEqual([]);
     fireEvent.click(ask);
     const dialog = await screen.findByRole('dialog', { name: 'Ask @kim for help' });

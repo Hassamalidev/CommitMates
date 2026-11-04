@@ -5,6 +5,9 @@ import { toolsCopy } from '@/copy/tools';
 
 import { minutesUntil, stepPosition, type JobState } from './job-state';
 
+/** The landing section that holds the demo; the hero's main button links to it and the demo focuses its field. */
+export const DEMO_ANCHOR = 'demo';
+
 /**
  * The terminal transcript of a Dev Card run on the landing page (CLAUDE.md §9.6 step 2):
  * the command, one line per step reached, then how it ended. Derived from the job state

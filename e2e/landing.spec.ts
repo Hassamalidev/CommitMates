@@ -32,6 +32,8 @@ test.describe('landing page', () => {
       await page.getByRole('link', { name: 'Try it with your GitHub' }).click();
       await expect(page).toHaveURL(/#demo$/);
       const demo = page.locator('#demo');
+      // The button puts the cursor in the field, so the visitor can type straight away.
+      await expect(demo.getByLabel('GitHub username')).toBeFocused();
       await demo.getByLabel('GitHub username').fill(login);
       await demo.getByRole('button', { name: 'Run' }).click();
       const log = demo.getByRole('log');

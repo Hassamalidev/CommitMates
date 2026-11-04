@@ -16,6 +16,7 @@ import {
   clearHandlers,
   enqueue,
   evaluateSchedules,
+  getHandler,
   getJobView,
   nextCronRun,
   registerHandler,
@@ -63,11 +64,42 @@ const jobRow = async (id: string) => {
   return row!;
 };
 
+describe('registerHandler', () => {
+  it('refuses a second handler for a type, but lets a reloaded definition replace it in development', () => {
+    const first: JobHandler<Payload> = { type: 'reloaded', schema: payloadSchema, priority: PRIORITY.USER_BG, run: () => Promise.resolve({ kind: 'done' }) };
+    const second: JobHandler<Payload> = { ...first };
+    registerHandler(first);
+    registerHandler(first);
+    expect(() => {
+      registerHandler(second, 'production');
+    }).toThrow(/already has a handler/);
+    registerHandler(second, 'development');
+    expect(getHandler('reloaded')).toBe(second);
+  });
+});
+
 describe('enqueue', () => {
   it('uses the handler priority and the default attempts', async () => {
     handler('sample', () => Promise.resolve({ kind: 'done' }));
     const job = await enqueue('sample', { n: 1 });
     expect(job).toMatchObject({ status: 'queued', priority: PRIORITY.USER_BG, maxAttempts: 5, attempts: 0 });
+  });
+
+  it('starts again instead of returning a job that failed, died or was cancelled under the same key', async () => {
+    for (const status of ['failed', 'dead', 'cancelled'] as const) {
+      const key = `sample:${status}`;
+      const first = await enqueue('sample', { n: 1 }, { idempotencyKey: key });
+      await database.sql`update jobs set status = ${status}, user_message = 'old failure' where id = ${first.id}`;
+      const second = await enqueue('sample', { n: 2 }, { idempotencyKey: key });
+      expect(second.id).not.toBe(first.id);
+      expect(second).toMatchObject({ status: 'queued', payload: { n: 2 }, idempotencyKey: key });
+      // The failed row stays for the admin pages, without the key.
+      expect(await jobRow(first.id)).toMatchObject({ status, idempotency_key: null });
+    }
+    // A finished job is still reused: its result is the answer.
+    const done = await enqueue('sample', { n: 1 }, { idempotencyKey: 'sample:done' });
+    await database.sql`update jobs set status = 'done' where id = ${done.id}`;
+    expect((await enqueue('sample', { n: 1 }, { idempotencyKey: 'sample:done' })).id).toBe(done.id);
   });
 
   it('returns the existing job for a repeated idempotency key', async () => {

@@ -3,13 +3,13 @@
 import { Button, CompanionView, EmptyState, Input, StateChip, TerminalWindow } from '@commitmates/ui';
 import dynamic from 'next/dynamic';
 import Link from 'next/link';
-import { useMemo, useState, type SubmitEvent } from 'react';
+import { useEffect, useMemo, useRef, useState, type SubmitEvent } from 'react';
 
 import { devCardCopy } from '@/copy/dev-card';
 import { landingCopy } from '@/copy/landing';
 import { toolsCopy } from '@/copy/tools';
 import { brandCompanion } from '@/lib/brand';
-import { demoLines } from '@/lib/demo-lines';
+import { DEMO_ANCHOR, demoLines } from '@/lib/demo-lines';
 import { parseDevCard } from '@/lib/dev-card';
 import { companionStateFor } from '@/lib/job-state';
 import { useJob } from '@/lib/use-job';
@@ -33,7 +33,21 @@ export function LiveDemo() {
   const { state, start } = useJob('dev-card', parseDevCard);
   const [login, setLogin] = useState('');
   const [ran, setRan] = useState<string | null>(null);
+  const form = useRef<HTMLFormElement>(null);
   const { demo } = landingCopy;
+
+  // "Try it with your GitHub" links here (#demo): put the cursor in the username field, so the
+  // visitor can type straight away instead of wondering what the button did.
+  useEffect(() => {
+    const focusWhenLinked = () => {
+      if (window.location.hash === `#${DEMO_ANCHOR}`) form.current?.querySelector<HTMLInputElement>('input[name="login"]')?.focus();
+    };
+    focusWhenLinked();
+    window.addEventListener('hashchange', focusWhenLinked);
+    return () => {
+      window.removeEventListener('hashchange', focusWhenLinked);
+    };
+  }, []);
 
   // The waiting line's ETA is computed when the state changes; JobStatus refreshes it on the tool page.
   const lines = useMemo(() => demoLines(ran, state, devCardCopy.steps, new Date()), [ran, state]);
@@ -54,7 +68,7 @@ export function LiveDemo() {
     <div className="flex flex-col gap-6">
       <div className="grid items-start gap-6 md:grid-cols-[1fr_auto]">
         <TerminalWindow title={demo.terminalTitle} lines={lines} className="min-w-0">
-          <form onSubmit={submit} noValidate className="flex flex-col gap-3 sm:flex-row sm:items-start">
+          <form ref={form} onSubmit={submit} noValidate className="flex flex-col gap-3 sm:flex-row sm:items-start">
             <Input
               className="flex-1"
               name="login"

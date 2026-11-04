@@ -7,6 +7,7 @@ import { Section } from '@/components/layout/Section';
 import { landingCopy } from '@/copy/landing';
 import { siteCopy } from '@/copy/site';
 import { brandCompanion } from '@/lib/brand';
+import { DEMO_ANCHOR } from '@/lib/demo-lines';
 import { siteName } from '@/lib/site';
 import { AVAILABLE_TOOLS, toolPath } from '@/lib/tools';
 
@@ -29,9 +30,10 @@ export default function LandingPage() {
             <h1 className="type-display mt-2">{hero.title}</h1>
             <p className="type-body mt-4 max-w-reading text-fg-muted">{hero.subline}</p>
             <div className="mt-6 flex flex-wrap gap-3">
-              <Link href="/#demo" className={buttonStyles({ variant: 'primary', size: 'lg' })}>
+              {/* A plain anchor, so the browser fires hashchange and the demo focuses its field. */}
+              <a href={`#${DEMO_ANCHOR}`} className={buttonStyles({ variant: 'primary', size: 'lg' })}>
                 {hero.primaryCta}
-              </Link>
+              </a>
               <a href="/auth/sign-in" className={buttonStyles({ variant: 'secondary', size: 'lg' })}>
                 {hero.secondaryCta}
               </a>
@@ -49,7 +51,7 @@ export default function LandingPage() {
         </div>
       </section>
 
-      <Section id="demo" eyebrow={demo.eyebrow} title={demo.title} intro={demo.intro} className="bg-surface-2">
+      <Section id={DEMO_ANCHOR} eyebrow={demo.eyebrow} title={demo.title} intro={demo.intro} className="bg-surface-2">
         <LiveDemo />
       </Section>
 

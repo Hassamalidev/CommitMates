@@ -221,8 +221,10 @@ export class GitHubClient {
 
     if (error.status === HTTP.UNAUTHORIZED) {
       await markTokenInvalid(this.identity, this.db);
-      log.warn('GitHub rejected the token');
-      return new GitHubAuthError({ cause: error });
+      // A rejected server token stops every anonymous tool and sync until an operator replaces it.
+      if (this.identity.kind === 'server') log.error('GitHub rejected the server token; replace GITHUB_SERVER_TOKEN');
+      else log.warn('GitHub rejected the token');
+      return new GitHubAuthError(this.identity.kind, { cause: error });
     }
     if (error.status === HTTP.NOT_FOUND) return new GitHubNotFoundError(options.what ?? 'that', { cause: error });
     if (error.status === HTTP.UNPROCESSABLE) return new GitHubValidationError({ cause: error });
