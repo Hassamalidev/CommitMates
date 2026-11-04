@@ -24,6 +24,7 @@
     "db:stop": "supabase stop",
     "db:status": "supabase status",
     "db:backup": "bash scripts/db-backup.sh",
+    "db:tick": "tsx --env-file-if-exists=.env.local scripts/db-tick.ts",
     "test:root": "vitest run --config scripts/vitest.config.ts",
     "check:hardcoded": "tsx scripts/check-hardcoded.ts",
     "check:licenses": "tsx scripts/check-licenses.ts",

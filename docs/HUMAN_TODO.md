@@ -4,6 +4,18 @@ Tasks in CLAUDE.md §16 marked **[HUMAN]** need accounts, secrets or approvals t
 
 ## Open
 
+### P7-T06 — Staging and production deployment
+
+- Why: the site, its database and its background jobs need accounts and secrets only you can create.
+- Do this: follow [runbooks/deploy.md](runbooks/deploy.md) from the top:
+  1. Create two Supabase projects (staging, prod), with GitHub sign-in and the redirect URL.
+  2. Create the Vercel project with root `apps/web`, a `staging` branch with a stable alias, and the environment variables for Production and for the `staging` Preview.
+  3. Create the staging and prod GitHub OAuth apps ([runbooks/github-oauth.md](runbooks/github-oauth.md)).
+  4. Run `pnpm db:migrate` against staging, then prod.
+  5. Run `pnpm db:tick enable` for each, with the same `JOB_TICK_SECRET` as Vercel.
+- Then tell me: both site addresses, and the output of `pnpm db:tick status` for each (it contains no secrets). P7-T07 (verification on staging) starts from there.
+- Waiting on it: P7-T07 and the `v1.0.0` launch (P7-T08).
+
 ### P7-T05 — Uptime monitor and regular backups
 
 - Why: to learn about downtime before members do, and to have a copy of the database that does not depend on Supabase.
