@@ -289,7 +289,9 @@ describe('runTick scheduling', () => {
     const runs = new Map<number, number>();
     // A worker runs its claimed jobs one after another, so two jobs running at once are on
     // different workers. The first job waits for that overlap, so both workers take part
-    // however fast or slow the machine is, instead of one draining the queue alone.
+    // however fast or slow the machine is, instead of one draining the queue alone. It waits
+    // without a time limit: on a loaded machine the second worker's pool can take many seconds to
+    // connect, and if it never claimed a job the test's own timeout would report it.
     let active = 0;
     let releaseFirst: (() => void) | undefined;
     const overlap = new Promise<undefined>((resolve) => {
@@ -304,7 +306,7 @@ describe('runTick scheduling', () => {
       if (active > 1) releaseFirst?.();
       if (first) {
         first = false;
-        await Promise.race([overlap, new Promise((resolve) => setTimeout(resolve, BUDGET_MS / 2))]);
+        await overlap;
       } else {
         await new Promise((resolve) => setTimeout(resolve, 5));
       }

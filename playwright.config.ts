@@ -9,7 +9,13 @@ if (existsSync('.env.local')) process.loadEnvFile('.env.local');
 
 /** Port of the production build that Playwright starts; separate from `pnpm dev`. */
 const E2E_PORT = Number(process.env.E2E_PORT ?? '3100');
-const baseURL = `http://127.0.0.1:${E2E_PORT}`;
+/**
+ * A deployed site to check instead (P7-T07, docs/runbooks/launch.md). Only the browser-only specs run
+ * against it: the others seed the local database directly.
+ */
+const remoteBaseURL = process.env.E2E_BASE_URL;
+const baseURL = remoteBaseURL ?? `http://127.0.0.1:${E2E_PORT}`;
+const REMOTE_SPECS = ['**/smoke.spec.ts', '**/staging.spec.ts'];
 const isCi = Boolean(process.env.CI);
 
 /** Real variables from the shell or CI win over the local defaults. */
@@ -29,7 +35,8 @@ for (const [key, value] of Object.entries(localTestEnv())) {
 
 export default defineConfig({
   testDir: './e2e',
-  testMatch: '**/*.spec.ts',
+  // staging.spec.ts needs live data and runs only against a deployed site.
+  ...(remoteBaseURL ? { testMatch: REMOTE_SPECS } : { testMatch: '**/*.spec.ts', testIgnore: '**/staging.spec.ts' }),
   fullyParallel: true,
   // Flows that sign in, render server pages and run Server Actions share one server and one Postgres
   // across parallel workers; under that load a 30 s default is too tight for multi-step tests.
@@ -56,12 +63,16 @@ export default defineConfig({
       grepInvert: /@shared-state/,
     },
   ],
-  webServer: {
-    command: `pnpm --filter @commitmates/web exec next start --port ${E2E_PORT}`,
-    url: `${baseURL}/api/health`,
-    reuseExistingServer: !isCi,
-    // The site URL must match the address the browser uses, or same-origin checks fail.
-    env: definedEnv({ ...localTestEnv(), ...definedEnv(process.env), NEXT_PUBLIC_SITE_URL: baseURL }),
-    timeout: 120_000,
-  },
+  ...(remoteBaseURL
+    ? {}
+    : {
+        webServer: {
+          command: `pnpm --filter @commitmates/web exec next start --port ${E2E_PORT}`,
+          url: `${baseURL}/api/health`,
+          reuseExistingServer: !isCi,
+          // The site URL must match the address the browser uses, or same-origin checks fail.
+          env: definedEnv({ ...localTestEnv(), ...definedEnv(process.env), NEXT_PUBLIC_SITE_URL: baseURL }),
+          timeout: 120_000,
+        },
+      }),
 });

@@ -35,14 +35,17 @@ export default async function AdminHealthPage() {
             {adminCopy.alerts.clear}
           </p>
         ) : (
-          <ul role="alert" className="flex flex-col gap-2 rounded-control border border-state-error bg-surface p-3">
-            {health.alerts.map((alert) => (
-              <li key={`${alert.key}-${JSON.stringify(alert.values)}`} className="type-body flex items-start gap-2 text-state-error">
-                <Icon name="warning" className="mt-1" />
-                <span>{adminCopy.alerts.messages[alert.key](alert.values)}</span>
-              </li>
-            ))}
-          </ul>
+          // The alert region wraps the list: role="alert" on the <ul> itself would replace its list role.
+          <div role="alert" className="rounded-control border border-state-error bg-surface p-3">
+            <ul className="flex flex-col gap-2">
+              {health.alerts.map((alert) => (
+                <li key={`${alert.key}-${JSON.stringify(alert.values)}`} className="type-body flex items-start gap-2 text-state-error">
+                  <Icon name="warning" className="mt-1" />
+                  <span>{adminCopy.alerts.messages[alert.key](alert.values)}</span>
+                </li>
+              ))}
+            </ul>
+          </div>
         )}
       </section>
 
