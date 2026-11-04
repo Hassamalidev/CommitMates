@@ -1,9 +1,19 @@
 import { createHash } from 'node:crypto';
 
 import { monthsBetween, scoreRevivals, termMatcher } from '@commitmates/algorithms';
-import { ValidationError, countryRepoCandidates, getCategoryNumber, getSetting, getUniversity, uniListingCandidates } from '@commitmates/db';
-import { SERVER_IDENTITY, githubFor, searchRepositories } from '@commitmates/github';
+import {
+  ValidationError,
+  countryRepoCandidates,
+  getCachedAnalysis,
+  getCategoryNumber,
+  getSetting,
+  getUniversity,
+  putCachedAnalysis,
+  uniListingCandidates,
+} from '@commitmates/db';
+import { SERVER_IDENTITY, batches, githubFor, mapConcurrent, searchRepositories, unlessUnreadable } from '@commitmates/github';
 import { PRIORITY, type JobHandler } from '@commitmates/jobs';
+import { z } from 'zod';
 
 import { getMember } from '../profiles/service';
 import { computeExpansion } from '../taxonomy/service';
@@ -90,6 +100,31 @@ type Candidate = {
   listing: GraveyardItem['listing'];
 };
 
+/**
+ * A global search's candidates, cached as long as their signals (`cache.searchTtlHours`) so a
+ * follow-up of a long search reads the next projects instead of searching again (ADR-014).
+ */
+const CANDIDATES_KIND = 'graveyard_candidates';
+const MS_PER_HOUR = 3_600_000; // allowed-literal: unit conversion
+const globalCandidatesSchema = z.array(
+  z.object({
+    githubId: z.number().int(),
+    fullName: z.string(),
+    description: z.string().nullable(),
+    topics: z.array(z.string()),
+    stars: z.number().int(),
+    forks: z.number().int(),
+    openIssues: z.number().int(),
+    licenseSpdx: z.string().nullable(),
+    isArchived: z.boolean(),
+    isFork: z.boolean(),
+    pushedAt: z.string().nullable(),
+    sizeKb: z.number().nullable(),
+    relevance: z.number(),
+    listing: z.null(),
+  }),
+);
+
 /** Category of a candidate: the expansion's best topic it carries, else the query's slug (§8 F7 step 3). */
 const categoryOf = (repo: Candidate, topics: readonly string[], fallback: string) => topics.find((topic) => repo.topics.includes(topic)) ?? fallback;
 
@@ -127,7 +162,7 @@ export const graveyardSearchJob: JobHandler<GraveyardPayload> = {
     const topics = expansion.expansion.items.filter((item) => item.kind === 'topic').map((item) => item.value);
     const slug = expansion.expansion.slug;
 
-    const [defaultIdle, minCommits, freshMonths, noLicenseFactor, weights, deepTopN, terms] = await Promise.all([
+    const [defaultIdle, minCommits, freshMonths, noLicenseFactor, weights, deepTopN, terms, concurrency] = await Promise.all([
       getSetting('graveyard.idleMonths.default'),
       getSetting('graveyard.minCommits'),
       getSetting('graveyard.freshMonths'),
@@ -135,6 +170,7 @@ export const graveyardSearchJob: JobHandler<GraveyardPayload> = {
       getSetting('graveyard.weights'),
       getSetting('graveyard.deepScoreTopN'),
       getSetting('graveyard.unfinishedTerms'),
+      getSetting('github.concurrency'),
     ]);
     const unfinishedTerms = termMatcher(terms);
 
@@ -157,6 +193,8 @@ export const graveyardSearchJob: JobHandler<GraveyardPayload> = {
       }));
     } else {
       const qualifiers = `fork:false pushed:<${cutoffDate(now, defaultIdle)}`;
+      const candidatesKey = { kind: CANDIDATES_KIND, subjectKey: queryKey({ q: payload.q, scope: 'global' }), paramsHash: qualifiers };
+      const cachedCandidates = globalCandidatesSchema.safeParse((await getCachedAnalysis(candidatesKey, now))?.result);
       const ownTopic = topics.includes(slug) ? slug : topics[0];
       const queries = [
         `${payload.q} in:name,description,readme ${qualifiers}`,
@@ -165,39 +203,70 @@ export const graveyardSearchJob: JobHandler<GraveyardPayload> = {
           .slice(0, EXTRA_QUERIES)
           .map((topic) => `topic:${topic} ${qualifiers}`),
       ];
-      const found = new Map<number, Candidate>();
-      for (const query of queries) {
-        if (found.size >= MAX_CANDIDATES) break;
-        const { repos } = await searchRepositories(client, query, { perPage: MAX_CANDIDATES, deadline: ctx.deadline });
-        for (const repo of repos) {
-          if (found.size < MAX_CANDIDATES && !found.has(repo.githubId)) found.set(repo.githubId, { ...repo, relevance: 0, listing: null });
+      if (cachedCandidates.success) {
+        ordered = cachedCandidates.data;
+      } else {
+        const found = new Map<number, Candidate>();
+        for (const query of queries) {
+          if (found.size >= MAX_CANDIDATES) break;
+          const { repos } = await searchRepositories(client, query, { perPage: MAX_CANDIDATES, deadline: ctx.deadline });
+          for (const repo of repos) {
+            if (found.size < MAX_CANDIDATES && !found.has(repo.githubId)) found.set(repo.githubId, { ...repo, relevance: 0, listing: null });
+          }
         }
+        const repos = [...found.values()];
+        // GitHub's own order, as a score from 1 down to 0 (§8 F7 step 8).
+        ordered = repos.map((repo, index) => ({ ...repo, relevance: repos.length <= 1 ? 1 : 1 - index / repos.length }));
+        const ttlHours = await getSetting('cache.searchTtlHours');
+        await putCachedAnalysis({
+          ...candidatesKey,
+          result: ordered,
+          isMemberSubject: false,
+          computedAt: now,
+          expiresAt: new Date(now.getTime() + ttlHours * MS_PER_HOUR),
+        });
       }
-      const repos = [...found.values()];
-      // GitHub's own order, as a score from 1 down to 0 (§8 F7 step 8).
-      ordered = repos.map((repo, index) => ({ ...repo, relevance: repos.length <= 1 ? 1 : 1 - index / repos.length }));
     }
 
     await ctx.progress({ step: GRAVEYARD_STEPS.reading, message: `Reading ${ordered.length} projects` });
     const passing: { repo: Candidate; signals: RepoSignals; idleMonths: number; category: string }[] = [];
     const idleByCategory = new Map<string, number>();
+    // First the filters that need no GitHub call, then each remaining project's signals, a batch at a
+    // time; a follow-up finds the projects already read in the cache (ADR-014).
+    const eligible: { repo: Candidate; idleMonths: number; category: string; optedIn: boolean }[] = [];
     for (const repo of ordered) {
-      if (outOfTime()) return { kind: 'continue', payload };
       const optedIn = repo.listing !== null;
       if (repo.isFork && !optedIn) continue;
       const category = categoryOf(repo, topics, slug);
       if (!idleByCategory.has(category)) idleByCategory.set(category, (await getCategoryNumber('graveyard.idleMonths', category)) ?? defaultIdle);
       const idleMonths = repo.pushedAt ? monthsBetween(new Date(repo.pushedAt), now) : Number.POSITIVE_INFINITY;
       if (!optedIn && idleMonths < (idleByCategory.get(category) ?? defaultIdle)) continue;
-      const signals = await repoSignals(client, repo.fullName, now, ctx.deadline);
-      if (!optedIn && (!signals.hasReadme || signals.commitEstimate < minCommits)) continue;
-      passing.push({ repo, signals, idleMonths, category });
+      eligible.push({ repo, idleMonths, category, optedIn });
+    }
+    for (const group of batches(eligible, concurrency)) {
+      if (outOfTime()) return { kind: 'continue', payload };
+      // A repository GitHub blocks or no longer has is skipped, not a failed search.
+      const signalsOf = await mapConcurrent(group, concurrency, (entry) =>
+        // Opted-in listings skip the filters, so they always get every signal.
+        unlessUnreadable(repoSignals(client, entry.repo.fullName, now, ctx.deadline, entry.optedIn ? {} : { minCommits })),
+      );
+      group.forEach((entry, index) => {
+        const signals = signalsOf[index];
+        if (!signals || (!entry.optedIn && (!signals.hasReadme || signals.commitEstimate < minCommits))) return;
+        passing.push({ repo: entry.repo, signals, idleMonths: entry.idleMonths, category: entry.category });
+      });
     }
 
     // Recent stars cost extra requests: only for the best matches (§8 F7 step 7).
-    for (const entry of passing.slice(0, deepTopN)) {
+    for (const group of batches(passing.slice(0, deepTopN), concurrency)) {
       if (outOfTime()) return { kind: 'continue', payload };
-      entry.signals = await withRecentStars(client, entry.repo, entry.signals, now, ctx.deadline);
+      const withStars = await mapConcurrent(group, concurrency, (entry) =>
+        unlessUnreadable(withRecentStars(client, entry.repo, entry.signals, now, ctx.deadline)),
+      );
+      group.forEach((entry, index) => {
+        const signals = withStars[index];
+        if (signals) entry.signals = signals;
+      });
     }
 
     await ctx.progress({ step: GRAVEYARD_STEPS.scoring });

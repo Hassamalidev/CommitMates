@@ -10,6 +10,18 @@ export async function runTickWithHandlers(options: { budgetMs: number; onlyJobId
 }
 
 /**
+ * Runs a watched job's next link from its progress stream (ADR-014), so a follow-up does not wait
+ * for the next tick. Failures are logged; the job itself records what went wrong.
+ */
+export async function driveWatchedJob(jobId: string, budgetMs: number): Promise<void> {
+  try {
+    await runTickWithHandlers({ budgetMs, onlyJobId: jobId });
+  } catch (error) {
+    getLogger().error({ err: error, jobId }, 'watched job run failed');
+  }
+}
+
+/**
  * Starts a job right after the response is sent, so a waiting user does not depend
  * on the next cron tick (CLAUDE.md §5.3 step 5). Failures are logged; the cron tick retries.
  */

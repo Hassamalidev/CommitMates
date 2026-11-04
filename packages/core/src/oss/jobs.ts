@@ -1,8 +1,25 @@
 import { createHash } from 'node:crypto';
 
-import { MAINTAINER_ROLES, applyGates, issueRank, medianResponseHours, skillMatch } from '@commitmates/algorithms';
+import {
+  MAINTAINER_ROLES,
+  applyGates,
+  issueRank,
+  medianResponseHours,
+  skillMatch,
+} from '@commitmates/algorithms';
 import { getCachedAnalysis, getSetting, putCachedAnalysis, recordMetricSamples } from '@commitmates/db';
-import { SERVER_IDENTITY, fetchIssueResponses, fetchLabels, fetchRepository, githubFor, searchIssues, type FoundIssue } from '@commitmates/github';
+import {
+  SERVER_IDENTITY,
+  batches,
+  fetchIssueResponses,
+  fetchLabels,
+  fetchRepository,
+  githubFor,
+  mapConcurrent,
+  searchIssues,
+  unlessUnreadable,
+  type FoundIssue,
+} from '@commitmates/github';
 import { PRIORITY, type JobContext, type JobHandler } from '@commitmates/jobs';
 import { z } from 'zod';
 
@@ -10,13 +27,25 @@ import { getCachedDevCard, identityFor, readProfile, storeDevCard } from '../per
 import { computeExpansion } from '../taxonomy/service';
 import { hourBucket, storeToolResult, type ToolDefinition } from '../tools/service';
 
-import { ossInputSchema, ossPayloadSchema, ossResultSchema, type OssInput, type OssIssue, type OssPayload } from './schemas';
+import {
+  ossInputSchema,
+  ossPayloadSchema,
+  ossResultSchema,
+  type OssInput,
+  type OssIssue,
+  type OssPayload,
+} from './schemas';
 
 /** Anonymous per-project response times, for the computed `oss.maxResponseHours`. */
 export const OSS_RESPONSE_SAMPLE = 'oss.responseHours';
 
 /** The steps `oss_search` reports, in order. */
-export const OSS_STEPS = { profile: 'profile', searching: 'searching', projects: 'projects', ranking: 'ranking' } as const;
+export const OSS_STEPS = {
+  profile: 'profile',
+  searching: 'searching',
+  projects: 'projects',
+  ranking: 'ranking',
+} as const;
 
 /** Languages searched (§8 F8 step 1: "up to 3 languages"). */
 const MAX_LANGUAGES = 3;
@@ -35,10 +64,17 @@ const KEY_LENGTH = 16;
 const OTHER_LANGUAGE = 'other';
 const REPO_KIND = 'oss_repo';
 
-const sorted = (values: readonly string[] | undefined) => [...new Set((values ?? []).map((value) => value.trim().toLowerCase()))].sort();
+const sorted = (values: readonly string[] | undefined) =>
+  [...new Set((values ?? []).map((value) => value.trim().toLowerCase()))].sort();
 const requestKey = (input: OssInput) =>
   createHash('sha256')
-    .update(JSON.stringify({ login: input.login?.toLowerCase() ?? null, languages: sorted(input.languages), topics: sorted(input.topics) }))
+    .update(
+      JSON.stringify({
+        login: input.login?.toLowerCase() ?? null,
+        languages: sorted(input.languages),
+        topics: sorted(input.topics),
+      }),
+    )
     .digest('hex')
     .slice(0, KEY_LENGTH);
 
@@ -47,10 +83,14 @@ export const ossTool: ToolDefinition<OssInput> = {
   jobType: 'oss_search',
   cacheKind: 'oss',
   input: ossInputSchema,
-  subjectKey: (input) => (input.login ? `login:${input.login.toLowerCase()}` : `languages:${sorted(input.languages).join(',')}`),
+  subjectKey: (input) =>
+    input.login ? `login:${input.login.toLowerCase()}` : `languages:${sorted(input.languages).join(',')}`,
   params: (input) => ({ languages: sorted(input.languages), topics: sorted(input.topics) }),
   idempotencyKey: (input, now) => `oss:${requestKey(input)}:${hourBucket(now)}`,
-  payload: (input, context) => ({ ...input, ...(context.userId !== undefined ? { requestedBy: context.userId } : {}) }),
+  payload: (input, context) => ({
+    ...input,
+    ...(context.userId !== undefined ? { requestedBy: context.userId } : {}),
+  }),
   ttlSetting: 'cache.searchTtlHours',
 };
 
@@ -76,12 +116,17 @@ async function repoInfo(fullName: string, labelTerms: readonly string[], ctx: Jo
   const [repository, labels, sample, ttlHours] = [
     await fetchRepository(client, owner, name, request),
     await fetchLabels(client, owner, name, request),
-    await fetchIssueResponses(client, owner, name, { ...request, count: await getSetting('oss.responsivenessSample'), maintainerRoles: MAINTAINER_ROLES }),
+    await fetchIssueResponses(client, owner, name, {
+      ...request,
+      count: await getSetting('oss.responsivenessSample'),
+      maintainerRoles: MAINTAINER_ROLES,
+    }),
     await getSetting('cache.searchTtlHours'),
   ];
   const responseHours = medianResponseHours(sample, now);
   // Each project's median feeds the computed `oss.maxResponseHours` (p60), counted once per project.
-  if (responseHours !== null) await recordMetricSamples(repository.githubId, { [OSS_RESPONSE_SAMPLE]: responseHours }, now);
+  if (responseHours !== null)
+    await recordMetricSamples(repository.githubId, { [OSS_RESPONSE_SAMPLE]: responseHours }, now);
   const info: RepoInfo = {
     githubId: repository.githubId,
     language: repository.language,
@@ -90,7 +135,13 @@ async function repoInfo(fullName: string, labelTerms: readonly string[], ctx: Jo
     labels: labels.filter((label) => labelTerms.includes(label.toLowerCase())),
     responseHours,
   };
-  await putCachedAnalysis({ ...key, result: info, isMemberSubject: false, computedAt: now, expiresAt: new Date(now.getTime() + ttlHours * MS_PER_HOUR) });
+  await putCachedAnalysis({
+    ...key,
+    result: info,
+    isMemberSubject: false,
+    computedAt: now,
+    expiresAt: new Date(now.getTime() + ttlHours * MS_PER_HOUR),
+  });
   return info;
 }
 
@@ -113,22 +164,36 @@ export const ossSearchJob: JobHandler<OssPayload & { requestedBy?: string | unde
       await ctx.progress({ step: OSS_STEPS.profile, message: `Reading @${payload.login}` });
       const card =
         (await getCachedDevCard(payload.login, now)) ??
-        (await storeDevCard(await readProfile(payload.login, { identity: await identityFor(payload.login, payload.requestedBy), ctx }), now)).card;
-      if (languages.length === 0) languages = card.languages.filter((language) => language.name !== OTHER_LANGUAGE).slice(0, MAX_LANGUAGES).map((language) => language.name);
+        (
+          await storeDevCard(
+            await readProfile(payload.login, {
+              identity: await identityFor(payload.login, payload.requestedBy),
+              ctx,
+            }),
+            now,
+          )
+        ).card;
+      if (languages.length === 0)
+        languages = card.languages
+          .filter((language) => language.name !== OTHER_LANGUAGE)
+          .slice(0, MAX_LANGUAGES)
+          .map((language) => language.name);
       topics = [...new Set([...topics, ...card.tags.map((tag) => tag.tag)])];
     }
     // Picked topics are widened with what usually goes with them (CLAUDE.md §8 F6).
     for (const topic of sorted(payload.topics)) {
       const expansion = await computeExpansion(topic, { client, now, deadline: ctx.deadline });
       if (expansion.status === 'partial') return { kind: 'continue', payload };
-      for (const item of expansion.expansion.items) if (item.kind === 'topic' && !topics.includes(item.value)) topics.push(item.value);
+      for (const item of expansion.expansion.items)
+        if (item.kind === 'topic' && !topics.includes(item.value)) topics.push(item.value);
     }
 
-    const [labelTerms, maxRepoIdleDays, maxResponseHours, maxComments] = await Promise.all([
+    const [labelTerms, maxRepoIdleDays, maxResponseHours, maxComments, concurrency] = await Promise.all([
       getSetting('oss.beginnerLabelTerms'),
       getSetting('oss.maxRepoIdleDays'),
       getSetting('oss.maxResponseHours'),
       getSetting('oss.maxComments'),
+      getSetting('github.concurrency'),
     ]);
     const terms = labelTerms.map((term) => term.toLowerCase());
 
@@ -138,7 +203,12 @@ export const ossSearchJob: JobHandler<OssPayload & { requestedBy?: string | unde
     for (const language of languages) {
       for (let page = 1; page <= MAX_PAGES; page += 1) {
         const query = `is:issue is:open no:assignee archived:false -linked:pr language:"${language}" ${labelQualifier}`;
-        const { issues } = await searchIssues(client, query, { perPage: PER_PAGE, page, deadline: ctx.deadline });
+        const { issues } = await searchIssues(client, query, {
+          perPage: PER_PAGE,
+          page,
+          deadline: ctx.deadline,
+          reuse: true,
+        });
         for (const issue of issues) found.set(issue.url, issue);
         if (issues.length < PER_PAGE) break;
       }
@@ -146,9 +216,17 @@ export const ossSearchJob: JobHandler<OssPayload & { requestedBy?: string | unde
 
     await ctx.progress({ step: OSS_STEPS.projects });
     const repos = new Map<string, RepoInfo>();
-    for (const repo of new Set([...found.values()].map((issue) => issue.repo))) {
+    // Projects are read a batch at a time; a follow-up finds the ones already read in the cache (ADR-014).
+    for (const group of batches([...new Set([...found.values()].map((issue) => issue.repo))], concurrency)) {
       if (outOfTime()) return { kind: 'continue', payload };
-      repos.set(repo, await repoInfo(repo, terms, ctx));
+      // A project GitHub blocks or no longer has is left out; its issues go with it.
+      const infos = await mapConcurrent(group, concurrency, (repo) =>
+        unlessUnreadable(repoInfo(repo, terms, ctx)),
+      );
+      group.forEach((repo, index) => {
+        const info = infos[index];
+        if (info) repos.set(repo, info);
+      });
     }
 
     await ctx.progress({ step: OSS_STEPS.ranking });
@@ -170,7 +248,12 @@ export const ossSearchJob: JobHandler<OssPayload & { requestedBy?: string | unde
           ageDays,
           responseHours: repo.responseHours,
           skillMatch: match,
-          rank: issueRank({ skillMatch: match, ageDays, responseHours: repo.responseHours, maxResponseHours }),
+          rank: issueRank({
+            skillMatch: match,
+            ageDays,
+            responseHours: repo.responseHours,
+            maxResponseHours,
+          }),
         },
       ];
     });
@@ -181,8 +264,15 @@ export const ossSearchJob: JobHandler<OssPayload & { requestedBy?: string | unde
       relaxed,
       issues: kept.sort((a, b) => b.rank - a.rank || a.url.localeCompare(b.url)).slice(0, MAX_RESULTS),
     });
-    const input = { ...(payload.login ? { login: payload.login } : {}), languages: payload.languages, topics: payload.topics };
-    const resultRef = await storeToolResult(ossTool, input as OssInput, result, { isMemberSubject: false, now });
+    const input = {
+      ...(payload.login ? { login: payload.login } : {}),
+      languages: payload.languages,
+      topics: payload.topics,
+    };
+    const resultRef = await storeToolResult(ossTool, input as OssInput, result, {
+      isMemberSubject: false,
+      now,
+    });
     return { kind: 'done', resultRef };
   },
 };

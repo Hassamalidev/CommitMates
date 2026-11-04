@@ -39,6 +39,7 @@ beforeEach(async () => {
   resetGitHubClientState();
   await database.sql`delete from api_cache`;
   await database.sql`delete from github_budgets`;
+  await database.sql`delete from rate_limit_buckets`;
 });
 
 const rateHeaders = (resource: string, remaining: number, limit = 5000) => ({
@@ -56,14 +57,16 @@ const rateLimitHandler = (overrides: Record<string, { limit: number; remaining: 
         core: { limit: 5000, remaining: 4990, reset: RESET_EPOCH },
         search: { limit: 30, remaining: 30, reset: RESET_EPOCH },
         graphql: { limit: 5000, remaining: 5000, reset: RESET_EPOCH },
-        ...Object.fromEntries(Object.entries(overrides).map(([key, value]) => [key, { ...value, reset: RESET_EPOCH }])),
+        ...Object.fromEntries(
+          Object.entries(overrides).map(([key, value]) => [key, { ...value, reset: RESET_EPOCH }]),
+        ),
       },
     }),
   );
 
 const userSchema = z.object({ login: z.string(), id: z.number() });
 const client = (identity: TokenIdentity = SERVER_IDENTITY, sleep = vi.fn(() => Promise.resolve())) =>
-  githubFor(identity, { now: () => NOW, random: () => 0, sleep });
+  githubFor(identity, { now: () => NOW, sleep });
 
 const budget = async (resource: string, identity = 'server') => {
   const [row] = await database.sql`
@@ -78,7 +81,9 @@ describe('REST GET', () => {
     server.use(
       http.get(`${API}/rate_limit`, () => {
         rateLimitCalls += 1;
-        return HttpResponse.json({ resources: { core: { limit: 5000, remaining: 4990, reset: RESET_EPOCH } } });
+        return HttpResponse.json({
+          resources: { core: { limit: 5000, remaining: 4990, reset: RESET_EPOCH } },
+        });
       }),
       http.get(`${API}/users/octocat`, ({ request }) => {
         expect(request.headers.get('authorization')).toBe('token local-github-token');
@@ -112,7 +117,13 @@ describe('REST GET', () => {
         }
         return HttpResponse.json(
           { login: 'octocat', id: 1 },
-          { headers: { ...rateHeaders('core', 4989), etag: '"v1"', 'last-modified': 'Wed, 14 Oct 2026 10:00:00 GMT' } },
+          {
+            headers: {
+              ...rateHeaders('core', 4989),
+              etag: '"v1"',
+              'last-modified': 'Wed, 14 Oct 2026 10:00:00 GMT',
+            },
+          },
         );
       }),
     );
@@ -151,7 +162,9 @@ describe('REST GET', () => {
         HttpResponse.json({ login: 'octocat', id: 1 }, { headers: rateHeaders('core', 4999) }),
       ),
     );
-    await expect(client().get('GET /users/{username}', { username: 'octocat' }, userSchema)).resolves.toMatchObject({
+    await expect(
+      client().get('GET /users/{username}', { username: 'octocat' }, userSchema),
+    ).resolves.toMatchObject({
       login: 'octocat',
     });
   });
@@ -165,11 +178,15 @@ describe('REST GET', () => {
       .get('GET /users/{username}', { username: 'nobody' }, userSchema, { what: '@nobody' })
       .catch((caught: unknown) => caught);
     expect(error).toBeInstanceOf(GitHubNotFoundError);
-    expect((error as GitHubNotFoundError).userMessage).toBe("We couldn't find @nobody on GitHub. Check the spelling?");
+    expect((error as GitHubNotFoundError).userMessage).toBe(
+      "We couldn't find @nobody on GitHub. Check the spelling?",
+    );
   });
 
   it('tells a visitor the problem is ours when GitHub rejects the server token', async () => {
-    server.use(http.get(`${API}/rate_limit`, () => HttpResponse.json({ message: 'Bad credentials' }, { status: 401 })));
+    server.use(
+      http.get(`${API}/rate_limit`, () => HttpResponse.json({ message: 'Bad credentials' }, { status: 401 })),
+    );
     const error = await client()
       .get('GET /users/{username}', { username: 'someone' }, userSchema)
       .catch((caught: unknown) => caught);
@@ -205,7 +222,9 @@ describe('REST GET', () => {
   it('treats a response that fails its schema as a server error', async () => {
     server.use(
       rateLimitHandler(),
-      http.get(`${API}/users/octocat`, () => HttpResponse.json({ login: 42 }, { headers: rateHeaders('core', 4000) })),
+      http.get(`${API}/users/octocat`, () =>
+        HttpResponse.json({ login: 42 }, { headers: rateHeaders('core', 4000) }),
+      ),
     );
     await expect(client().get('GET /users/{username}', { username: 'octocat' }, userSchema)).rejects.toThrow(
       /did not match its schema/,
@@ -214,12 +233,34 @@ describe('REST GET', () => {
 });
 
 describe('rate limits', () => {
+  it('keeps one token under github.requestsPerMinute, making the job wait rather than overspend', async () => {
+    server.use(
+      rateLimitHandler(),
+      http.get(`${API}/users/someone`, () =>
+        HttpResponse.json({ login: 'someone', id: 1 }, { headers: rateHeaders('core', 4990, 5000) }),
+      ),
+    );
+    await withSettings({ 'github.requestsPerMinute': 2 }, async () => {
+      const gh = client();
+      await gh.get('GET /users/{username}', { username: 'someone' }, userSchema);
+      await gh.get('GET /users/{username}', { username: 'someone' }, userSchema);
+      // The bucket is empty and refills at 2 a minute: no time to wait for the third call.
+      const error = await gh
+        .get('GET /users/{username}', { username: 'someone' }, userSchema, { deadline: Date.now() + 1000 })
+        .catch((caught: unknown) => caught);
+      expect(error).toBeInstanceOf(RateLimitError);
+    });
+  });
+
   it('waits for retry-after on a secondary limit (403 and 429)', async () => {
     for (const status of [403, 429]) {
       server.use(
         rateLimitHandler(),
         http.get(`${API}/users/octocat`, () =>
-          HttpResponse.json({ message: 'You have exceeded a secondary rate limit' }, { status, headers: { 'retry-after': '90' } }),
+          HttpResponse.json(
+            { message: 'You have exceeded a secondary rate limit' },
+            { status, headers: { 'retry-after': '90' } },
+          ),
         ),
       );
       const error = await client()
@@ -234,7 +275,10 @@ describe('rate limits', () => {
     server.use(
       rateLimitHandler(),
       http.get(`${API}/users/octocat`, () =>
-        HttpResponse.json({ message: 'API rate limit exceeded' }, { status: 403, headers: rateHeaders('core', 0) }),
+        HttpResponse.json(
+          { message: 'API rate limit exceeded' },
+          { status: 403, headers: rateHeaders('core', 0) },
+        ),
       ),
     );
     const error = await client()
@@ -249,7 +293,10 @@ describe('rate limits', () => {
     server.use(
       rateLimitHandler(),
       http.get(`${API}/users/octocat`, () =>
-        HttpResponse.json({ message: 'You have exceeded a secondary rate limit.' }, { status: 403, headers: rateHeaders('core', 4000) }),
+        HttpResponse.json(
+          { message: 'You have exceeded a secondary rate limit.' },
+          { status: 403, headers: rateHeaders('core', 4000) },
+        ),
       ),
     );
     const waits: number[] = [];
@@ -266,12 +313,15 @@ describe('rate limits', () => {
     server.use(
       rateLimitHandler(),
       http.get(`${API}/users/octocat`, () =>
-        HttpResponse.json({ message: 'Resource not accessible' }, { status: 403, headers: rateHeaders('core', 4000) }),
+        HttpResponse.json(
+          { message: 'Resource not accessible' },
+          { status: 403, headers: rateHeaders('core', 4000) },
+        ),
       ),
     );
-    await expect(client().get('GET /users/{username}', { username: 'octocat' }, userSchema)).rejects.toBeInstanceOf(
-      GitHubForbiddenError,
-    );
+    await expect(
+      client().get('GET /users/{username}', { username: 'octocat' }, userSchema),
+    ).rejects.toBeInstanceOf(GitHubForbiddenError);
   });
 });
 
@@ -287,7 +337,10 @@ describe('member tokens', () => {
       http.get(`${API}/users/member`, ({ request }) => {
         expect(request.headers.get('authorization')).toBe('token gho_member-token');
         return authorized
-          ? HttpResponse.json({ login: 'member', id: 99 }, { headers: { ...rateHeaders('core', 4999), etag: '"m1"' } })
+          ? HttpResponse.json(
+              { login: 'member', id: 99 },
+              { headers: { ...rateHeaders('core', 4999), etag: '"m1"' } },
+            )
           : HttpResponse.json({ message: 'Bad credentials' }, { status: 401 });
       }),
     );
@@ -299,16 +352,16 @@ describe('member tokens', () => {
 
     authorized = false;
     await database.sql`delete from api_cache`;
-    await expect(client(identity).get('GET /users/{username}', { username: 'member' }, userSchema)).rejects.toBeInstanceOf(
-      GitHubAuthError,
-    );
+    await expect(
+      client(identity).get('GET /users/{username}', { username: 'member' }, userSchema),
+    ).rejects.toBeInstanceOf(GitHubAuthError);
     const [row] = await database.sql`select token_invalid from github_identities where user_id = ${userId}`;
     expect(row!.token_invalid).toBe(true);
 
     // A token already marked invalid is not sent again.
-    await expect(client(identity).get('GET /users/{username}', { username: 'member' }, userSchema)).rejects.toBeInstanceOf(
-      GitHubAuthError,
-    );
+    await expect(
+      client(identity).get('GET /users/{username}', { username: 'member' }, userSchema),
+    ).rejects.toBeInstanceOf(GitHubAuthError);
   });
 });
 
@@ -332,9 +385,14 @@ describe('paginate', () => {
     expect(all.truncated).toBe(false);
 
     await database.sql`delete from api_cache`;
-    const capped = await client().paginate('GET /users/{username}/repos', { username: 'octocat' }, repoSchema, {
-      maxPages: 2,
-    });
+    const capped = await client().paginate(
+      'GET /users/{username}/repos',
+      { username: 'octocat' },
+      repoSchema,
+      {
+        maxPages: 2,
+      },
+    );
     expect(capped.items.map((repo) => repo.id)).toEqual([10, 11, 20, 21]);
     expect(capped.truncated).toBe(true);
   });
@@ -363,37 +421,79 @@ describe('search pacer', () => {
       HttpResponse.json({ total_count: 3, items: [] }, { headers: rateHeaders('search', 29, 30) }),
     );
 
-  it('spaces calls by the gap derived from the reported limit', async () => {
+  it('makes search calls back to back while the reported allowance lasts', async () => {
     server.use(rateLimitHandler(), searchHandler());
     const sleep = vi.fn(() => Promise.resolve());
     const gh = client(SERVER_IDENTITY, sleep);
 
     await gh.search('GET /search/repositories', { q: 'topic:react' }, searchSchema);
-    expect(sleep).not.toHaveBeenCalled();
-
     await gh.search('GET /search/repositories', { q: 'topic:vue' }, searchSchema);
-    // limit 30 per minute → 2000 ms between calls; "now" is frozen, so the full gap is waited.
-    expect(sleep).toHaveBeenCalledWith(2000);
+    expect(sleep).not.toHaveBeenCalled();
     expect((await budget('search'))!.last_call_at).toEqual(NOW);
   });
 
-  it('asks the job to wait when the pause exceeds the time left', async () => {
-    server.use(rateLimitHandler(), searchHandler());
+  it('reserves one search per caller under the lock, so racing callers cannot overspend', async () => {
+    // Three searches left and a reserve of 2: exactly one of two racing calls may go.
+    server.use(
+      rateLimitHandler({ search: { limit: 30, remaining: 3 } }),
+      http.get(`${API}/search/repositories`, () =>
+        HttpResponse.json({ total_count: 3, items: [] }, { headers: rateHeaders('search', 2, 30) }),
+      ),
+    );
     const gh = client();
-    await gh.search('GET /search/repositories', { q: 'a' }, searchSchema);
+    const outcomes = await Promise.allSettled([
+      gh.search('GET /search/repositories', { q: 'a' }, searchSchema),
+      gh.search('GET /search/repositories', { q: 'b' }, searchSchema),
+    ]);
+    expect(outcomes.filter((outcome) => outcome.status === 'fulfilled')).toHaveLength(1);
+    const rejected = outcomes.find((outcome) => outcome.status === 'rejected');
+    expect(rejected?.status === 'rejected' && rejected.reason).toBeInstanceOf(RateLimitError);
+  });
 
-    const error = await gh
-      .search('GET /search/repositories', { q: 'b' }, searchSchema, { deadline: Date.now() + 100 })
-      .catch((caught: unknown) => caught);
-    expect(error).toBeInstanceOf(RateLimitError);
-    expect((error as RateLimitError).resetAt.getTime()).toBe(NOW.getTime() + 2000);
+  it('answers a repeated search from its stored result when asked to reuse it', async () => {
+    let calls = 0;
+    server.use(
+      rateLimitHandler({ search: { limit: 30, remaining: 30 } }),
+      http.get(`${API}/search/repositories`, () => {
+        calls += 1;
+        return HttpResponse.json({ total_count: calls, items: [] }, { headers: rateHeaders('search', 30 - calls, 30) });
+      }),
+    );
+    const gh = client();
+    const first = await gh.search('GET /search/repositories', { q: 'a' }, searchSchema, { reuse: true });
+    const again = await gh.search('GET /search/repositories', { q: 'a' }, searchSchema, { reuse: true });
+    expect([first.total_count, again.total_count, calls]).toEqual([1, 1, 1]);
+    // Without reuse, and for another query, GitHub is asked.
+    await gh.search('GET /search/repositories', { q: 'a' }, searchSchema);
+    await gh.search('GET /search/repositories', { q: 'b' }, searchSchema, { reuse: true });
+    expect(calls).toBe(3);
+    const [row] = await database.sql`select expires_at, etag from api_cache where url like '%search/repositories%q=a%'`;
+    expect(row?.etag).toBeNull();
+    expect(row?.expires_at.getTime()).toBeGreaterThan(NOW.getTime());
+  });
+
+  it('leaves github.reserve.searchBackground searches to interactive work when asked to', async () => {
+    // Ten left: a background search stops at the default background reserve; a visitor's search goes.
+    server.use(
+      rateLimitHandler({ search: { limit: 30, remaining: 10 } }),
+      http.get(`${API}/search/repositories`, () =>
+        HttpResponse.json({ total_count: 0, items: [] }, { headers: rateHeaders('search', 9, 30) }),
+      ),
+    );
+    const gh = client();
+    await expect(
+      gh.search('GET /search/repositories', { q: 'a' }, searchSchema, { background: true }),
+    ).rejects.toBeInstanceOf(RateLimitError);
+    await expect(gh.search('GET /search/repositories', { q: 'a' }, searchSchema)).resolves.toMatchObject({
+      total_count: 0,
+    });
   });
 
   it('keeps search calls in reserve', async () => {
     server.use(rateLimitHandler({ search: { limit: 30, remaining: 2 } }));
-    await expect(client().search('GET /search/repositories', { q: 'a' }, searchSchema)).rejects.toBeInstanceOf(
-      RateLimitError,
-    );
+    await expect(
+      client().search('GET /search/repositories', { q: 'a' }, searchSchema),
+    ).rejects.toBeInstanceOf(RateLimitError);
   });
 });
 
@@ -477,34 +577,47 @@ describe('graphql', () => {
   });
 
   it('refuses a query without rateLimit', async () => {
-    await expect(client().graphql('query { viewer { login } }', {}, resultSchema)).rejects.toThrow(/rateLimit/);
+    await expect(client().graphql('query { viewer { login } }', {}, resultSchema)).rejects.toThrow(
+      /rateLimit/,
+    );
   });
 
   it('maps GraphQL error types', async () => {
     const respond = (type: string) =>
       http.post(`${API}/graphql`, () =>
-        HttpResponse.json({ data: { user: null, rateLimit }, errors: [{ type, message: `problem: ${type}` }] }),
+        HttpResponse.json({
+          data: { user: null, rateLimit },
+          errors: [{ type, message: `problem: ${type}` }],
+        }),
       );
 
     server.use(rateLimitHandler(), respond('NOT_FOUND'));
-    await expect(client().graphql(query, { login: 'x' }, resultSchema, { what: '@x' })).rejects.toBeInstanceOf(
-      GitHubNotFoundError,
-    );
+    await expect(
+      client().graphql(query, { login: 'x' }, resultSchema, { what: '@x' }),
+    ).rejects.toBeInstanceOf(GitHubNotFoundError);
 
     server.use(respond('RATE_LIMITED'));
-    const limited = await client().graphql(query, { login: 'x' }, resultSchema).catch((caught: unknown) => caught);
+    const limited = await client()
+      .graphql(query, { login: 'x' }, resultSchema)
+      .catch((caught: unknown) => caught);
     expect(limited).toBeInstanceOf(RateLimitError);
     expect((limited as RateLimitError).resetAt.toISOString()).toBe('2026-10-14T12:30:00.000Z');
 
     server.use(respond('FORBIDDEN'));
-    await expect(client().graphql(query, { login: 'x' }, resultSchema)).rejects.toBeInstanceOf(GitHubForbiddenError);
+    await expect(client().graphql(query, { login: 'x' }, resultSchema)).rejects.toBeInstanceOf(
+      GitHubForbiddenError,
+    );
 
     server.use(respond('SOMETHING_ELSE'));
-    await expect(client().graphql(query, { login: 'x' }, resultSchema)).rejects.toThrow(/problem: SOMETHING_ELSE/);
+    await expect(client().graphql(query, { login: 'x' }, resultSchema)).rejects.toThrow(
+      /problem: SOMETHING_ELSE/,
+    );
   });
 
   it('keeps GraphQL points in reserve', async () => {
     server.use(rateLimitHandler({ graphql: { limit: 5000, remaining: 300 } }));
-    await expect(client().graphql(query, { login: 'x' }, resultSchema)).rejects.toBeInstanceOf(RateLimitError);
+    await expect(client().graphql(query, { login: 'x' }, resultSchema)).rejects.toBeInstanceOf(
+      RateLimitError,
+    );
   });
 });

@@ -2,6 +2,7 @@ import { teamMetrics } from '@commitmates/algorithms';
 import { ValidationError, getDb, getSetting, schema } from '@commitmates/db';
 import {
   SERVER_IDENTITY,
+  batches,
   fetchCommitFiles,
   fetchContributorStats,
   fetchFileText,
@@ -9,6 +10,7 @@ import {
   fetchTree,
   githubFor,
   listCommits,
+  mapConcurrent,
   parseGitHubUrl,
 } from '@commitmates/github';
 import { PRIORITY, type JobHandler } from '@commitmates/jobs';
@@ -84,20 +86,19 @@ export const fairnessReportJob: JobHandler<FairnessPayload> = {
     }
 
     await ctx.progress({ step: FAIRNESS_STEPS.stats });
-    const stats = await fetchContributorStats(client, owner, repo, request);
-    if (stats.pending) return { kind: 'wait', until: new Date(ctx.now().getTime() + STATS_WAIT_MS), reason: 'dependency' };
-
-    await ctx.progress({ step: FAIRNESS_STEPS.commits });
-    const maxCommits = await getSetting('fairness.maxCommits');
-    const { commits } = await listCommits(client, owner, repo, { ...request, limit: maxCommits });
-
-    const [tree, gitattributes, patterns] = await Promise.all([
+    const [maxCommits, concurrency] = await Promise.all([getSetting('fairness.maxCommits'), getSetting('github.concurrency')]);
+    // Statistics, the commit list and the tree do not depend on each other (ADR-014).
+    const [stats, { commits }, tree, gitattributes, patterns] = await Promise.all([
+      fetchContributorStats(client, owner, repo, request),
+      listCommits(client, owner, repo, { ...request, limit: maxCommits }),
       fetchTree(client, owner, repo, repository.defaultBranch, request),
       fetchFileText(client, owner, repo, '.gitattributes', request),
       getDb()
         .select({ kind: schema.pathPatterns.kind, pattern: schema.pathPatterns.pattern, compiledOk: schema.pathPatterns.compiledOk })
         .from(schema.pathPatterns),
     ]);
+    if (stats.pending) return { kind: 'wait', until: new Date(ctx.now().getTime() + STATS_WAIT_MS), reason: 'dependency' };
+    await ctx.progress({ step: FAIRNESS_STEPS.commits });
     const linguist = createPathMatcher(patterns);
     const attributes = linguistExclusionPatterns(gitattributes ?? '');
     const isExcluded = (path: string) => linguist.isVendored(path) || linguist.isDocumentation(path) || attributes.some((pattern) => pattern.test(path));
@@ -116,7 +117,7 @@ export const fairnessReportJob: JobHandler<FairnessPayload> = {
     let cursor = payload.cursor ?? 0;
     if (cursor < toRead.length) await ctx.progress({ step: FAIRNESS_STEPS.lines, pct: Math.round((cursor / toRead.length) * PERCENT) });
 
-    for (; cursor < toRead.length; cursor += 1) {
+    for (const group of batches(toRead.slice(cursor), concurrency)) {
       if (Date.now() > ctx.deadline - DEADLINE_MARGIN_MS) {
         const state = {
           ...payload,
@@ -127,23 +128,26 @@ export const fairnessReportJob: JobHandler<FairnessPayload> = {
         };
         return { kind: 'continue', payload: state };
       }
-      const commit = toRead[cursor];
-      if (!commit) continue;
-      const key = commitAuthorKey(commit);
-      let net: [number, number] = [0, 0];
-      for (const file of await fetchCommitFiles(client, owner, repo, commit.sha, request)) {
-        if (isExcluded(file.path)) {
-          if (key !== null) {
-            const [additions, deletions] = excluded.get(key) ?? [0, 0];
-            excluded.set(key, [additions + file.additions, deletions + file.deletions]);
+      // A batch of commits is read at once; their lines are counted in order afterwards.
+      const filesOf = await mapConcurrent(group, concurrency, (commit) => fetchCommitFiles(client, owner, repo, commit.sha, request));
+      for (const [index, commit] of group.entries()) {
+        const key = commitAuthorKey(commit);
+        let net: [number, number] = [0, 0];
+        for (const file of filesOf[index] ?? []) {
+          if (isExcluded(file.path)) {
+            if (key !== null) {
+              const [additions, deletions] = excluded.get(key) ?? [0, 0];
+              excluded.set(key, [additions + file.additions, deletions + file.deletions]);
+            }
+            continue;
           }
-          continue;
+          net = [net[0] + file.additions, net[1] + file.deletions];
+          if (files && key !== null) files.set(key, (files.get(key) ?? new Set()).add(file.path));
         }
-        net = [net[0] + file.additions, net[1] + file.deletions];
-        if (files && key !== null) files.set(key, (files.get(key) ?? new Set()).add(file.path));
+        lines.set(commit.sha, net);
+        if (files && [...files.values()].reduce((total, paths) => total + paths.size, 0) > MAX_TRACKED_PATHS) files = null;
       }
-      lines.set(commit.sha, net);
-      if (files && [...files.values()].reduce((total, paths) => total + paths.size, 0) > MAX_TRACKED_PATHS) files = null;
+      cursor += group.length;
     }
 
     await ctx.progress({ step: FAIRNESS_STEPS.building });

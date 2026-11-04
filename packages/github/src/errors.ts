@@ -41,10 +41,28 @@ export class GitHubValidationError extends ValidationError {
 
 /** 5xx, network errors, timeouts, or a response that does not match its schema. Retried with backoff. */
 export class GitHubServerError extends ExternalServiceError {
-  constructor(detail: string, options?: { cause?: unknown }) {
+  /** HTTP status GitHub answered with, when there was a response (502 and 504 mean the request timed out there). */
+  readonly httpStatus: number | undefined;
+
+  constructor(detail: string, options?: { cause?: unknown; httpStatus?: number }) {
     super('github.server', 'GitHub is having trouble right now. We will try again shortly.', options);
     this.message = `github.server: ${detail}`;
+    this.httpStatus = options?.httpStatus;
   }
 }
 
 export { RateLimitError };
+
+/**
+ * Resolves to `null` when GitHub refuses to show a resource or no longer has it (a 403 that is not a
+ * rate limit, or a 404). Lists of other people's repositories use it so one blocked or deleted
+ * repository is skipped instead of failing the whole search; every other error passes through.
+ */
+export async function unlessUnreadable<T>(read: Promise<T>): Promise<T | null> {
+  try {
+    return await read;
+  } catch (error) {
+    if (error instanceof GitHubForbiddenError || error instanceof GitHubNotFoundError) return null;
+    throw error;
+  }
+}

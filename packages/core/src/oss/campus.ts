@@ -34,7 +34,7 @@ export async function refreshMemberContribs(userId: string, now: Date, deadline:
   const own = member.login.toLowerCase();
   const byRepo = new Map<string, { mergedPrs: number; lastMergedAt: Date | null }>();
   for (let page = 1; page <= pages; page += 1) {
-    const { issues } = await searchIssues(client, `is:pr is:merged author:${member.login}`, { perPage: SEARCH_PAGE_SIZE, page, deadline });
+    const { issues } = await searchIssues(client, `is:pr is:merged author:${member.login}`, { perPage: SEARCH_PAGE_SIZE, page, deadline, background: true });
     for (const pull of issues) {
       if (pull.repo.split('/')[0]?.toLowerCase() === own) continue;
       const merged = pull.mergedAt ?? pull.closedAt;

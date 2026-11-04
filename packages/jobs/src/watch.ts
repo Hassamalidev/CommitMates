@@ -1,6 +1,7 @@
 import { getDb, getSetting, type Db, type schema } from '@commitmates/db';
 import { sql } from 'drizzle-orm';
 
+import { PRIORITY } from './priorities';
 import type { JobProgress } from './types';
 
 export type JobView = {
@@ -13,6 +14,7 @@ export type JobView = {
   resultRef: unknown;
   userMessage: string | null;
   runAt: Date;
+  priority: number;
 };
 
 export type JobEvent =
@@ -30,6 +32,7 @@ type ChainRow = {
   result_ref: unknown;
   user_message: string | null;
   run_at: Date;
+  priority: number;
 };
 
 /** A queued job scheduled this far ahead is waiting on something, not merely next in line. */
@@ -43,7 +46,7 @@ export async function getJobView(jobId: string, db: Db = getDb()): Promise<JobVi
       union all
       select child.*, chain.depth + 1 from jobs child join chain on child.parent_id = chain.id
     )
-    select id, status, progress, result_ref, user_message, run_at
+    select id, status, progress, result_ref, user_message, run_at, priority
     from chain order by depth desc, created_at desc limit 1`);
   const row = rows[0];
   if (!row) return null;
@@ -55,6 +58,7 @@ export async function getJobView(jobId: string, db: Db = getDb()): Promise<JobVi
     resultRef: row.result_ref,
     userMessage: row.user_message,
     runAt: new Date(row.run_at),
+    priority: row.priority,
   };
 }
 
@@ -79,6 +83,13 @@ export type WatchOptions = {
   signal?: AbortSignal;
   db?: Db;
   sleep?: (ms: number) => Promise<void>;
+  /**
+   * Runs the chain's next link while someone watches it: when the newest job is an interactive one
+   * that is queued and due, the stream starts it (with this budget) instead of leaving it to the next
+   * tick, which is a minute apart in production (ADR-014). Claims skip locked rows, so a job a worker
+   * already took is never run twice.
+   */
+  drive?: (jobId: string, budgetMs: number) => Promise<unknown>;
 };
 
 const defaultSleep = (ms: number) => new Promise<void>((resolve) => setTimeout(resolve, ms));
@@ -90,27 +101,51 @@ const defaultSleep = (ms: number) => new Promise<void>((resolve) => setTimeout(r
 export async function* watchJob(jobId: string, options: WatchOptions = {}): AsyncGenerator<JobEvent> {
   const db = options.db ?? getDb();
   const sleep = options.sleep ?? defaultSleep;
-  const [pollMs, maxMs] = await Promise.all([getSetting('jobs.ssePollMs', db), getSetting('jobs.sseMaxMs', db)]);
+  const [pollMs, maxMs, interactiveBudgetMs, minRemainingMs] = await Promise.all([
+    getSetting('jobs.ssePollMs', db),
+    getSetting('jobs.sseMaxMs', db),
+    getSetting('jobs.interactiveBudgetMs', db),
+    getSetting('jobs.minRemainingMs', db),
+  ]);
   const startedAt = Date.now();
   let previous: string | undefined;
+  // The run this stream started, awaited before the stream ends so the host keeps it alive.
+  const driving: { run: Promise<void> | null } = { run: null };
 
-  while (!options.signal?.aborted) {
-    const view = await getJobView(jobId, db);
-    if (!view) {
-      yield { event: 'error', data: { message: 'We could not find that job. It may have expired.' } };
-      return;
+  try {
+    while (!options.signal?.aborted) {
+      const view = await getJobView(jobId, db);
+      if (!view) {
+        yield { event: 'error', data: { message: 'We could not find that job. It may have expired.' } };
+        return;
+      }
+      const elapsed = Date.now() - startedAt;
+      const due = view.status === 'queued' && view.runAt.getTime() <= Date.now() && view.priority >= PRIORITY.INTERACTIVE;
+      if (options.drive && driving.run === null && due && elapsed <= maxMs - minRemainingMs) {
+        driving.run = options
+          .drive(view.currentId, Math.min(interactiveBudgetMs, maxMs))
+          .then(
+            () => undefined,
+            () => undefined,
+          )
+          .finally(() => {
+            driving.run = null;
+          });
+      }
+      const event = toJobEvent(view, new Date());
+      const serialized = JSON.stringify(event);
+      if (serialized !== previous) {
+        previous = serialized;
+        yield event;
+      }
+      if (event.event === 'done' || event.event === 'error') return;
+      if (elapsed >= maxMs) {
+        yield { event: 'timeout', data: {} };
+        return;
+      }
+      await sleep(pollMs);
     }
-    const event = toJobEvent(view, new Date());
-    const serialized = JSON.stringify(event);
-    if (serialized !== previous) {
-      previous = serialized;
-      yield event;
-    }
-    if (event.event === 'done' || event.event === 'error') return;
-    if (Date.now() - startedAt >= maxMs) {
-      yield { event: 'timeout', data: {} };
-      return;
-    }
-    await sleep(pollMs);
+  } finally {
+    if (driving.run) await driving.run;
   }
 }

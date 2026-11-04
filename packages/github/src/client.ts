@@ -1,4 +1,4 @@
-import { getDb, getLogger, getSetting, type Db } from '@commitmates/db';
+import { getDb, getLogger, getSetting, takeToken, type Db } from '@commitmates/db';
 import { serverEnv } from '@commitmates/env/server';
 import { Octokit } from '@octokit/core';
 import { RequestError } from '@octokit/request-error';
@@ -12,7 +12,7 @@ import {
   recordBudget,
   type BudgetResource,
 } from './budgets';
-import { readCache, writeCache } from './cache';
+import { readCache, readFresh, writeCache } from './cache';
 import {
   GitHubAuthError,
   GitHubForbiddenError,
@@ -35,11 +35,10 @@ const HTTP = {
   SERVER_ERROR: 500,
 } as const;
 const MS_PER_SECOND = 1000;
+const SECONDS_PER_MINUTE = 60;
 const MS_PER_HOUR = 60 * 60 * MS_PER_SECOND;
 /** First pause after a secondary rate limit without `retry-after`; doubles each time (CLAUDE.md §5.6). */
 const SECONDARY_LIMIT_BASE_MS = 60_000;
-/** Longest search-pacer pause taken inline when the caller gives no deadline. */
-const DEFAULT_MAX_PACER_WAIT_MS = 5000;
 /** Pause before the first retry of a 202 "still computing" answer; grows linearly. */
 const STATS_RETRY_BASE_MS = 1000;
 /** Cost assumed for a GraphQL query before GitHub reports the real one. */
@@ -60,6 +59,17 @@ export type RequestOptions = {
    * members. `reference` is for public reference data (source syncs) and never expires.
    */
   cache?: 'transient' | 'reference';
+  /**
+   * Work nobody is waiting on (the crawler, weekly refreshes). Its searches stop while fewer than
+   * `github.reserve.searchBackground` remain in the minute, so visitors' tools are not kept waiting.
+   */
+  background?: boolean;
+  /**
+   * Searches only: answer from a stored result of the same search while it is fresh
+   * (`cache.searchTtlHours`, never past `privacy.nonUserRawTtlHours`), so a job's follow-up does not
+   * search again (ADR-014).
+   */
+  reuse?: boolean;
 };
 
 export type Page<T> = { items: T[]; truncated: boolean };
@@ -69,7 +79,6 @@ export type StatsResult<T> = { pending: false; data: T } | { pending: true };
 export type ClientDeps = {
   db?: Db;
   now?: () => Date;
-  random?: () => number;
   sleep?: (ms: number) => Promise<void>;
 };
 
@@ -122,7 +131,6 @@ export class GitHubClient {
   readonly identity: TokenIdentity;
   private readonly db: Db;
   private readonly now: () => Date;
-  private readonly random: () => number;
   private readonly sleep: (ms: number) => Promise<void>;
   private octokit: Octokit | undefined;
 
@@ -130,7 +138,6 @@ export class GitHubClient {
     this.identity = identity;
     this.db = deps.db ?? getDb();
     this.now = deps.now ?? (() => new Date());
-    this.random = deps.random ?? Math.random;
     this.sleep = deps.sleep ?? ((ms) => new Promise((resolve) => setTimeout(resolve, ms)));
   }
 
@@ -153,7 +160,12 @@ export class GitHubClient {
     for (const [resource, state] of Object.entries(resources)) {
       await recordBudget(
         this.identity,
-        { resource, limit: state.limit, remaining: state.remaining, resetAt: new Date(state.reset * MS_PER_SECOND) },
+        {
+          resource,
+          limit: state.limit,
+          remaining: state.remaining,
+          resetAt: new Date(state.reset * MS_PER_SECOND),
+        },
         this.db,
       );
     }
@@ -192,9 +204,17 @@ export class GitHubClient {
     if (state) await recordBudget(this.identity, state, this.db);
   }
 
-  private async mapError(error: RequestError, headers: Record<string, unknown>, options: RequestOptions): Promise<Error> {
+  private async mapError(
+    error: RequestError,
+    headers: Record<string, unknown>,
+    options: RequestOptions,
+  ): Promise<Error> {
     const requestId = headerValue(headers, 'x-github-request-id');
-    const log = getLogger().child({ ghRequestId: requestId, status: error.status, identity: this.identity.kind });
+    const log = getLogger().child({
+      ghRequestId: requestId,
+      status: error.status,
+      identity: this.identity.kind,
+    });
     const key = identityKey(this.identity);
 
     if (error.status === HTTP.FORBIDDEN || error.status === HTTP.TOO_MANY_REQUESTS) {
@@ -209,7 +229,8 @@ export class GitHubClient {
         log.warn('GitHub primary rate limit exhausted');
         return new RateLimitError(state.resetAt, { cause: error, resource: state.resource });
       }
-      const isSecondary = error.status === HTTP.TOO_MANY_REQUESTS || /secondary rate limit|abuse/i.test(error.message);
+      const isSecondary =
+        error.status === HTTP.TOO_MANY_REQUESTS || /secondary rate limit|abuse/i.test(error.message);
       if (isSecondary) {
         const hits = secondaryHits.get(key) ?? 0;
         secondaryHits.set(key, hits + 1);
@@ -222,22 +243,45 @@ export class GitHubClient {
     if (error.status === HTTP.UNAUTHORIZED) {
       await markTokenInvalid(this.identity, this.db);
       // A rejected server token stops every anonymous tool and sync until an operator replaces it.
-      if (this.identity.kind === 'server') log.error('GitHub rejected the server token; replace GITHUB_SERVER_TOKEN');
+      if (this.identity.kind === 'server')
+        log.error('GitHub rejected the server token; replace GITHUB_SERVER_TOKEN');
       else log.warn('GitHub rejected the token');
       return new GitHubAuthError(this.identity.kind, { cause: error });
     }
-    if (error.status === HTTP.NOT_FOUND) return new GitHubNotFoundError(options.what ?? 'that', { cause: error });
+    if (error.status === HTTP.NOT_FOUND)
+      return new GitHubNotFoundError(options.what ?? 'that', { cause: error });
     if (error.status === HTTP.UNPROCESSABLE) return new GitHubValidationError({ cause: error });
 
     log.warn('GitHub request failed');
-    return new GitHubServerError(`GitHub answered ${error.status}`, { cause: error });
+    return new GitHubServerError(`GitHub answered ${error.status}`, {
+      cause: error,
+      httpStatus: error.status,
+    });
   }
 
-  private async prepare(resource: BudgetResource, cost: number): Promise<Octokit> {
+  private async prepare(resource: BudgetResource, cost: number, deadline?: number): Promise<Octokit> {
     const kit = await this.kit();
     await this.ensureInitialized();
     await ensureBudget(this.identity, resource, cost, this.now(), this.db);
+    if (resource !== 'graphql') await this.paceRest(deadline);
     return kit;
+  }
+
+  /**
+   * Keeps one token's REST calls under `github.requestsPerMinute`, below GitHub's secondary limit
+   * of 900 points a minute, so parallel reads never trip it (ADR-014). A token bucket shared by
+   * every process; a call that cannot wait for its turn before the deadline makes the job wait.
+   */
+  private async paceRest(deadline?: number): Promise<void> {
+    const perMinute = await getSetting('github.requestsPerMinute', this.db);
+    const refillPerSec = perMinute / SECONDS_PER_MINUTE;
+    const key = `github:${identityKey(this.identity)}:rest`;
+    const waitMs = Math.ceil(MS_PER_SECOND / refillPerSec);
+    while (!(await takeToken(key, perMinute, refillPerSec, 1, this.db))) {
+      if (deadline !== undefined && Date.now() + waitMs >= deadline)
+        throw new RateLimitError(new Date(Date.now() + waitMs), { resource: 'core' });
+      await this.sleep(waitMs);
+    }
   }
 
   private async conditionalGet(
@@ -246,7 +290,7 @@ export class GitHubClient {
     options: RequestOptions,
     resource: BudgetResource,
   ): Promise<{ status: number; headers: Record<string, unknown>; data: unknown; url: string }> {
-    const kit = await this.prepare(resource, 1);
+    const kit = await this.prepare(resource, 1, options.deadline);
     const url = kit.request.endpoint(route, params).url;
     const cached = await readCache(this.identity, url, this.now(), this.db);
     const headers: Record<string, string> = {};
@@ -261,7 +305,8 @@ export class GitHubClient {
     }
     if (response.status !== HTTP.ACCEPTED) {
       const ttlHours = await getSetting('privacy.nonUserRawTtlHours', this.db);
-      const expiresAt = options.cache === 'reference' ? null : new Date(this.now().getTime() + ttlHours * MS_PER_HOUR);
+      const expiresAt =
+        options.cache === 'reference' ? null : new Date(this.now().getTime() + ttlHours * MS_PER_HOUR);
       await writeCache(
         this.identity,
         url,
@@ -280,7 +325,12 @@ export class GitHubClient {
   }
 
   /** A REST GET with the ETag cache, budget check and schema validation. */
-  async get<T>(route: string, params: Params, schema: z.ZodType<T>, options: RequestOptions = {}): Promise<T> {
+  async get<T>(
+    route: string,
+    params: Params,
+    schema: z.ZodType<T>,
+    options: RequestOptions = {},
+  ): Promise<T> {
     const response = await this.conditionalGet(route, params, options, 'core');
     return parse(schema, response.data, response.url);
   }
@@ -299,29 +349,57 @@ export class GitHubClient {
     const perPage = options.perPage ?? GITHUB_MAX_PER_PAGE;
     const items: T[] = [];
     for (let page = 1; page <= maxPages; page += 1) {
-      const response = await this.conditionalGet(route, { ...params, per_page: perPage, page }, options, 'core');
+      const response = await this.conditionalGet(
+        route,
+        { ...params, per_page: perPage, page },
+        options,
+        'core',
+      );
       const pageItems = parse(z.array(itemSchema), response.data, response.url);
       items.push(...pageItems);
       // A cached page carries no Link header; a full page means there may be more.
-      const more = response.status === HTTP.NOT_MODIFIED ? pageItems.length === perPage : hasNextPage(response.headers);
+      const more =
+        response.status === HTTP.NOT_MODIFIED ? pageItems.length === perPage : hasNextPage(response.headers);
       if (!more) return { items, truncated: false };
     }
     return { items, truncated: true };
   }
 
   /** A search call: paced per identity and charged to the stricter search budget. */
-  async search<T>(route: string, params: Params, schema: z.ZodType<T>, options: RequestOptions = {}): Promise<T> {
-    const kit = await this.prepare('search', 1);
-    const maxWaitMs =
-      options.deadline === undefined ? DEFAULT_MAX_PACER_WAIT_MS : Math.max(0, options.deadline - Date.now());
-    await paceSearch(
-      this.identity,
-      { now: this.now, random: this.random, sleep: this.sleep, maxWaitMs },
-      this.db,
-    );
+  async search<T>(
+    route: string,
+    params: Params,
+    schema: z.ZodType<T>,
+    options: RequestOptions = {},
+  ): Promise<T> {
+    const url = (await this.kit()).request.endpoint(route, params).url;
+    if (options.reuse) {
+      const stored = await readFresh(this.identity, url, this.now(), this.db);
+      if (stored !== undefined) {
+        const reused = schema.safeParse(stored);
+        if (reused.success) return reused.data;
+      }
+    }
+    const kit = await this.prepare('search', 1, options.deadline);
+    await paceSearch(this.identity, { now: this.now, background: options.background === true }, this.db);
     const response = await this.send(kit, route, params, options);
     secondaryHits.delete(identityKey(this.identity));
-    return parse(schema, response.data, route);
+    const data = parse(schema, response.data, route);
+    if (options.reuse) {
+      const [searchHours, rawHours] = await Promise.all([
+        getSetting('cache.searchTtlHours', this.db),
+        getSetting('privacy.nonUserRawTtlHours', this.db),
+      ]);
+      const expiresAt = new Date(this.now().getTime() + Math.min(searchHours, rawHours) * MS_PER_HOUR);
+      await writeCache(
+        this.identity,
+        url,
+        { status: response.status, etag: null, lastModified: null, body: response.data, expiresAt },
+        this.now(),
+        this.db,
+      );
+    }
+    return data;
   }
 
   /**
@@ -329,7 +407,12 @@ export class GitHubClient {
    * `fairness.statsRetryMax` times inside the deadline, then reports `pending`
    * so the job can return `wait` (CLAUDE.md §5.6).
    */
-  async stats<T>(route: string, params: Params, schema: z.ZodType<T>, options: RequestOptions = {}): Promise<StatsResult<T>> {
+  async stats<T>(
+    route: string,
+    params: Params,
+    schema: z.ZodType<T>,
+    options: RequestOptions = {},
+  ): Promise<StatsResult<T>> {
     const retryMax = await getSetting('fairness.statsRetryMax', this.db);
     for (let attempt = 0; attempt <= retryMax; attempt += 1) {
       const response = await this.conditionalGet(route, params, options, 'core');
@@ -337,7 +420,11 @@ export class GitHubClient {
         return { pending: false, data: parse(schema, response.data, response.url) };
       }
       const pauseMs = STATS_RETRY_BASE_MS * (attempt + 1);
-      if (attempt === retryMax || (options.deadline !== undefined && Date.now() + pauseMs >= options.deadline)) break;
+      if (
+        attempt === retryMax ||
+        (options.deadline !== undefined && Date.now() + pauseMs >= options.deadline)
+      )
+        break;
       await this.sleep(pauseMs);
     }
     return { pending: true };
@@ -386,7 +473,9 @@ export class GitHubClient {
       }
       if (types.has('NOT_FOUND')) throw new GitHubNotFoundError(options.what ?? 'that');
       if (types.has('FORBIDDEN')) throw new GitHubForbiddenError();
-      throw new GitHubServerError(`GraphQL errors: ${envelope.errors.map((error) => error.message).join('; ')}`);
+      throw new GitHubServerError(
+        `GraphQL errors: ${envelope.errors.map((error) => error.message).join('; ')}`,
+      );
     }
     return parse(schema, data, '/graphql');
   }

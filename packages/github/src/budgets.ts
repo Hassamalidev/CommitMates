@@ -23,7 +23,8 @@ export function parseRateLimitHeaders(headers: Record<string, unknown>): RateLim
   const limit = Number(header(headers, 'x-ratelimit-limit'));
   const remaining = Number(header(headers, 'x-ratelimit-remaining'));
   const reset = Number(header(headers, 'x-ratelimit-reset'));
-  if (!resource || !Number.isFinite(limit) || !Number.isFinite(remaining) || !Number.isFinite(reset)) return null;
+  if (!resource || !Number.isFinite(limit) || !Number.isFinite(remaining) || !Number.isFinite(reset))
+    return null;
   return { resource, limit, remaining, resetAt: new Date(reset * MS_PER_SECOND) };
 }
 
@@ -32,7 +33,12 @@ export async function recordBudget(
   state: RateLimitState,
   db: DbOrTx = getDb(),
 ): Promise<void> {
-  const values = { limit: state.limit, remaining: state.remaining, resetAt: state.resetAt, updatedAt: new Date() };
+  const values = {
+    limit: state.limit,
+    remaining: state.remaining,
+    resetAt: state.resetAt,
+    updatedAt: new Date(),
+  };
   await db
     .insert(githubBudgets)
     .values({ tokenIdentity: identityKey(identity), resource: state.resource, ...values })
@@ -78,24 +84,24 @@ export async function ensureBudget(
   if (remaining - cost < reserve) throw new RateLimitError(resetAt, { resource });
 }
 
-/** Search rate limits are per minute. */
-const SEARCH_WINDOW_MS = 60_000;
-/** Upper bound of the random extra gap between search calls (CLAUDE.md §5.6). */
-const PACER_JITTER_MS = 250;
-
 export type PacerOptions = {
   now: () => Date;
-  random: () => number;
-  sleep: (ms: number) => Promise<void>;
-  /** Longest pause worth taking inline; a longer one becomes a `RateLimitError` so the job waits instead. */
-  maxWaitMs: number;
+  /** Background work keeps `github.reserve.searchBackground` searches free for interactive tools. */
+  background?: boolean;
 };
 
 /**
- * Search pacer: spaces search calls for one identity across every process. The row
- * lock serializes callers; the minimum gap is derived from the limit GitHub reported.
+ * Search pacer: serializes search calls for one identity across every process (the row lock)
+ * and spends the allowance GitHub last reported. Each call reserves one search under the lock,
+ * so callers racing each other see it shrink; when the next call would dip into
+ * `github.reserve.search`, the job waits for the window to reset. Calls go back to back while
+ * the allowance lasts, instead of a fixed gap of a minute divided by the limit (ADR-014).
  */
-export async function paceSearch(identity: TokenIdentity, options: PacerOptions, db: DbOrTx = getDb()): Promise<void> {
+export async function paceSearch(
+  identity: TokenIdentity,
+  options: PacerOptions,
+  db: DbOrTx = getDb(),
+): Promise<void> {
   const key = identityKey(identity);
   await db.transaction(async (tx) => {
     await tx
@@ -109,17 +115,21 @@ export async function paceSearch(identity: TokenIdentity, options: PacerOptions,
       .for('update');
 
     const now = options.now();
-    if (row?.limit && row.lastCallAt) {
-      const minGapMs = Math.ceil(SEARCH_WINDOW_MS / row.limit) + options.random() * PACER_JITTER_MS;
-      const waitMs = row.lastCallAt.getTime() + minGapMs - now.getTime();
-      if (waitMs > options.maxWaitMs) {
-        throw new RateLimitError(new Date(now.getTime() + waitMs), { resource: 'search' });
-      }
-      if (waitMs > 0) await options.sleep(waitMs);
+    // A window that has already reset is full again; the response's headers will say by how much.
+    const remaining = row?.remaining ?? null;
+    const resetAt = row?.resetAt ?? null;
+    const windowOpen = remaining !== null && resetAt !== null && resetAt.getTime() > now.getTime();
+    if (windowOpen) {
+      const [reserve, backgroundReserve] = await Promise.all([
+        getSetting('github.reserve.search', tx),
+        options.background ? getSetting('github.reserve.searchBackground', tx) : Promise.resolve(0),
+      ]);
+      if (remaining - 1 < Math.max(reserve, backgroundReserve))
+        throw new RateLimitError(resetAt, { resource: 'search' });
     }
     await tx
       .update(githubBudgets)
-      .set({ lastCallAt: options.now() })
+      .set({ lastCallAt: now, ...(windowOpen ? { remaining: remaining - 1 } : {}) })
       .where(and(eq(githubBudgets.tokenIdentity, key), eq(githubBudgets.resource, 'search')));
   });
 }

@@ -21,7 +21,7 @@ import { buildCompat } from './service';
 const PROFILE_MARGIN_MS = 10_000;
 
 /** The steps `compat_check` reports, in order. */
-export const COMPAT_STEPS = { first: 'first', second: 'second', stars: 'stars', comparing: 'comparing' } as const;
+export const COMPAT_STEPS = { first: 'first', stars: 'stars', comparing: 'comparing' } as const;
 
 const sortedPair = (input: { a: string; b: string }): [string, string] => {
   const [x, y] = [input.a.toLowerCase(), input.b.toLowerCase()].sort();
@@ -74,17 +74,16 @@ export const compatCheckJob: JobHandler<CompatPayload> = {
   schema: compatPayloadSchema,
   priority: PRIORITY.INTERACTIVE,
   async run(payload, ctx) {
-    await ctx.progress({ step: COMPAT_STEPS.first, message: `Reading @${payload.a}` });
-    const first = await cardFor(payload.a, 'a', payload, ctx);
+    // Both people are read at once (ADR-014).
+    await ctx.progress({ step: COMPAT_STEPS.first, message: `Reading @${payload.a} and @${payload.b}` });
+    const [first, second] = await Promise.all([cardFor(payload.a, 'a', payload, ctx), cardFor(payload.b, 'b', payload, ctx)]);
 
-    // Only worth a follow-up when this run did real work: the next one starts with that card cached.
-    if (first.built && Date.now() > ctx.deadline - PROFILE_MARGIN_MS) return { kind: 'continue', payload };
-    await ctx.progress({ step: COMPAT_STEPS.second, message: `Reading @${payload.b}` });
-    const { card: cardB } = await cardFor(payload.b, 'b', payload, ctx);
-    const cardA = first.card;
+    // Only worth a follow-up when this run did real work: the next one starts with those cards cached.
+    if ((first.built || second.built) && Date.now() > ctx.deadline - PROFILE_MARGIN_MS) return { kind: 'continue', payload };
+    const [cardA, cardB] = [first.card, second.card];
 
     await ctx.progress({ step: COMPAT_STEPS.stars });
-    const [starredA, starredB] = [await starredOf(cardA.login, payload, ctx), await starredOf(cardB.login, payload, ctx)];
+    const [starredA, starredB] = await Promise.all([starredOf(cardA.login, payload, ctx), starredOf(cardB.login, payload, ctx)]);
 
     await ctx.progress({ step: COMPAT_STEPS.comparing });
     const result = compatResultSchema.parse(await buildCompat({ card: cardA, starred: starredA }, { card: cardB, starred: starredB }));

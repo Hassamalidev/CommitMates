@@ -505,6 +505,34 @@
       "when": 1793742200703,
       "tag": "0071_hot_path_indexes",
       "breakpoints": true
+    },
+    {
+      "idx": 72,
+      "version": "7",
+      "when": 1793800139242,
+      "tag": "0072_settings_tool_speed",
+      "breakpoints": true
+    },
+    {
+      "idx": 73,
+      "version": "7",
+      "when": 1793804000838,
+      "tag": "0073_settings_github_request_rate",
+      "breakpoints": true
+    },
+    {
+      "idx": 74,
+      "version": "7",
+      "when": 1793805986700,
+      "tag": "0074_settings_profile_page_size",
+      "breakpoints": true
+    },
+    {
+      "idx": 75,
+      "version": "7",
+      "when": 1793807237101,
+      "tag": "0075_settings_background_search_reserve",
+      "breakpoints": true
     }
   ]
 }

@@ -212,6 +212,18 @@ describe('graveyard_search job', () => {
     expect([...result.items].sort((a, b) => b.rank - a.rank)).toEqual(result.items);
   });
 
+  it('skips a repository GitHub refuses to show instead of failing the search', async () => {
+    serve();
+    // A blocked repository answers 403 without being a rate limit (headers show plenty left).
+    server.use(
+      http.get(`${API}/repos/:owner/no-license/contributors`, () =>
+        HttpResponse.json({ message: 'Repository access blocked' }, { status: 403, headers: headers() }),
+      ),
+    );
+    const result = await run({ q: 'Computer Vision' });
+    expect(result.items.map((item) => item.fullName).sort()).toEqual(['someone/done-vision', 'someone/half-vision']);
+  });
+
   it('reads recent stars only for the top candidates, and caches every signal', async () => {
     serve();
     await withSettings({ 'graveyard.deepScoreTopN': 1 }, () => run({ q: 'computer vision' }));

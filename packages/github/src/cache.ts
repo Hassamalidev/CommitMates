@@ -29,10 +29,40 @@ export async function readCache(
   return row;
 }
 
+/**
+ * A stored response that has not expired, whether or not it carries validators. Search answers have
+ * none; a job that repeats a search in its follow-up reads its own earlier answer here (ADR-014).
+ */
+export async function readFresh(
+  identity: TokenIdentity,
+  url: string,
+  now: Date,
+  db: DbOrTx = getDb(),
+): Promise<unknown> {
+  const [row] = await db
+    .select({ body: apiCache.body })
+    .from(apiCache)
+    .where(
+      and(
+        eq(apiCache.tokenIdentity, identityKey(identity)),
+        eq(apiCache.method, 'GET'),
+        eq(apiCache.url, url),
+        gt(apiCache.expiresAt, now),
+      ),
+    );
+  return row?.body;
+}
+
 export async function writeCache(
   identity: TokenIdentity,
   url: string,
-  response: { status: number; etag: string | null; lastModified: string | null; body: unknown; expiresAt: Date | null },
+  response: {
+    status: number;
+    etag: string | null;
+    lastModified: string | null;
+    body: unknown;
+    expiresAt: Date | null;
+  },
   now: Date,
   db: DbOrTx = getDb(),
 ): Promise<void> {

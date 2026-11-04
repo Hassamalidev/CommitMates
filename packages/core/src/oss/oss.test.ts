@@ -165,7 +165,8 @@ describe('oss_search job', () => {
     expect(result.relaxed).toEqual(['comments']);
     expect(result.issues).toHaveLength(1);
 
-    await database.sql`truncate jobs, analysis_cache cascade`;
+    // A different answer from GitHub for the same search: clear the stored one too (ADR-014).
+    await database.sql`truncate jobs, analysis_cache, api_cache cascade`;
     serve([issue('slow/web', 5, 9, 24)]);
     const slower = await withSettings({ 'oss.maxComments': 3 }, () => run({ languages: ['TypeScript'], topics: [] }));
     expect(slower.relaxed).toEqual(['comments', 'responsiveness']);

@@ -2,6 +2,7 @@ import { watchJob } from '@commitmates/core';
 import { z } from 'zod';
 
 import { withResults } from '@/server/job-events';
+import { driveWatchedJob } from '@/server/jobs';
 import { sseResponse } from '@/server/sse';
 
 export const dynamic = 'force-dynamic';
@@ -14,5 +15,6 @@ const paramsSchema = z.object({ id: z.uuid() });
 export async function GET(request: Request, context: { params: Promise<{ id: string }> }): Promise<Response> {
   const params = paramsSchema.safeParse(await context.params);
   if (!params.success) return Response.json({ error: 'invalid job id' }, { status: 400 });
-  return sseResponse((signal) => withResults(watchJob(params.data.id, { signal })), request);
+  // While someone watches, the stream also runs the job's next due link instead of leaving it to the next tick.
+  return sseResponse((signal) => withResults(watchJob(params.data.id, { signal, drive: driveWatchedJob })), request);
 }

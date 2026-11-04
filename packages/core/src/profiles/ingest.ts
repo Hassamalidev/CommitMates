@@ -11,11 +11,13 @@ import {
 } from '@commitmates/db';
 import {
   SERVER_IDENTITY,
+  batches,
   fetchFileText,
   fetchProfile,
   fetchPublicEvents,
   githubFor,
   listRootEntries,
+  mapConcurrent,
   type ActivityEvent,
   type GitHubClient,
   type Profile,
@@ -153,11 +155,17 @@ export async function ingestProfile(login: string, options: IngestOptions = {}):
   const client = githubFor(options.identity ?? SERVER_IDENTITY, { db: getDb(), now: () => now });
   const request = { deadline: options.deadline };
 
-  const [repoCap, manifestRepos] = await Promise.all([getSetting('github.maxReposPerProfile'), getSetting('persona.manifestRepos')]);
+  const [repoCap, pageSize, manifestRepos, concurrency] = await Promise.all([
+    getSetting('github.maxReposPerProfile'),
+    getSetting('github.profilePageSize'),
+    getSetting('persona.manifestRepos'),
+    getSetting('github.concurrency'),
+  ]);
   await options.onStep?.('profile');
   const profile = await fetchProfile(client, login, {
     ...request,
     repoCap,
+    pageSize,
     from: new Date(now.getTime() - CONTRIBUTION_WINDOW_DAYS * MS_PER_DAY),
     to: now,
   });
@@ -166,20 +174,21 @@ export async function ingestProfile(login: string, options: IngestOptions = {}):
 
   // Events use the canonical login: GitHub redirects a renamed account, and the profile carries the new name.
   await options.onStep?.('events');
-  const events = await fetchPublicEvents(client, profile.login, request);
+  const eventsRead = fetchPublicEvents(client, profile.login, request);
 
   const recent = [...profile.repos]
     .sort((a, b) => (b.pushedAt ?? '').localeCompare(a.pushedAt ?? ''))
     .slice(0, manifestRepos);
   await options.onStep?.('manifests');
-  let manifestsComplete = true;
-  for (const repo of recent) {
-    if (options.deadline !== undefined && Date.now() > options.deadline - DEADLINE_MARGIN_MS) {
-      manifestsComplete = false;
-      break;
+  // Events and manifests are independent, and repositories are read a batch at a time (ADR-014).
+  const readManifests = async (): Promise<boolean> => {
+    for (const group of batches(recent, concurrency)) {
+      if (options.deadline !== undefined && Date.now() > options.deadline - DEADLINE_MARGIN_MS) return false;
+      await mapConcurrent(group, concurrency, (repo) => ingestRepoManifests(client, repo, now, options.deadline));
     }
-    await ingestRepoManifests(client, repo, now, options.deadline);
-  }
+    return true;
+  };
+  const [events, manifestsComplete] = await Promise.all([eventsRead, readManifests()]);
 
   const rows = await getRepoDependencies(recent.map((repo) => repo.githubId));
   const dependencies: RepoDependency[] = rows.map((row) => ({

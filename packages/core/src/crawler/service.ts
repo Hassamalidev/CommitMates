@@ -94,7 +94,7 @@ export async function crawlStep(client: GitHubClient, now: Date, deadline: numbe
   if (!(await guardStorage())) return 'full';
 
   const page = cursor.page + 1;
-  const result = await searchUsersPage(client, cursorQuery(cursor), { perPage: SEARCH_PAGE_SIZE, page, deadline });
+  const result = await searchUsersPage(client, cursorQuery(cursor), { perPage: SEARCH_PAGE_SIZE, page, deadline, background: true });
   if (page === 1 && result.totalCount > searchCap) {
     const middle = middleDay(cursor.createdFrom, cursor.createdTo);
     if (middle !== null) {

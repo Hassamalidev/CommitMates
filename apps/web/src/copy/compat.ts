@@ -21,8 +21,7 @@ export const compatCopy = {
   idleLine: 'Give me two usernames and I will see how they fit.',
   /** Keys match the steps the `compat_check` job reports. */
   steps: [
-    { key: 'first', label: 'Reading the first profile' },
-    { key: 'second', label: 'Reading the second profile' },
+    { key: 'first', label: 'Reading both profiles' },
     { key: 'stars', label: 'Reading starred repositories' },
     { key: 'comparing', label: 'Comparing' },
   ],

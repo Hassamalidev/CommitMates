@@ -20,6 +20,8 @@ test.describe('smoke @smoke', () => {
   });
 
   test('public and tool pages render with one H1, a nonce policy and no serious accessibility violations', async ({ page }) => {
+    // Every public page with an axe scan: about 55 s locally, too close to the default 60 s.
+    test.slow();
     for (const path of [...PUBLIC_PAGES, ...TOOL_PAGES]) {
       const response = await page.goto(path);
       expect(response?.status(), `status of ${path}`).toBe(200);

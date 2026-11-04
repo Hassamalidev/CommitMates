@@ -1,16 +1,37 @@
 import { facetPrevalence, findGaps, sharedFacets, type FacetPrevalence } from '@commitmates/algorithms';
 import { ValidationError, getSetting, insertGapReport, topicNames, type TopicNames } from '@commitmates/db';
-import { SERVER_IDENTITY, fetchRepository, githubFor, parseGitHubUrl, searchRepositories } from '@commitmates/github';
+import {
+  SERVER_IDENTITY,
+  batches,
+  fetchRepository,
+  githubFor,
+  mapConcurrent,
+  parseGitHubUrl,
+  searchRepositories,
+  unlessUnreadable,
+} from '@commitmates/github';
 import { PRIORITY, type JobHandler } from '@commitmates/jobs';
 
 import { computeExpansion } from '../taxonomy/service';
 import { dayBucket, storeToolResult, type ToolDefinition } from '../tools/service';
 
 import { allFacets, readRepoFacets, type FacetRepo, type RepoFacets } from './facets';
-import { gapInputSchema, gapPayloadSchema, gapResultSchema, type GapFacet, type GapInput, type GapPayload } from './schemas';
+import {
+  gapInputSchema,
+  gapPayloadSchema,
+  gapResultSchema,
+  type GapFacet,
+  type GapInput,
+  type GapPayload,
+} from './schemas';
 
 /** The steps `gap_analysis` reports, in order. */
-export const GAP_STEPS = { repo: 'repo', peers: 'peers', reading: 'reading', comparing: 'comparing' } as const;
+export const GAP_STEPS = {
+  repo: 'repo',
+  peers: 'peers',
+  reading: 'reading',
+  comparing: 'comparing',
+} as const;
 
 /** Topics of the repository searched for peers. */
 const SEARCH_TOPICS = 3;
@@ -33,7 +54,10 @@ const SEARCH_PAGE = 100;
 
 const refOf = (input: GapInput) => {
   const ref = parseGitHubUrl(input.repoUrl);
-  if (!ref) throw new ValidationError('gap.invalid_url', 'That does not look like a GitHub repository link.', { field: 'repoUrl' });
+  if (!ref)
+    throw new ValidationError('gap.invalid_url', 'That does not look like a GitHub repository link.', {
+      field: 'repoUrl',
+    });
   return ref;
 };
 const repoKey = (input: GapInput) => {
@@ -58,8 +82,18 @@ export function describeFacet(entry: FacetPrevalence, names: TopicNames): GapFac
   const kind = prefix === 'tag' ? 'tag' : prefix === 'meta' ? 'meta' : 'path';
   // "file:dockerfile" and "dir:docker" both point at the topic "docker"; extensions are ignored.
   const stem = name.replace(/^\./, '').replace(/\.[a-z0-9]+$/i, '');
-  const slug = kind === 'meta' ? undefined : (names.aliasToSlug.get(kind === 'tag' ? name : stem) ?? names.aliasToSlug.get(name));
-  return { facet: entry.facet, kind, name, topic: slug === undefined ? null : (names.displayNames.get(slug) ?? slug), prevalence: entry.prevalence, peersWith: entry.peersWith };
+  const slug =
+    kind === 'meta'
+      ? undefined
+      : (names.aliasToSlug.get(kind === 'tag' ? name : stem) ?? names.aliasToSlug.get(name));
+  return {
+    facet: entry.facet,
+    kind,
+    name,
+    topic: slug === undefined ? null : (names.displayNames.get(slug) ?? slug),
+    prevalence: entry.prevalence,
+    peersWith: entry.peersWith,
+  };
 }
 
 /**
@@ -79,16 +113,26 @@ export const gapAnalysisJob: JobHandler<GapPayload> = {
     await ctx.progress({ step: GAP_STEPS.repo, message: `Reading ${owner}/${name}` });
     const repository = await fetchRepository(client, owner, name, { deadline: ctx.deadline });
     if (repository.isPrivate) {
-      throw new ValidationError('gap.private', 'That repository is private. The Gap Finder works on public repositories.', { field: 'repoUrl' });
+      throw new ValidationError(
+        'gap.private',
+        'That repository is private. The Gap Finder works on public repositories.',
+        { field: 'repoUrl' },
+      );
     }
     const own = await readRepoFacets(client, repository, now, ctx.deadline);
-    if (own.paths.length === 0) throw new ValidationError('gap.empty', 'That repository is empty, so there is nothing to compare yet.', { field: 'repoUrl' });
+    if (own.paths.length === 0)
+      throw new ValidationError(
+        'gap.empty',
+        'That repository is empty, so there is nothing to compare yet.',
+        { field: 'repoUrl' },
+      );
 
-    const [peerSampleSize, minPrevalence, maxGaps, minPeerStars] = await Promise.all([
+    const [peerSampleSize, minPrevalence, maxGaps, minPeerStars, concurrency] = await Promise.all([
       getSetting('gap.peerSampleSize'),
       getSetting('gap.minPrevalence'),
       getSetting('gap.maxGaps'),
       getSetting('gap.minPeerStars'),
+      getSetting('github.concurrency'),
     ]);
 
     await ctx.progress({ step: GAP_STEPS.peers });
@@ -98,7 +142,8 @@ export const gapAnalysisJob: JobHandler<GapPayload> = {
     if (firstTopic) {
       const expansion = await computeExpansion(firstTopic, { client, now, deadline: ctx.deadline });
       if (expansion.status === 'partial') return { kind: 'continue', payload };
-      for (const item of expansion.expansion.items) if (item.kind === 'topic' && !searchTopics.includes(item.value)) searchTopics.push(item.value);
+      for (const item of expansion.expansion.items)
+        if (item.kind === 'topic' && !searchTopics.includes(item.value)) searchTopics.push(item.value);
     }
     const pushedSince = new Date(now);
     pushedSince.setUTCMonth(pushedSince.getUTCMonth() - PEER_RECENT_MONTHS);
@@ -112,14 +157,22 @@ export const gapAnalysisJob: JobHandler<GapPayload> = {
       ...searchTopics.slice(0, SEARCH_TOPICS + SEARCH_TAGS).map((topic) => `topic:${topic} ${qualifiers}`),
       ...own.tags.slice(0, SEARCH_TAGS).map((tag) => `topic:${tag} ${qualifiers}`),
       // A repository without topics or tags is compared by its name and language.
-      ...(searchTopics.length === 0 && own.tags.length === 0 ? [`${repository.name.replace(/[-_]+/g, ' ')} in:name,description ${qualifiers}`] : []),
+      ...(searchTopics.length === 0 && own.tags.length === 0
+        ? [`${repository.name.replace(/[-_]+/g, ' ')} in:name,description ${qualifiers}`]
+        : []),
     ];
     const peers = new Map<number, FacetRepo>();
     for (const query of queries) {
       if (peers.size >= peerSampleSize) break;
-      const { repos } = await searchRepositories(client, query, { perPage: Math.min(SEARCH_PAGE, peerSampleSize * SEARCH_OVERFETCH), deadline: ctx.deadline });
+      const { repos } = await searchRepositories(client, query, {
+        perPage: Math.min(SEARCH_PAGE, peerSampleSize * SEARCH_OVERFETCH),
+        deadline: ctx.deadline,
+        reuse: true,
+      });
       for (const peer of repos) {
-        const isSelf = peer.githubId === repository.githubId || peer.fullName.toLowerCase() === repository.fullName.toLowerCase();
+        const isSelf =
+          peer.githubId === repository.githubId ||
+          peer.fullName.toLowerCase() === repository.fullName.toLowerCase();
         if (peers.size >= peerSampleSize || isSelf || peer.isFork || peers.has(peer.githubId)) continue;
         peers.set(peer.githubId, peer);
       }
@@ -127,9 +180,17 @@ export const gapAnalysisJob: JobHandler<GapPayload> = {
 
     await ctx.progress({ step: GAP_STEPS.reading, message: `Reading ${peers.size} similar repositories` });
     const peerFacets: { repo: FacetRepo; facets: RepoFacets }[] = [];
-    for (const peer of peers.values()) {
+    // Peers are read a batch at a time; a follow-up finds the ones already read in the cache (ADR-014).
+    for (const group of batches([...peers.values()], concurrency)) {
       if (outOfTime()) return { kind: 'continue', payload };
-      peerFacets.push({ repo: peer, facets: await readRepoFacets(client, peer, now, ctx.deadline) });
+      // A peer GitHub blocks or no longer has is left out of the comparison.
+      const facets = await mapConcurrent(group, concurrency, (peer) =>
+        unlessUnreadable(readRepoFacets(client, peer, now, ctx.deadline)),
+      );
+      group.forEach((peer, index) => {
+        const read = facets[index];
+        if (read) peerFacets.push({ repo: peer, facets: read });
+      });
     }
 
     await ctx.progress({ step: GAP_STEPS.comparing });
@@ -139,7 +200,10 @@ export const gapAnalysisJob: JobHandler<GapPayload> = {
     const byStars = [...peerFacets].sort((a, b) => b.repo.stars - a.repo.stars);
     const gaps = findGaps(ownSet, prevalence, { minPrevalence, maxGaps }).map((entry) => ({
       ...describeFacet(entry, names),
-      examples: byStars.filter((peer) => allFacets(peer.facets).includes(entry.facet)).slice(0, EXAMPLES).map((peer) => peer.repo.fullName),
+      examples: byStars
+        .filter((peer) => allFacets(peer.facets).includes(entry.facet))
+        .slice(0, EXAMPLES)
+        .map((peer) => peer.repo.fullName),
     }));
     const result = gapResultSchema.parse({
       repo: { fullName: repository.fullName, githubId: repository.githubId },
@@ -156,7 +220,10 @@ export const gapAnalysisJob: JobHandler<GapPayload> = {
       gaps: result.gaps.map((gap) => ({ facet: gap.facet, prevalence: gap.prevalence })),
       computedAt: now,
     });
-    const resultRef = await storeToolResult(gapTool, { repoUrl: payload.repoUrl }, result, { isMemberSubject: false, now });
+    const resultRef = await storeToolResult(gapTool, { repoUrl: payload.repoUrl }, result, {
+      isMemberSubject: false,
+      now,
+    });
     return { kind: 'done', resultRef };
   },
 };

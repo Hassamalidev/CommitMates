@@ -19,7 +19,14 @@ import {
   putTopicCount,
   upsertGhRepos,
 } from '@commitmates/db';
-import { countTopicRepositories, searchRepositories, type GitHubClient, type SearchRepo } from '@commitmates/github';
+import {
+  batches,
+  countTopicRepositories,
+  mapConcurrent,
+  searchRepositories,
+  type GitHubClient,
+  type SearchRepo,
+} from '@commitmates/github';
 
 import { ingestRepoManifests } from '../profiles/ingest';
 
@@ -32,11 +39,23 @@ const SEARCH_PAGE = 100;
 /** Time kept in hand before the deadline for scoring and storing. */
 const DEADLINE_MARGIN_MS = 3000;
 
-export type Expansion = { term: string; slug: string; items: ExpansionItem[]; sampleSize: number; computedAt: string };
+export type Expansion = {
+  term: string;
+  slug: string;
+  items: ExpansionItem[];
+  sampleSize: number;
+  computedAt: string;
+};
 
 export type ExpansionRun = { status: 'done'; expansion: Expansion } | { status: 'partial' };
 
-const toExpansion = (row: { term: string; slug: string; items: ExpansionItem[]; sampleSize: number; computedAt: Date }): Expansion => ({
+const toExpansion = (row: {
+  term: string;
+  slug: string;
+  items: ExpansionItem[];
+  sampleSize: number;
+  computedAt: Date;
+}): Expansion => ({
   ...row,
   computedAt: row.computedAt.toISOString(),
 });
@@ -55,17 +74,37 @@ async function aliasSeeds(slug: string): Promise<ExpansionItem[]> {
   if (!topic) return [];
   return [
     { kind: 'topic', value: topic.slug, score: ALIAS_SCORE, source: 'alias' },
-    ...topic.aliases.map((alias) => ({ kind: 'topic' as const, value: alias, score: ALIAS_SCORE, source: 'alias' as const })),
-    ...topic.related.map((related) => ({ kind: 'topic' as const, value: related, score: RELATED_SCORE, source: 'related' as const })),
+    ...topic.aliases.map((alias) => ({
+      kind: 'topic' as const,
+      value: alias,
+      score: ALIAS_SCORE,
+      source: 'alias' as const,
+    })),
+    ...topic.related.map((related) => ({
+      kind: 'topic' as const,
+      value: related,
+      score: RELATED_SCORE,
+      source: 'related' as const,
+    })),
   ];
 }
 
-async function sampleRepos(client: GitHubClient, term: string, topicSlug: string | null, size: number, deadline: number): Promise<SearchRepo[]> {
+async function sampleRepos(
+  client: GitHubClient,
+  term: string,
+  topicSlug: string | null,
+  size: number,
+  deadline: number,
+): Promise<SearchRepo[]> {
   const queries = [`${term} in:name,description,readme`, ...(topicSlug ? [`topic:${topicSlug}`] : [])];
   const seen = new Map<number, SearchRepo>();
   for (const query of queries) {
     if (seen.size >= size) break;
-    const { repos } = await searchRepositories(client, query, { perPage: Math.min(SEARCH_PAGE, size), deadline });
+    const { repos } = await searchRepositories(client, query, {
+      perPage: Math.min(SEARCH_PAGE, size),
+      deadline,
+      reuse: true,
+    });
     for (const repo of repos) if (seen.size < size && !seen.has(repo.githubId)) seen.set(repo.githubId, repo);
   }
   return [...seen.values()];
@@ -81,13 +120,26 @@ export async function computeExpansion(
   context: { client: GitHubClient; now: Date; deadline: number },
 ): Promise<ExpansionRun> {
   const normalized = normalizeTerm(rawTerm);
-  if (!normalized) throw new ValidationError('taxonomy.term_too_short', 'Search for at least two characters.', { field: 'q' });
+  if (!normalized)
+    throw new ValidationError('taxonomy.term_too_short', 'Search for at least two characters.', {
+      field: 'q',
+    });
   const cached = await getExpansion(normalized.term, context.now);
   if (cached) return { status: 'done', expansion: toExpansion(cached) };
 
   const { term, slug } = normalized;
   const outOfTime = () => Date.now() > context.deadline - DEADLINE_MARGIN_MS;
-  const [sampleSize, minSampleFreq, maxExpansions, minCorpus, ttlDays, countTtlDays, nonUserTtlHours] = await Promise.all([
+  const [
+    sampleSize,
+    minSampleFreq,
+    maxExpansions,
+    minCorpus,
+    ttlDays,
+    countTtlDays,
+    nonUserTtlHours,
+    concurrency,
+    maxCountLookups,
+  ] = await Promise.all([
     getSetting('taxonomy.sampleSize'),
     getSetting('taxonomy.minSampleFreq'),
     getSetting('taxonomy.maxExpansions'),
@@ -95,6 +147,8 @@ export async function computeExpansion(
     getSetting('cache.taxonomyTtlDays'),
     getSetting('cache.topicCountTtlDays'),
     getSetting('privacy.nonUserRawTtlHours'),
+    getSetting('github.concurrency'),
+    getSetting('taxonomy.maxCountLookups'),
   ]);
 
   const seeds = await aliasSeeds(slug);
@@ -129,36 +183,58 @@ export async function computeExpansion(
       expiresAt: new Date(context.now.getTime() + nonUserTtlHours * MS_PER_HOUR),
     })),
   );
-  const known = new Set((await getRepoDependencies(top.map((repo) => repo.githubId))).map((row) => row.repoGithubId));
-  for (const repo of top) {
-    if (known.has(repo.githubId)) continue;
+  const known = new Set(
+    (await getRepoDependencies(top.map((repo) => repo.githubId))).map((row) => row.repoGithubId),
+  );
+  for (const group of batches(
+    top.filter((repo) => !known.has(repo.githubId)),
+    concurrency,
+  )) {
     if (outOfTime()) return { status: 'partial' };
-    await ingestRepoManifests(context.client, repo, context.now, context.deadline);
+    await mapConcurrent(group, concurrency, (repo) =>
+      ingestRepoManifests(context.client, repo, context.now, context.deadline),
+    );
   }
   const dependencyRows = await getRepoDependencies(top.map((repo) => repo.githubId));
   const dependenciesByRepo = new Map<number, string[]>();
-  for (const row of dependencyRows) dependenciesByRepo.set(row.repoGithubId, [...(dependenciesByRepo.get(row.repoGithubId) ?? []), row.packageName]);
+  for (const row of dependencyRows)
+    dependenciesByRepo.set(row.repoGithubId, [
+      ...(dependenciesByRepo.get(row.repoGithubId) ?? []),
+      row.packageName,
+    ]);
 
   const topicFreq = sampleFrequencies(sample.map((repo) => repo.topics));
   const dependencyFreq = sampleFrequencies(top.map((repo) => dependenciesByRepo.get(repo.githubId) ?? []));
-  const frequentTopics = [...topicFreq].filter(([, freq]) => freq >= minSampleFreq).map(([value]) => value);
+  const frequentTopics = [...topicFreq]
+    .filter(([, freq]) => freq >= minSampleFreq)
+    .sort((a, b) => b[1] - a[1])
+    .map(([value]) => value);
 
-  // How common each topic is on all of GitHub, fetched lazily and cached for a week.
+  // How common each topic is on all of GitHub, fetched lazily and cached for a week. Each count is a
+  // search, and search allows few calls a minute, so one expansion looks up at most
+  // taxonomy.maxCountLookups new ones, the most frequent first; later expansions count the rest (ADR-014).
   const freshAfter = new Date(context.now.getTime() - countTtlDays * MS_PER_DAY);
   const counts = await getTopicCounts(frequentTopics, freshAfter);
-  for (const value of frequentTopics) {
-    if (counts.has(value)) continue;
+  for (const value of frequentTopics.filter((topic) => !counts.has(topic)).slice(0, maxCountLookups)) {
     if (outOfTime()) return { status: 'partial' };
     const total = await countTopicRepositories(context.client, value, { deadline: context.deadline });
     await putTopicCount(value, total, context.now);
     counts.set(value, total);
   }
+  // A topic not counted yet is treated as the most common one seen, so it ranks by its share of the
+  // sample alone and never by an unknown rarity.
+  const mostCommon = Math.max(0, ...counts.values());
   const usage = await dependencyUsage([...dependencyFreq.keys()]);
   const useCorpus = usage.corpus >= minCorpus;
 
   const learned = scoreCandidates(
     [
-      ...[...topicFreq].map(([value, sampleFreq]) => ({ kind: 'topic' as const, value, sampleFreq, globalCount: counts.get(value) ?? null })),
+      ...[...topicFreq].map(([value, sampleFreq]) => ({
+        kind: 'topic' as const,
+        value,
+        sampleFreq,
+        globalCount: counts.get(value) ?? (mostCommon > 0 ? mostCommon : null),
+      })),
       ...[...dependencyFreq].map(([value, sampleFreq]) => ({
         kind: 'dependency' as const,
         value,
@@ -168,7 +244,13 @@ export async function computeExpansion(
     ],
     { minSampleFreq, maxExpansions },
   );
-  const expansion = { term, slug, items: mergeExpansion(seeds, learned), sampleSize: sample.length, computedAt: context.now };
+  const expansion = {
+    term,
+    slug,
+    items: mergeExpansion(seeds, learned),
+    sampleSize: sample.length,
+    computedAt: context.now,
+  };
   await putExpansion({ ...expansion, expiresAt: new Date(context.now.getTime() + ttlDays * MS_PER_DAY) });
   return { status: 'done', expansion: toExpansion(expansion) };
 }

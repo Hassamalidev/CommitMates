@@ -27,6 +27,8 @@ export const repoSignalsSchema = z.object({
   issues: z.object({ total: z.number().int(), allClosed: z.boolean(), openComments: z.array(z.number().int()) }),
   /** Stars since the last push; read only for the top candidates. */
   recentStars: z.number().int().min(0).nullable(),
+  /** Only the README and the commit estimate were read: the candidate failed the Graveyard's filters. */
+  partial: z.boolean().optional(),
 });
 export type RepoSignals = z.infer<typeof repoSignalsSchema>;
 
@@ -50,14 +52,36 @@ async function store(fullName: string, signals: RepoSignals, now: Date): Promise
  * What the Graveyard reads about one repository (CLAUDE.md §8 F7 steps 4–5), cached for
  * `cache.searchTtlHours` so overlapping searches and continuations do not read it twice.
  */
-export async function repoSignals(client: GitHubClient, fullName: string, now: Date, deadline: number): Promise<RepoSignals> {
+export async function repoSignals(
+  client: GitHubClient,
+  fullName: string,
+  now: Date,
+  deadline: number,
+  options: { minCommits?: number } = {},
+): Promise<RepoSignals> {
   const cached = repoSignalsSchema.safeParse((await getCachedAnalysis(key(fullName), now))?.result);
-  if (cached.success) return cached.data;
+  // A partial reading serves only callers that filter the same way.
+  if (cached.success && !(cached.data.partial === true && options.minCommits === undefined)) return cached.data;
   const [owner = '', name = ''] = fullName.split('/');
   const request = { deadline };
-  const readme = await fetchReadme(client, owner, name, request);
-  const [commitEstimate, commits, hasReleases, issues] = [
-    await fetchCommitEstimate(client, owner, name, request),
+  const [readme, commitEstimate] = await Promise.all([fetchReadme(client, owner, name, request), fetchCommitEstimate(client, owner, name, request)]);
+  // A candidate without a README or with too short a history is filtered out (§8 F7 step 4): the
+  // rest of its signals would never be shown, so they are not read (ADR-014).
+  if (options.minCommits !== undefined && (readme === null || commitEstimate < options.minCommits)) {
+    const filtered: RepoSignals = {
+      hasReadme: readme !== null,
+      readme: '',
+      commitEstimate,
+      commitMessages: [],
+      hasReleases: false,
+      issues: { total: 0, allClosed: false, openComments: [] },
+      recentStars: null,
+      partial: true,
+    };
+    await store(fullName, filtered, now);
+    return filtered;
+  }
+  const [commits, hasReleases, issues] = [
     await fetchRecentCommits(client, owner, name, { ...request, count: SIGNAL_SAMPLE }),
     await fetchHasReleases(client, owner, name, request),
     await fetchIssueSample(client, owner, name, { ...request, openCount: SIGNAL_SAMPLE }),

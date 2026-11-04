@@ -16,6 +16,7 @@ export {
   GitHubServerError,
   GitHubValidationError,
   RateLimitError,
+  unlessUnreadable,
 } from './errors';
 export { SERVER_IDENTITY, identityKey, type TokenIdentity } from './identity';
 export { LOGIN_PATTERN, parseGitHubUrl, type GitHubRef } from './url';
@@ -23,6 +24,7 @@ export { ensureBudget, parseRateLimitHeaders, type BudgetResource, type RateLimi
 export {
   GitHubOrganizationError,
   PROFILE_QUERY,
+  PROFILE_REPOS_QUERY,
   fetchProfile,
   type FetchProfileOptions,
   type Profile,
@@ -66,3 +68,4 @@ export {
   type IssueSample,
 } from './queries/activity';
 export { fetchIssueResponses, fetchLabels, searchIssues, type FoundIssue, type IssueWithReply } from './queries/issues';
+export { batches, mapConcurrent } from './concurrency';

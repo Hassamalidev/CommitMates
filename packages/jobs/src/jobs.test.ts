@@ -8,7 +8,7 @@ import {
 } from '@commitmates/db';
 import { useTestDatabase, withSettings, type TestDatabase } from '@commitmates/db/testing';
 import pino from 'pino';
-import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
+import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 import { z } from 'zod';
 
 import {
@@ -452,6 +452,43 @@ describe('watchJob', () => {
     ]);
   });
 
+  it('runs a due interactive job and its continuations itself when asked to drive', async () => {
+    handler(
+      'driven',
+      (payload): Promise<JobOutcome> =>
+        Promise.resolve(payload.n < 3 ? { kind: 'continue', payload: { n: payload.n + 1 } } : { kind: 'done', resultRef: { n: payload.n } }),
+      { priority: PRIORITY.INTERACTIVE },
+    );
+    const job = await enqueue('driven', { n: 1 });
+    const driven: string[] = [];
+    const events: JobEvent[] = [];
+    const drive = (jobId: string, budgetMs: number) => {
+      driven.push(jobId);
+      return runTick({ budgetMs, onlyJobId: jobId });
+    };
+    // No tick runs between polls: only the stream's own runs move the job.
+    for await (const event of watchJob(job.id, { sleep: () => new Promise((resolve) => setTimeout(resolve, 20)), drive })) events.push(event);
+    expect(events.at(-1)).toEqual({ event: 'done', data: { resultRef: { n: 3 } } });
+    expect(driven[0]).toBe(job.id);
+  });
+
+  it('leaves jobs that are not interactive to the workers', async () => {
+    handler('maintenance', () => Promise.resolve({ kind: 'done' }), { priority: PRIORITY.MAINTENANCE });
+    const job = await enqueue('maintenance', { n: 1 });
+    const drive = vi.fn(() => Promise.resolve());
+    let polls = 0;
+    const events: JobEvent[] = [];
+    for await (const event of watchJob(job.id, {
+      drive,
+      sleep: async () => {
+        polls += 1;
+        if (polls === 2) await runTick({ budgetMs: BUDGET_MS });
+      },
+    })) events.push(event);
+    expect(drive).not.toHaveBeenCalled();
+    expect(events.at(-1)?.event).toBe('done');
+  });
+
   it('reports a waiting job with its resume time, then the failure message', async () => {
     const until = new Date(Date.now() + 90_000);
     let attempt = 0;
@@ -497,6 +534,7 @@ describe('watchJob', () => {
       resultRef: null,
       userMessage: null,
       runAt: new Date(),
+      priority: PRIORITY.INTERACTIVE,
     };
     expect(toJobEvent(view, new Date())).toEqual({ event: 'error', data: { message: 'This job was cancelled.' } });
   });

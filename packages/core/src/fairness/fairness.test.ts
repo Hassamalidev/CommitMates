@@ -262,8 +262,9 @@ describe('fairness_report job', () => {
   it('continues reading commits in a follow-up when time runs short', async () => {
     serve();
     detailDelayMs = 600;
-    // A 6 s budget leaves about one second for reading commits before the margin.
-    const { jobId } = await run({ repoUrl: 'team/project' }, 6000);
+    // A 6 s budget leaves about one second for reading commits before the margin; one request at a
+    // time makes that too short for every commit, as on a large repository.
+    const { jobId } = await withSettings({ 'github.concurrency': 1 }, () => run({ repoUrl: 'team/project' }, 6000));
     detailDelayMs = 0;
     const chain = await database.sql`select status, payload from jobs where type = 'fairness_report' order by created_at`;
     expect(chain.length).toBeGreaterThan(1);

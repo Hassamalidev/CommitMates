@@ -2,7 +2,13 @@ import { createHash } from 'node:crypto';
 
 import { bm25Index, bm25Scores, bm25Tokens, yake } from '@commitmates/algorithms';
 import { getDb, getSetting, schema } from '@commitmates/db';
-import { SERVER_IDENTITY, fetchReadme, githubFor, searchRepositories, type SearchRepo } from '@commitmates/github';
+import {
+  SERVER_IDENTITY,
+  fetchReadme,
+  githubFor,
+  searchRepositories,
+  type SearchRepo,
+} from '@commitmates/github';
 import { PRIORITY, type JobHandler } from '@commitmates/jobs';
 import { loadStopwords } from '@commitmates/sources';
 
@@ -11,7 +17,12 @@ import { dayBucket, storeToolResult, type ToolDefinition } from '../tools/servic
 import { fypInputSchema, fypResultSchema, type FypInput, type FypResult } from './schemas';
 
 /** The steps `fyp_check` reports, in order. */
-export const FYP_STEPS = { keyphrases: 'keyphrases', searching: 'searching', reading: 'reading', comparing: 'comparing' } as const;
+export const FYP_STEPS = {
+  keyphrases: 'keyphrases',
+  searching: 'searching',
+  reading: 'reading',
+  comparing: 'comparing',
+} as const;
 
 /** README characters compared (§8 F9 step 3). */
 export const MAX_README_CHARS = 20_000;
@@ -32,7 +43,10 @@ const DEADLINE_MARGIN_MS = 4000;
 
 export const ideaText = (input: FypInput) => `${input.title}\n${input.description}`;
 const ideaKey = (input: FypInput) =>
-  createHash('sha256').update(ideaText(input).toLowerCase().replace(/\s+/g, ' ').trim()).digest('hex').slice(0, KEY_LENGTH);
+  createHash('sha256')
+    .update(ideaText(input).toLowerCase().replace(/\s+/g, ' ').trim())
+    .digest('hex')
+    .slice(0, KEY_LENGTH);
 
 export const fypTool: ToolDefinition<FypInput> = {
   slug: 'fyp-check',
@@ -50,7 +64,9 @@ export const fypTool: ToolDefinition<FypInput> = {
  */
 export async function detectLanguage(text: string): Promise<{ language: string; stopwords: Set<string> }> {
   const words = new Set(text.toLowerCase().match(/[\p{L}']+/gu) ?? []);
-  const rows = await getDb().select({ language: schema.stopwords.language, words: schema.stopwords.words }).from(schema.stopwords);
+  const rows = await getDb()
+    .select({ language: schema.stopwords.language, words: schema.stopwords.words })
+    .from(schema.stopwords);
   let best = { language: 'en', overlap: 0, words: [] as string[] };
   for (const row of rows) {
     let overlap = 0;
@@ -66,9 +82,14 @@ export async function detectLanguage(text: string): Promise<{ language: string; 
  * `fyp.yake.maxKeyphrases` phrases of up to `fyp.yake.ngramMax` words. Shared with Alumni Quick Asks.
  */
 export async function extractKeyphrases(text: string): Promise<string[]> {
-  const [maxKeyphrases, ngramMax] = await Promise.all([getSetting('fyp.yake.maxKeyphrases'), getSetting('fyp.yake.ngramMax')]);
+  const [maxKeyphrases, ngramMax] = await Promise.all([
+    getSetting('fyp.yake.maxKeyphrases'),
+    getSetting('fyp.yake.ngramMax'),
+  ]);
   const { stopwords } = await detectLanguage(text);
-  return yake(text, { stopwords, ngramMax, top: maxKeyphrases, dedupThreshold: DEDUP_THRESHOLD }).map((entry) => entry.keyphrase);
+  return yake(text, { stopwords, ngramMax, top: maxKeyphrases, dedupThreshold: DEDUP_THRESHOLD }).map(
+    (entry) => entry.keyphrase,
+  );
 }
 
 const quote = (phrase: string) => `"${phrase.replace(/"/g, '')}"`;
@@ -95,7 +116,10 @@ export const fypCheckJob: JobHandler<FypInput> = {
       getSetting('ir.bm25.b'),
     ]);
     const { language, stopwords } = await detectLanguage(text);
-    const extract = (body: string) => yake(body, { stopwords, ngramMax, top: maxKeyphrases, dedupThreshold: DEDUP_THRESHOLD }).map((entry) => entry.keyphrase);
+    const extract = (body: string) =>
+      yake(body, { stopwords, ngramMax, top: maxKeyphrases, dedupThreshold: DEDUP_THRESHOLD }).map(
+        (entry) => entry.keyphrase,
+      );
     const keyphrases = extract(text);
 
     await ctx.progress({ step: FYP_STEPS.searching });
@@ -108,8 +132,13 @@ export const fypCheckJob: JobHandler<FypInput> = {
     const found = new Map<number, SearchRepo>();
     for (const query of [...new Set(queries)]) {
       if (found.size >= topN) break;
-      const { repos } = await searchRepositories(client, `${query} in:name,description,readme`, { perPage: Math.min(SEARCH_PAGE, topN), deadline: ctx.deadline });
-      for (const repo of repos) if (found.size < topN && !found.has(repo.githubId)) found.set(repo.githubId, repo);
+      const { repos } = await searchRepositories(client, `${query} in:name,description,readme`, {
+        perPage: Math.min(SEARCH_PAGE, topN),
+        deadline: ctx.deadline,
+        reuse: true,
+      });
+      for (const repo of repos)
+        if (found.size < topN && !found.has(repo.githubId)) found.set(repo.githubId, repo);
     }
 
     await ctx.progress({ step: FYP_STEPS.reading, message: `Reading ${found.size} projects` });
@@ -118,7 +147,10 @@ export const fypCheckJob: JobHandler<FypInput> = {
       if (Date.now() > ctx.deadline - DEADLINE_MARGIN_MS) return { kind: 'continue', payload: input };
       const [owner = '', name = ''] = repo.fullName.split('/');
       const readme = (await fetchReadme(client, owner, name, { deadline: ctx.deadline })) ?? '';
-      readmes.push({ repo, readme: `${repo.name}\n${repo.description ?? ''}\n${readme}`.slice(0, MAX_README_CHARS) });
+      readmes.push({
+        repo,
+        readme: `${repo.name}\n${repo.description ?? ''}\n${readme}`.slice(0, MAX_README_CHARS),
+      });
     }
 
     await ctx.progress({ step: FYP_STEPS.comparing });
@@ -132,25 +164,40 @@ export const fypCheckJob: JobHandler<FypInput> = {
 
     const results: FypResult['results'] = readmes
       .map((entry, index) => {
-        const similarity = selfScore === 0 ? 0 : Math.min(PERCENT, (PERCENT * (scores[index] ?? 0)) / selfScore);
+        const similarity =
+          selfScore === 0 ? 0 : Math.min(PERCENT, (PERCENT * (scores[index] ?? 0)) / selfScore);
         const theirs = new Set(extract(entry.readme).map((phrase) => phrase.toLowerCase()));
         return {
           fullName: entry.repo.fullName,
           description: entry.repo.description,
           stars: entry.repo.stars,
           similarity: Math.round(similarity),
-          band: similarity >= veryAt ? ('very-similar' as const) : similarity >= relatedAt ? ('related' as const) : ('loose' as const),
-          sharedKeyphrases: [...ideaPhrases].filter(([lower]) => theirs.has(lower)).map(([, phrase]) => phrase),
+          band:
+            similarity >= veryAt
+              ? ('very-similar' as const)
+              : similarity >= relatedAt
+                ? ('related' as const)
+                : ('loose' as const),
+          sharedKeyphrases: [...ideaPhrases]
+            .filter(([lower]) => theirs.has(lower))
+            .map(([, phrase]) => phrase),
         };
       })
       .sort((a, b) => b.similarity - a.similarity || a.fullName.localeCompare(b.fullName));
 
     const closest = new Set(results.slice(0, UNIQUE_AGAINST).map((result) => result.fullName));
-    const closestText = readmes.filter((entry) => closest.has(entry.repo.fullName)).map((entry) => entry.readme.toLowerCase());
-    const unique = keyphrases.filter((phrase) => !closestText.some((readme) => readme.includes(phrase.toLowerCase())));
+    const closestText = readmes
+      .filter((entry) => closest.has(entry.repo.fullName))
+      .map((entry) => entry.readme.toLowerCase());
+    const unique = keyphrases.filter(
+      (phrase) => !closestText.some((readme) => readme.includes(phrase.toLowerCase())),
+    );
 
     const result = fypResultSchema.parse({ keyphrases, language, results, unique });
-    const resultRef = await storeToolResult(fypTool, input, result, { isMemberSubject: false, now: ctx.now() });
+    const resultRef = await storeToolResult(fypTool, input, result, {
+      isMemberSubject: false,
+      now: ctx.now(),
+    });
     return { kind: 'done', resultRef };
   },
 };
