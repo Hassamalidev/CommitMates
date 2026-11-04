@@ -1,6 +1,8 @@
 import { MATCH_MODES, sharedActiveWindow, type HourWindow, type MatchMode } from '@commitmates/algorithms';
 import {
+  AppError,
   countryIndexPeople,
+  getLogger,
   NotFoundError,
   ValidationError,
   actOnSuggestion,
@@ -287,9 +289,11 @@ export async function developersLikeYou(member: DiscoverMember, now: Date = new 
     // One extra, because the member may be among the results.
     found = await searchUsers(client, `language:${qualifier(language)} location:${qualifier(university.country)}`, { perPage: size + 1 });
   } catch (error) {
-    // A view-only extra: when GitHub is slow or out of budget, the page says so instead of failing.
-    if (error instanceof RateLimitError || error instanceof GitHubServerError) return { status: 'unavailable' };
-    throw error;
+    // A view-only extra: whatever GitHub answers (slow, out of budget, a rejected token), the page
+    // says the list is unavailable instead of failing. Anything but a wait is logged.
+    if (!(error instanceof AppError)) throw error;
+    if (!(error instanceof RateLimitError || error instanceof GitHubServerError)) getLogger().warn({ err: error }, 'developers like you: GitHub search failed');
+    return { status: 'unavailable' };
   }
   const people = found.filter((person) => person.githubId !== member.githubId).slice(0, size);
   await putCachedAnalysis({

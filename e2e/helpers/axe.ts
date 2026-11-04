@@ -6,6 +6,8 @@ const BLOCKING_IMPACTS = new Set(['serious', 'critical']);
 
 /** Scans the current page with axe and fails on any serious or critical violation; `where` names the page in the failure. */
 export async function expectNoSeriousA11yViolations(page: Page, where?: string): Promise<void> {
+  // Dynamic pages stream their metadata, so the <title> can arrive just after the load event.
+  await expect(page, `a <title>${where ? ` on ${where}` : ''}`).toHaveTitle(/\S/);
   const results = await new AxeBuilder({ page }).withTags(['wcag2a', 'wcag2aa', 'wcag21aa', 'wcag22aa']).analyze();
   const blocking = results.violations
     .filter((violation) => BLOCKING_IMPACTS.has(violation.impact ?? ''))

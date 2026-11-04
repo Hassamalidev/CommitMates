@@ -333,4 +333,15 @@ describe('developersLikeYou', () => {
     );
     expect(await developersLikeYou(me, NOW)).toEqual({ status: 'unavailable' });
   });
+
+  it('says the list is unavailable when GitHub rejects the token, instead of failing the page', async () => {
+    const me = await member();
+    await database.sql`insert into gh_repos (github_id, owner_github_id, full_name, name, primary_language, is_fork, fetched_at)
+                       values (900011, ${me.githubId}, ${`${me.login}/b`}, 'b', 'Python', false, now())`;
+    server.use(
+      http.get(`${API}/rate_limit`, () => HttpResponse.json({ message: 'Bad credentials' }, { status: 401 })),
+      http.get(`${API}/search/users`, () => HttpResponse.json({ message: 'Bad credentials' }, { status: 401 })),
+    );
+    expect(await developersLikeYou(me, NOW)).toEqual({ status: 'unavailable' });
+  });
 });

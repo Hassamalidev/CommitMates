@@ -191,6 +191,8 @@ const ADMIN_PAGES: Pages = {
 
 /** Opened by a member who has not verified yet, since verified members move on to /home. */
 const ONBOARDING_PAGE = '/onboarding';
+/** Headings of the not-found and error pages (apps/web/src/copy/errors.ts). */
+const ERROR_PAGE_TITLES = /^(We could not find that page|Something broke on our side)$/;
 /** Presses on one element in a row that mean focus is held there. */
 const TRAP_PRESSES = 5;
 
@@ -225,6 +227,8 @@ async function auditPage(page: Page, url: string): Promise<void> {
     await expect(page.locator('h1'), `one H1 on ${url}`).toHaveCount(1);
     await expectLabelledStructures(page, url);
     await expectNoSeriousA11yViolations(page, `${url} (${theme})`);
+    // A section that fails while streaming swaps the page for the error page, which is accessible too.
+    await expect(page.getByRole('heading', { level: 1, name: ERROR_PAGE_TITLES }), `${url} rendered an error page`).toHaveCount(0);
   }
 }
 
