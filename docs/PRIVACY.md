@@ -152,7 +152,7 @@ In-app notifications and the member's email preferences: whether they want a dai
 
 ### `feedback` (class A)
 
-Feedback text with the page it was sent from. `user_id` is set to null when the account is deleted, so the text stays without a link to the person.
+Feedback text with the page it was sent from. Visitors can send feedback too (the form is linked in the footer): their rows have no `user_id` and nothing else that identifies them, since the rate limit uses the daily salted address hash in `rate_limit_buckets`, never stored with the feedback. For members, `user_id` is set to null when the account is deleted, so the text stays without a link to the person. Feedback text is whatever the sender chose to write.
 
 ### `email_daily_counts` (class D)
 

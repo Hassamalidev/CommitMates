@@ -137,6 +137,7 @@ const PUBLIC_PAGES: Pages = {
   '/terms': () => '/terms',
   '/attribution': () => '/attribution',
   '/optout': () => '/optout',
+  '/feedback': () => '/feedback',
   '/health': () => '/health',
 };
 
@@ -170,7 +171,6 @@ const MEMBER_PAGES: Pages = {
   '/fyp/ideas/[id]': (seed) => `/fyp/ideas/${seed.ideaId}`,
   '/u/[login]': (seed) => `/u/${seed.member.login}`,
   '/notifications': () => '/notifications',
-  '/feedback': () => '/feedback',
   '/settings/privacy': () => '/settings/privacy',
   '/settings/notifications': () => '/settings/notifications',
   '/settings/projects': () => '/settings/projects',

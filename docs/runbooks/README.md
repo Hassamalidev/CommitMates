@@ -9,6 +9,6 @@ Step-by-step guides for humans. Each runbook follows the template in CLAUDE.md Â
 | [rotate-token-key.md](rotate-token-key.md) | Rotate `TOKEN_ENCRYPTION_KEY` and re-encrypt stored tokens | P7-T01 |
 | [backup-restore.md](backup-restore.md) | Back up the database, restore it, and run a restore drill | P7-T05 |
 | [deploy.md](deploy.md) | Set up Supabase and Vercel, apply migrations to staging then prod, enable the pg_cron tick | P7-T06 |
-| `launch.md` | Launch checklist | P7-T08 |
+| [launch.md](launch.md) | Launch checklist: what is done, what waits on the deployment, and tagging `v1.0.0` | P7-T08 |
 
 Rows without a link are written by the task named in the last column.

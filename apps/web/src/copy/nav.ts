@@ -13,6 +13,7 @@ export const navCopy = {
     privacy: 'Privacy',
     terms: 'Terms',
     status: 'Status',
+    feedback: 'Feedback',
     note: 'No AI, no ads, no selling data.',
     optout: 'Opt out of the index',
   },

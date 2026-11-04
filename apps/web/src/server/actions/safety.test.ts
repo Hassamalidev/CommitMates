@@ -13,8 +13,12 @@ const member = { id: 'member-1', verified: true };
 const requireVerified = vi.fn<() => Promise<typeof member>>();
 const requireUser = vi.fn<() => Promise<typeof member>>();
 vi.mock('@/server/guards', () => ({ requireVerified, requireUser }));
+const getCurrentMember = vi.fn<() => Promise<typeof member | null>>();
+vi.mock('@/server/auth', () => ({ getCurrentMember }));
 const guardWriteRate = vi.fn<(userId: string) => Promise<void>>();
-vi.mock('@/server/rate', () => ({ guardWriteRate }));
+const guardToolRate = vi.fn<(tool: string, headers: Headers) => Promise<string>>();
+vi.mock('@/server/rate', () => ({ guardWriteRate, guardToolRate }));
+vi.mock('next/headers', () => ({ headers: () => Promise.resolve(new Headers()) }));
 const core = {
   blockMember: vi.fn<(...args: unknown[]) => Promise<void>>(),
   unblockMember: vi.fn<(...args: unknown[]) => Promise<void>>(),
@@ -37,7 +41,9 @@ beforeEach(() => {
   vi.clearAllMocks();
   requireVerified.mockResolvedValue(member);
   requireUser.mockResolvedValue(member);
+  getCurrentMember.mockResolvedValue(member);
   guardWriteRate.mockResolvedValue();
+  guardToolRate.mockResolvedValue('ip-hash');
 });
 
 describe('safety actions', () => {
@@ -56,10 +62,20 @@ describe('safety actions', () => {
     expect(guardWriteRate).toHaveBeenCalledTimes(2);
   });
 
-  it('accepts feedback from any signed-in member, verified or not', async () => {
+  it('accepts feedback from any signed-in member, verified or not, limited per account', async () => {
     expect(await feedbackAction(null, form({ page: '/feedback', body: 'Nice work' }))).toEqual({ ok: true, data: null });
-    expect(requireUser).toHaveBeenCalled();
+    expect(guardWriteRate).toHaveBeenCalledWith(member.id);
+    expect(guardToolRate).not.toHaveBeenCalled();
     expect(requireVerified).not.toHaveBeenCalled();
+    expect(core.submitFeedback).toHaveBeenCalledWith(member, { page: '/feedback', body: 'Nice work' });
+  });
+
+  it('accepts feedback from a visitor, limited per hashed address and stored without an identity', async () => {
+    getCurrentMember.mockResolvedValue(null);
+    expect(await feedbackAction(null, form({ page: '/feedback', body: 'Clear landing page' }))).toEqual({ ok: true, data: null });
+    expect(guardToolRate).toHaveBeenCalledWith('feedback', expect.any(Headers));
+    expect(guardWriteRate).not.toHaveBeenCalled();
+    expect(core.submitFeedback).toHaveBeenCalledWith(null, { page: '/feedback', body: 'Clear landing page' });
   });
 
   it('refuses blocking and reporting before verification', async () => {

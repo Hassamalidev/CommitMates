@@ -126,4 +126,10 @@ describe('feedback', () => {
       await expect(submitFeedback(me, { page: '/', body: 'long' })).rejects.toMatchObject({ code: 'feedback.long' });
     });
   });
+
+  it('stores a visitor’s feedback without any identifier', async () => {
+    await submitFeedback(null, { page: '/feedback', body: 'The Graveyard search found a project I want to revive.' });
+    const [row] = await database.sql`select user_id, page from feedback where body like 'The Graveyard search found%'`;
+    expect(row).toEqual({ user_id: null, page: '/feedback' });
+  });
 });

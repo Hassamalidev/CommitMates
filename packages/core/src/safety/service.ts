@@ -119,11 +119,14 @@ export async function reportMember(member: Actor, raw: unknown, now: Date = new 
 
 export const feedbackSchema = z.object({ page: z.string().trim().max(MAX_PAGE_LENGTH), body: z.string().trim() });
 
-/** Feedback or an appeal from a signed-in member, with the page it is about. */
-export async function submitFeedback(member: Actor, raw: unknown): Promise<void> {
+/**
+ * Feedback with the page it is about: from a visitor (`null`, stored without any identifier) or a
+ * signed-in member, whose appeals moderators read (§8 F12).
+ */
+export async function submitFeedback(member: Actor | null, raw: unknown): Promise<void> {
   const input = feedbackSchema.parse(raw);
   const maxChars = await getSetting('feedback.maxChars');
   if (input.body.length === 0) throw new ValidationError('feedback.empty', 'Write something first.', { field: 'body' });
   if (input.body.length > maxChars) throw new ValidationError('feedback.long', `Feedback can be up to ${maxChars} characters.`, { field: 'body' });
-  await insertFeedback({ userId: member.id, page: input.page === '' ? '/' : input.page, body: input.body });
+  await insertFeedback({ userId: member?.id ?? null, page: input.page === '' ? '/' : input.page, body: input.body });
 }

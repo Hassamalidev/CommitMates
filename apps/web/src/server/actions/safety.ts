@@ -1,11 +1,13 @@
 'use server';
 
 import { blockMember, reportMember, submitFeedback, unblockMember } from '@commitmates/core';
+import { headers } from 'next/headers';
 import { revalidatePath } from 'next/cache';
 
 import { withAction, type ActionResult } from '@/server/action';
-import { requireUser, requireVerified } from '@/server/guards';
-import { guardWriteRate } from '@/server/rate';
+import { getCurrentMember } from '@/server/auth';
+import { requireVerified } from '@/server/guards';
+import { guardToolRate, guardWriteRate } from '@/server/rate';
 
 const field = (formData: FormData, name: string) => {
   const value = formData.get(name);
@@ -42,8 +44,10 @@ export const reportAction = async (_previous: ActionResult<null> | null, formDat
 /** Feedback or an appeal from any signed-in member, including one whose account is hidden for review. */
 export const feedbackAction = async (_previous: ActionResult<null> | null, formData: FormData) =>
   withAction('safety.feedback', async (): Promise<null> => {
-    const member = await requireUser();
-    await guardWriteRate(member.id);
+    // Open to visitors too (§9.6 footer): members are rate-limited per account, visitors per hashed address.
+    const member = await getCurrentMember();
+    if (member) await guardWriteRate(member.id);
+    else await guardToolRate('feedback', await headers());
     await submitFeedback(member, { page: field(formData, 'page'), body: field(formData, 'body') });
     return null;
   })();

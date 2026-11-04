@@ -124,6 +124,19 @@ test.describe('site pages', () => {
     await expect(page.getByText(/will be finalized before public launch/)).toHaveCount(0);
   });
 
+  test('a visitor sends feedback from the footer, stored without an identifier', async ({ page }) => {
+    const body = `The landing demo was clear (${Date.now()}).`;
+    await page.goto('/');
+    await page.getByRole('navigation', { name: 'Footer' }).getByRole('link', { name: 'Feedback' }).click();
+    await expect(page).toHaveURL(/\/feedback$/);
+    await page.getByLabel('Your message').fill(body);
+    await page.getByRole('button', { name: 'Send' }).click();
+    await expect(page.getByText('Thank you. We received your message.')).toBeVisible();
+    const rows = await withAppDatabase((sql) => sql<{ user_id: string | null }[]>`select user_id from feedback where body = ${body}`);
+    expect(rows).toEqual([{ user_id: null }]);
+    await withAppDatabase((sql) => sql`delete from feedback where body = ${body}`);
+  });
+
   test('an unknown address shows the friendly 404 page', async ({ page }) => {
     const response = await page.goto('/this-page-does-not-exist');
     expect(response?.status()).toBe(404);

@@ -18,6 +18,7 @@ const RATE = /\bguard\w*Rate\(/;
 /** Actions open to anyone, with why that is safe. */
 const PUBLIC: Record<string, string> = {
   'optout.ts:optOutAction': 'The country-index opt-out only removes data and is rate-limited per hashed address (§8 F18).',
+  'safety.ts:feedbackAction': 'Feedback is open to visitors (footer, §9.6); rate-limited per member or per hashed address, stored without an identifier for visitors.',
 };
 
 /** Guarded actions without a rate limit, with why none is needed. */
