@@ -14,7 +14,7 @@
   },
   "dependencies": {
     "@commitmates/env": "workspace:*",
-    "nodemailer": "10.0.12"
+    "nodemailer": "10.3.1"
   },
   "devDependencies": {
     "@commitmates/config": "workspace:*",
