@@ -15,7 +15,7 @@
   "dependencies": {
     "@commitmates/db": "workspace:*",
     "@commitmates/env": "workspace:*",
-    "cron-parser": "^5.10.2",
+    "cron-parser": "^5.10.4",
     "drizzle-orm": "^0.45.4",
     "zod": "catalog:"
   },
